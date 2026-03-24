@@ -1,0 +1,48 @@
+import { TurnEvent } from "../../types/run";
+
+interface EventFeedProps {
+  events: TurnEvent[];
+}
+
+function getEventClass(type: TurnEvent["type"]): string {
+  switch (type) {
+    case "action":
+      return "event-item--action";
+    case "stochastic":
+      return "event-item--stochastic";
+    case "phase_transition":
+      return "event-item--phase_transition";
+    case "coupling_effect":
+      return "event-item--coupling_effect";
+    default:
+      return "event-item--turn";
+  }
+}
+
+export default function EventFeed({ events }: EventFeedProps) {
+  return (
+    <div className="card">
+      <div className="card__title">Event Feed</div>
+      <div className="event-feed mt-1">
+        {events.length === 0 ? (
+          <div
+            className="card__body text-center"
+            style={{ padding: "1.5rem 0" }}
+          >
+            No events yet.
+          </div>
+        ) : (
+          events.map((event) => (
+            <div
+              key={event.id}
+              className={`event-item ${getEventClass(event.type)}`}
+            >
+              <span className="event-item__turn">T{event.turn}</span>
+              <span className="event-item__text">{event.description}</span>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

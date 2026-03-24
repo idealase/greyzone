@@ -1,0 +1,16 @@
+[package]
+name = "greyzone-engine"
+version = "0.1.0"
+edition = "2021"
+description = "Greyzone distributed battlespace simulation engine"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rand = "0.8"
+rand_chacha = "0.3"
+uuid = { version = "1", features = ["v4", "serde"] }
+thiserror = "1"
+tracing = "0.1"
+chrono = { version = "0.4", features = ["serde"] }
+tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
