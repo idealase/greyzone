@@ -5,6 +5,7 @@ from app.models.run import Run, RunParticipant, RunStatus
 from app.models.user import User
 from app.models.event import AiActionLog, RunEvent, RunSnapshot
 from app.models.action import UserActionLog
+from app.models.narrative import RunNarrative
 
 __all__ = [
     "Scenario",
@@ -16,4 +17,5 @@ __all__ = [
     "RunSnapshot",
     "AiActionLog",
     "UserActionLog",
+    "RunNarrative",
 ]

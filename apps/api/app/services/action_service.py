@@ -98,19 +98,32 @@ class ActionService:
             if payload:
                 data.action_payload = payload
 
-        # Submit to engine
+        # Build action matching Rust engine's Action struct
         engine_action = {
+            "id": str(uuid.uuid4()),
+            "actor_id": data.target_actor or str(uuid.uuid4()),
             "role_id": data.role_id,
             "action_type": data.action_type,
-            "payload": data.action_payload,
+            "target_layer": data.target_domain or "Cyber",
+            "target_actor_id": None,
+            "parameters": {"intensity": data.intensity or data.action_payload.get("intensity", 0.5)},
+            "turn": run.current_turn,
         }
         try:
             engine_result = await self.engine.submit_action(run_id, engine_action)
         except EngineError as e:
             raise HTTPException(status_code=503, detail=str(e))
 
-        validation = engine_result.get("validation", "accepted")
-        effects = engine_result.get("effects", {})
+        # Engine may return a dict with validation/effects, a list of effects, or None
+        if isinstance(engine_result, dict):
+            validation = engine_result.get("validation", "accepted")
+            effects = engine_result.get("effects", {})
+        elif isinstance(engine_result, list):
+            validation = "accepted"
+            effects = {"effects": engine_result}
+        else:
+            validation = "accepted"
+            effects = {}
 
         # Log the action
         action_log = UserActionLog(

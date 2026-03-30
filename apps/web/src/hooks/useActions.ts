@@ -4,15 +4,32 @@ import { advanceTurn } from "../api/runs";
 import { useRunStore } from "../stores/runStore";
 import { ActionSubmit } from "../types/action";
 import { DomainLayer, LayerState } from "../types/domain";
+import { TurnEvent } from "../types/run";
+
+function generateId(): string {
+  return "evt-" + Math.random().toString(36).slice(2, 11);
+}
 
 export function useActions(runId: string | undefined) {
   const queryClient = useQueryClient();
-  const { setWorldState, addEvents, addStressSnapshot, setIsAdvancingTurn } =
+  const { setWorldState, addEvents, addStressSnapshot, setIsAdvancingTurn, currentTurn } =
     useRunStore();
 
   const submitActionMutation = useMutation({
     mutationFn: (data: ActionSubmit) => submitAction(data),
-    onSuccess: () => {
+    onSuccess: (_result, variables) => {
+      // Add a synthetic event for instant feedback
+      const syntheticEvent: TurnEvent = {
+        id: generateId(),
+        type: "action",
+        description: `You executed ${variables.action_type} on ${variables.target_domain} (intensity: ${variables.intensity.toFixed(1)})`,
+        domain: (variables.target_domain as DomainLayer) || null,
+        actor: null,
+        turn: currentTurn,
+        visibility: "all",
+      };
+      addEvents([syntheticEvent]);
+
       if (runId) {
         queryClient.invalidateQueries({ queryKey: ["actions", runId] });
       }

@@ -1,7 +1,9 @@
+import { useState, useRef } from "react";
 import { useRunStore } from "../../stores/runStore";
 import { useActions } from "../../hooks/useActions";
 import { ALL_DOMAINS } from "../../types/domain";
-import { Role } from "../../types/run";
+import { Role, TurnResult, WorldState } from "../../types/run";
+import { Phase } from "../../types/phase";
 import PhaseIndicator from "./PhaseIndicator";
 import TurnControls from "./TurnControls";
 import DomainPanel from "./DomainPanel";
@@ -10,6 +12,15 @@ import MetricsOverview from "./MetricsOverview";
 import ActionPanel from "./ActionPanel";
 import AiMovePanel from "../../components/ai/AiMovePanel";
 import DomainStressChart from "./DomainStressChart";
+import AfterActionReport, { DomainDelta, computeDomainDeltas } from "./AfterActionReport";
+
+interface AarData {
+  completedTurn: number;
+  currentPhase: Phase;
+  orderParameter: number;
+  domainDeltas: DomainDelta[];
+  phaseChanged: boolean;
+}
 
 interface SimulationDashboardProps {
   runId: string;
@@ -35,6 +46,29 @@ export default function SimulationDashboard({
   const { submitAction, isSubmitting, advanceTurn, isAdvancing } =
     useActions(runId);
 
+  const [showAAR, setShowAAR] = useState(false);
+  const [aarData, setAarData] = useState<AarData | null>(null);
+  const prevWorldStateRef = useRef<WorldState | null>(null);
+
+  function handleAdvanceTurn() {
+    prevWorldStateRef.current = worldState;
+    advanceTurn(undefined, {
+      onSuccess: (result: TurnResult) => {
+        const prev = prevWorldStateRef.current;
+        const deltas: DomainDelta[] =
+          prev ? computeDomainDeltas(prev, result.world_state) : [];
+        setAarData({
+          completedTurn: result.turn,
+          currentPhase: result.phase,
+          orderParameter: result.order_parameter,
+          domainDeltas: deltas,
+          phaseChanged: result.phase_changed,
+        });
+        setShowAAR(true);
+      },
+    });
+  }
+
   return (
     <div className="sim-layout">
       <div className="sim-layout__top">
@@ -45,7 +79,7 @@ export default function SimulationDashboard({
         <TurnControls
           turn={currentTurn}
           isAdvancing={isAdvancing || isAdvancingTurn}
-          onAdvanceTurn={() => advanceTurn()}
+          onAdvanceTurn={handleAdvanceTurn}
           isObserver={myRole === "observer"}
         />
       </div>
@@ -88,6 +122,18 @@ export default function SimulationDashboard({
         )}
         {aiMoves.length > 0 && <AiMovePanel latestMove={aiMoves[0]} />}
       </div>
+
+      {showAAR && aarData && (
+        <AfterActionReport
+          runId={runId}
+          completedTurn={aarData.completedTurn}
+          currentPhase={aarData.currentPhase}
+          orderParameter={aarData.orderParameter}
+          domainDeltas={aarData.domainDeltas}
+          phaseChanged={aarData.phaseChanged}
+          onDismiss={() => setShowAAR(false)}
+        />
+      )}
     </div>
   );
 }

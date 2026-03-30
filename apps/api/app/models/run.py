@@ -16,6 +16,7 @@ from app.db.base import Base
 
 if TYPE_CHECKING:
     from app.models.event import RunEvent, RunSnapshot
+    from app.models.narrative import RunNarrative
     from app.models.scenario import Scenario
     from app.models.user import User
 
@@ -55,6 +56,7 @@ class Run(Base):
     participants: Mapped[list[RunParticipant]] = relationship(back_populates="run")
     events: Mapped[list[RunEvent]] = relationship(back_populates="run")
     snapshots: Mapped[list[RunSnapshot]] = relationship(back_populates="run")
+    narratives: Mapped[list[RunNarrative]] = relationship(back_populates="run")
 
 
 class RunParticipant(Base):

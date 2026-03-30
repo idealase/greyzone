@@ -7,6 +7,7 @@ from app.routers.actions import router as actions_router
 from app.routers.users import router as users_router
 from app.routers.replay import router as replay_router
 from app.routers.ai_audit import router as ai_audit_router
+from app.routers.narrative import router as narrative_router
 
 __all__ = [
     "health_router",
@@ -16,4 +17,5 @@ __all__ = [
     "users_router",
     "replay_router",
     "ai_audit_router",
+    "narrative_router",
 ]

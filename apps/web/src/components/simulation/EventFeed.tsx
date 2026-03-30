@@ -1,4 +1,5 @@
 import { TurnEvent } from "../../types/run";
+import { DomainLayer, DOMAIN_LABELS } from "../../types/domain";
 
 interface EventFeedProps {
   events: TurnEvent[];
@@ -19,6 +20,26 @@ function getEventClass(type: TurnEvent["type"]): string {
   }
 }
 
+function getTypeBadge(type: TurnEvent["type"]): { label: string; className: string } {
+  switch (type) {
+    case "action":
+      return { label: "ACTION", className: "badge badge--blue" };
+    case "stochastic":
+      return { label: "EVENT", className: "badge badge--yellow" };
+    case "phase_transition":
+      return { label: "PHASE", className: "badge badge--red" };
+    case "coupling_effect":
+      return { label: "EFFECT", className: "badge badge--purple" };
+    default:
+      return { label: "INFO", className: "badge badge--gray" };
+  }
+}
+
+function getDomainLabel(domain: string | null): string | null {
+  if (!domain) return null;
+  return DOMAIN_LABELS[domain as DomainLayer] ?? domain;
+}
+
 export default function EventFeed({ events }: EventFeedProps) {
   return (
     <div className="card">
@@ -32,15 +53,28 @@ export default function EventFeed({ events }: EventFeedProps) {
             No events yet.
           </div>
         ) : (
-          events.map((event) => (
-            <div
-              key={event.id}
-              className={`event-item ${getEventClass(event.type)}`}
-            >
-              <span className="event-item__turn">T{event.turn}</span>
-              <span className="event-item__text">{event.description}</span>
-            </div>
-          ))
+          events.map((event, idx) => {
+            const badge = getTypeBadge(event.type);
+            const domainLabel = getDomainLabel(event.domain);
+            // First few events get "new" animation class
+            const isNew = idx < 3;
+
+            return (
+              <div
+                key={event.id}
+                className={`event-item ${getEventClass(event.type)}${isNew ? " event-item--new" : ""}${event.type === "action" && event.description.startsWith("You executed") ? " event-item--user-action" : ""}`}
+              >
+                <span className="event-item__turn">T{event.turn}</span>
+                <span className={`event-item__type-badge ${badge.className}`}>
+                  {badge.label}
+                </span>
+                {domainLabel && (
+                  <span className="event-item__domain">{domainLabel}</span>
+                )}
+                <span className="event-item__text">{event.description}</span>
+              </div>
+            );
+          })
         )}
       </div>
     </div>

@@ -65,12 +65,17 @@ export interface JoinRunRequest {
 
 export interface LegalAction {
   action_type: string;
-  target_domain: DomainLayer;
-  target_actor: string | null;
+  actor_id: string;
+  available_layers: string[];
   description: string;
-  min_intensity: number;
-  max_intensity: number;
-  side: "blue" | "red";
+  parameter_ranges: { intensity: [number, number] };
+  resource_cost: number;
+  // Backward compat fields (optional)
+  target_domain?: DomainLayer;
+  target_actor?: string | null;
+  min_intensity?: number;
+  max_intensity?: number;
+  side?: "blue" | "red";
 }
 
 export interface TurnResult {

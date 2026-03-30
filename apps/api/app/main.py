@@ -14,6 +14,7 @@ from app.routers import (
     actions_router,
     ai_audit_router,
     health_router,
+    narrative_router,
     replay_router,
     runs_router,
     scenarios_router,
@@ -86,3 +87,4 @@ app.include_router(actions_router)
 app.include_router(users_router)
 app.include_router(replay_router)
 app.include_router(ai_audit_router)
+app.include_router(narrative_router)

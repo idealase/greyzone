@@ -36,14 +36,14 @@ export default function ActionPanel({
         ) : (
           legalActions.map((action, idx) => (
             <ActionCard
-              key={`${action.action_type}-${action.target_domain}-${idx}`}
+              key={`${action.action_type}-${action.actor_id ?? ""}-${idx}`}
               action={action}
-              onSubmit={(intensity) =>
+              onSubmit={(intensity, selectedDomain) =>
                 onSubmit({
                   user_id: "",
                   action_type: action.action_type,
-                  target_domain: action.target_domain,
-                  target_actor: action.target_actor,
+                  target_domain: selectedDomain,
+                  target_actor: action.actor_id ?? action.target_actor ?? null,
                   intensity,
                 })
               }
