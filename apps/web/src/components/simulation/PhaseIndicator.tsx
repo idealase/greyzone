@@ -1,6 +1,13 @@
-import { Phase, PHASE_LABELS, PHASE_COLORS, PHASE_ORDER } from "../../types/phase";
+import {
+  Phase,
+  PHASE_LABELS,
+  PHASE_COLORS,
+  PHASE_ORDER,
+  PHASE_THRESHOLDS,
+} from "../../types/phase";
 import { PHASE_TRANSITION_THRESHOLD } from "../../utils/constants";
 import { formatOrderParameter } from "../../utils/formatters";
+import InfoTooltip from "../common/InfoTooltip";
 
 interface PhaseIndicatorProps {
   phase: Phase;
@@ -14,6 +21,13 @@ export default function PhaseIndicator({
   const color = PHASE_COLORS[phase];
   const phaseIndex = PHASE_ORDER.indexOf(phase);
   const isNearTransition = orderParameter >= PHASE_TRANSITION_THRESHOLD;
+  const phaseLadder = PHASE_ORDER.map((p) => {
+    const threshold = PHASE_THRESHOLDS[p];
+    const next = PHASE_ORDER[PHASE_ORDER.indexOf(p) + 1];
+    return threshold !== undefined && next
+      ? `${PHASE_LABELS[p]} → ${PHASE_LABELS[next]} at Ψ ≥ ${threshold.toFixed(2)}`
+      : `${PHASE_LABELS[p]} (final phase)`;
+  });
 
   return (
     <div className="phase-indicator" style={{ borderColor: color }}>
@@ -25,7 +39,24 @@ export default function PhaseIndicator({
       />
       <div>
         <div className="phase-indicator__name" style={{ color }}>
-          {PHASE_LABELS[phase]}
+          <span className="phase-indicator__label">
+            {PHASE_LABELS[phase]}
+            <InfoTooltip
+              label="Phase thresholds"
+              content={
+                <div>
+                  <strong>Phase ladder</strong>
+                  <div style={{ marginTop: "0.35rem" }}>
+                    {phaseLadder.map((line) => (
+                      <div key={line} style={{ marginBottom: "0.2rem" }}>
+                        {line}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              }
+            />
+          </span>
         </div>
         <div className="phase-indicator__psi">
           {formatOrderParameter(orderParameter)}

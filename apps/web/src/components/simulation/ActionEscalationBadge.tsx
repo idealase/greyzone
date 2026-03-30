@@ -1,5 +1,6 @@
 import { PHASE_ORDER } from "../../types/phase";
 import { Phase } from "../../types/phase";
+import InfoTooltip from "../common/InfoTooltip";
 
 interface ActionEscalationBadgeProps {
   actionType: string;
@@ -81,6 +82,17 @@ export default function ActionEscalationBadge({
       <span className={`escalation-badge escalation-badge--${level}`}>
         ⚡ {LABELS[level]}
       </span>
+      <InfoTooltip
+        label="What does this escalation badge mean?"
+        content={
+          <div>
+            <div><strong>Low</strong>: unlikely to alter the current phase.</div>
+            <div><strong>Medium</strong>: monitor Ψ; may combine with other actions.</div>
+            <div><strong>High</strong>: significant risk of crossing to the next phase.</div>
+            <div><strong>Critical</strong>: very high risk, especially in late phases.</div>
+          </div>
+        }
+      />
       <span className="escalation-badge-desc">{DESCRIPTIONS[level]}</span>
     </div>
   );

@@ -60,6 +60,40 @@ export default function Sidebar() {
         </li>
       </ul>
 
+      <div className="sidebar-section-title">Docs & Help</div>
+      <ul className="sidebar-nav">
+        <li className="sidebar-nav__item">
+          <NavLink
+            to="/help"
+            className={({ isActive }) =>
+              `sidebar-nav__link${isActive ? " active" : ""}`
+            }
+          >
+            Help & FAQ
+          </NavLink>
+        </li>
+        <li className="sidebar-nav__item">
+          <a
+            href="https://github.com/idealase/greyzone/blob/main/docs/simulation-spec.md"
+            className="sidebar-nav__link"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Simulation Spec ↗
+          </a>
+        </li>
+        <li className="sidebar-nav__item">
+          <a
+            href="https://github.com/idealase/greyzone/blob/main/docs/product-spec.md"
+            className="sidebar-nav__link"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Product Spec ↗
+          </a>
+        </li>
+      </ul>
+
       {activeRuns && activeRuns.length > 0 && (
         <>
           <div className="sidebar-section-title">Active Runs</div>
