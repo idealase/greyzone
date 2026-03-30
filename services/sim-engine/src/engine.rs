@@ -191,9 +191,13 @@ impl SimulationEngine {
                     available_layers.first().unwrap_or(&DomainLayer::Kinetic),
                 ).max(0.1)));
 
+                let domain_names: Vec<String> =
+                    available_layers.iter().map(ToString::to_string).collect();
                 let description = format!(
-                    "{:?} by {} on {:?}",
-                    action_type, actor.name, available_layers
+                    "{} by {} targeting {}",
+                    action_type,
+                    actor.name,
+                    domain_names.join(" and ")
                 );
 
                 templates.push(ActionTemplate {
@@ -1043,6 +1047,28 @@ mod tests {
                 .iter()
                 .any(|a| a.action_type == ActionType::Escalate),
             "Escalate should be available at Phase 0"
+        );
+
+        let escalate = actions
+            .iter()
+            .find(|a| a.action_type == ActionType::Escalate)
+            .expect("Escalate action should exist");
+        assert!(
+            !escalate.description.contains('[') && !escalate.description.contains(']'),
+            "Description should not use debug-style list formatting: {}",
+            escalate.description
+        );
+        assert!(
+            !escalate.description.contains("InformationCognitive")
+                && !escalate.description.contains("DomesticPoliticalFiscal"),
+            "Description should not use raw enum variant names: {}",
+            escalate.description
+        );
+        assert!(
+            escalate.description.contains(" by ")
+                && escalate.description.contains(" targeting "),
+            "Description should be human-readable: {}",
+            escalate.description
         );
     }
 
