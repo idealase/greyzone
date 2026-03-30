@@ -1059,9 +1059,8 @@ mod tests {
             escalate.description
         );
         assert!(
-            !escalate.description.contains("InformationCognitive")
-                && !escalate.description.contains("DomesticPoliticalFiscal"),
-            "Description should not use raw enum variant names: {}",
+            !escalate.description.contains(" on ["),
+            "Description should not use debug-style 'on [..]' formatting: {}",
             escalate.description
         );
         assert!(
@@ -1069,6 +1068,23 @@ mod tests {
                 && escalate.description.contains(" targeting "),
             "Description should be human-readable: {}",
             escalate.description
+        );
+
+        assert!(
+            escalate.description.starts_with("Escalate by "),
+            "Escalate description should use readable action wording: {}",
+            escalate.description
+        );
+        assert!(
+            !actions
+                .iter()
+                .any(|a| a.description.contains("CyberAttack")),
+            "Description should not contain raw enum variant names: {}",
+            actions
+                .iter()
+                .map(|a| a.description.as_str())
+                .collect::<Vec<_>>()
+                .join(" | ")
         );
     }
 
