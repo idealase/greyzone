@@ -1893,3 +1893,11 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
   border-radius: 4px;
   font-size: 0.85rem;
 }
+
+.battlespace-canvas {
+  width: 100%;
+  aspect-ratio: 2 / 1;
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: #111;
+}

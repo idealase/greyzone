@@ -12,6 +12,7 @@ import EventFeed from "./EventFeed";
 import MetricsOverview from "./MetricsOverview";
 import ActionPanel from "./ActionPanel";
 import AiMovePanel from "../../components/ai/AiMovePanel";
+import BattlespaceCanvas from "./BattlespaceCanvas";
 import DomainStressChart from "./DomainStressChart";
 import AfterActionReport, { DomainDelta, computeDomainDeltas } from "./AfterActionReport";
 import Dialog from "../common/Dialog";
@@ -286,6 +287,12 @@ export default function SimulationDashboard({
           </div>
 
           <div className="sim-layout__center">
+            <div className="battlespace-canvas">
+              <BattlespaceCanvas
+                worldState={worldState}
+                previousWorldState={prevWorldStateRef.current}
+              />
+            </div>
             <MetricsOverview
               orderParameter={orderParameter}
               phase={currentPhase}
