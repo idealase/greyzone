@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import get_session
 from app.schemas.metrics import MetricsResponse
 from app.schemas.run import (
+    QuickStartRequest,
     RunCreate,
     RunList,
     RunParticipantCreate,
@@ -62,6 +63,21 @@ async def list_runs(
 ) -> dict:
     items = await mgr.list_runs(db)
     return {"items": items, "total": len(items)}
+
+
+@router.post("/quick-start", response_model=RunRead, status_code=201)
+async def quick_start(
+    data: QuickStartRequest,
+    db: AsyncSession = Depends(get_session),
+    mgr: RunManager = Depends(get_run_manager),
+) -> object:
+    return await mgr.quick_start(
+        db,
+        user_id=data.user_id,
+        scenario_id=data.scenario_id,
+        name=data.name,
+        seed=data.seed,
+    )
 
 
 @router.get("/{run_id}", response_model=RunRead)

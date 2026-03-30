@@ -55,20 +55,48 @@ class ActionService:
         if run.status != RunStatus.RUNNING:
             raise HTTPException(status_code=400, detail="Run is not running")
 
-        # Verify the user owns the role
-        result = await db.execute(
-            select(RunParticipant).where(
-                RunParticipant.run_id == run_id,
-                RunParticipant.user_id == data.user_id,
-                RunParticipant.role_id == data.role_id,
+        # If role_id is missing, look it up from RunParticipant
+        if not data.role_id:
+            result = await db.execute(
+                select(RunParticipant).where(
+                    RunParticipant.run_id == run_id,
+                    RunParticipant.user_id == data.user_id,
+                )
             )
-        )
-        participant = result.scalar_one_or_none()
-        if participant is None:
-            raise HTTPException(
-                status_code=403,
-                detail=f"User does not have role '{data.role_id}' in this run",
+            participant = result.scalar_one_or_none()
+            if participant is None:
+                raise HTTPException(
+                    status_code=403,
+                    detail="User is not a participant in this run",
+                )
+            data.role_id = participant.role_id
+        else:
+            # Verify the user owns the role
+            result = await db.execute(
+                select(RunParticipant).where(
+                    RunParticipant.run_id == run_id,
+                    RunParticipant.user_id == data.user_id,
+                    RunParticipant.role_id == data.role_id,
+                )
             )
+            participant = result.scalar_one_or_none()
+            if participant is None:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"User does not have role '{data.role_id}' in this run",
+                )
+
+        # Build action_payload from individual fields if payload is empty
+        if not data.action_payload:
+            payload = {}
+            if data.target_domain is not None:
+                payload["target_domain"] = data.target_domain
+            if data.target_actor is not None:
+                payload["target_actor"] = data.target_actor
+            if data.intensity is not None:
+                payload["intensity"] = data.intensity
+            if payload:
+                data.action_payload = payload
 
         # Submit to engine
         engine_action = {

@@ -82,6 +82,12 @@ test-web: ## Run frontend tests
 test-ai-agent: ## Run AI agent tests
 	cd apps/ai-agent && npx vitest run
 
+test-e2e: ## Run Playwright E2E tests
+	cd apps/web && npx playwright test
+
+test-e2e-ui: ## Run Playwright with UI
+	cd apps/web && npx playwright test --ui
+
 # ─── Lint ─────────────────────────────────────────────────────────────
 
 lint: ## Lint all services

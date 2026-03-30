@@ -80,7 +80,7 @@ async def test_start_run(client: AsyncClient):
 
     resp = await client.post(f"/api/v1/runs/{run_id}/start")
     assert resp.status_code == 200
-    assert resp.json()["status"] == "running"
+    assert resp.json()["status"] == "in_progress"
 
 
 @pytest.mark.asyncio
@@ -118,7 +118,7 @@ async def test_pause_resume(client: AsyncClient):
     # Resume
     resp = await client.post(f"/api/v1/runs/{run_id}/resume")
     assert resp.status_code == 200
-    assert resp.json()["status"] == "running"
+    assert resp.json()["status"] == "in_progress"
 
 
 @pytest.mark.asyncio

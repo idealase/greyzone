@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import uuid
 
+import httpx
 import structlog
 from fastapi import HTTPException
 from sqlalchemy import select
@@ -12,6 +13,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.run import Run, RunParticipant, RunStatus
 from app.models.scenario import Scenario
+from app.models.user import User
 from app.models.event import RunEvent, RunSnapshot
 from app.schemas.run import RunCreate, RunParticipantCreate
 from app.services.engine_bridge import EngineBridge, EngineError
@@ -68,15 +70,17 @@ class RunManager:
         db.add(participant)
         await db.flush()
         await db.refresh(participant)
-        return participant
+        # Eager-load user relationship for serialization
+        result = await db.execute(
+            select(RunParticipant)
+            .where(RunParticipant.id == participant.id)
+            .options(selectinload(RunParticipant.user))
+        )
+        return result.scalar_one()
 
     async def start_run(self, db: AsyncSession, run_id: uuid.UUID) -> Run:
         """Transition a run from lobby to running, start engine."""
-        run = await db.get(
-            Run, run_id, options=[selectinload(Run.participants)]
-        )
-        if run is None:
-            raise HTTPException(status_code=404, detail="Run not found")
+        run = await self.get_run(db, run_id)
         if run.status != RunStatus.LOBBY:
             raise HTTPException(
                 status_code=400,
@@ -84,7 +88,7 @@ class RunManager:
             )
 
         try:
-            await self.engine.start_engine(run_id, run.config, run.seed)
+            await self.engine.start_engine(run_id, run.scenario.name, run.seed)
         except EngineError as e:
             raise HTTPException(status_code=503, detail=str(e))
 
@@ -98,7 +102,10 @@ class RunManager:
         result = await db.execute(
             select(Run)
             .where(Run.id == run_id)
-            .options(selectinload(Run.participants))
+            .options(
+                selectinload(Run.scenario),
+                selectinload(Run.participants).selectinload(RunParticipant.user),
+            )
         )
         run = result.scalar_one_or_none()
         if run is None:
@@ -108,7 +115,12 @@ class RunManager:
     async def list_runs(self, db: AsyncSession) -> list[Run]:
         """List all runs."""
         result = await db.execute(
-            select(Run).options(selectinload(Run.participants)).order_by(Run.created_at.desc())
+            select(Run)
+            .options(
+                selectinload(Run.scenario),
+                selectinload(Run.participants).selectinload(RunParticipant.user),
+            )
+            .order_by(Run.created_at.desc())
         )
         return list(result.scalars().all())
 
@@ -178,19 +190,32 @@ class RunManager:
         if run.status != RunStatus.RUNNING:
             raise HTTPException(status_code=400, detail="Run is not running")
 
+        old_phase = run.current_phase
+
         try:
             result = await self.engine.advance_turn(run_id)
         except EngineError as e:
             raise HTTPException(status_code=503, detail=str(e))
 
-        run.current_turn = result.get("turn", run.current_turn + 1)
-        run.current_phase = result.get("phase", run.current_phase)
+        # Get full world state from engine
+        try:
+            state = await self.engine.get_state(run_id)
+        except EngineError:
+            state = {}
+
+        new_turn = result.get("turn", run.current_turn + 1)
+        current_phase = result.get("phase", run.current_phase)
+        events = result.get("events", [])
+
+        # Update run in database
+        run.current_turn = new_turn
+        run.current_phase = current_phase
 
         # Persist events from this turn
-        for evt in result.get("events", []):
+        for evt in events:
             event = RunEvent(
                 run_id=run_id,
-                turn=run.current_turn,
+                turn=new_turn,
                 event_type=evt.get("type", "unknown"),
                 payload=evt,
             )
@@ -201,7 +226,7 @@ class RunManager:
             snapshot_data = await self.engine.take_snapshot(run_id)
             snapshot = RunSnapshot(
                 run_id=run_id,
-                turn=run.current_turn,
+                turn=new_turn,
                 state=snapshot_data,
             )
             db.add(snapshot)
@@ -215,7 +240,112 @@ class RunManager:
             run.status = RunStatus.COMPLETED
             await db.flush()
 
-        return result
+        # Step 6: AI auto-play after human turn
+        try:
+            ai_result = await db.execute(
+                select(RunParticipant).where(
+                    RunParticipant.run_id == run_id,
+                    RunParticipant.is_ai == True,  # noqa: E712
+                )
+            )
+            ai_participants = list(ai_result.scalars().all())
+            if ai_participants:
+                async with httpx.AsyncClient(timeout=30.0) as client:
+                    for ai_p in ai_participants:
+                        try:
+                            await client.post(
+                                "http://localhost:3100/ai/take-turn",
+                                json={
+                                    "runId": str(run_id),
+                                    "roleId": ai_p.role_id,
+                                },
+                            )
+                        except Exception as ai_err:
+                            logger.warning(
+                                "ai_auto_play_failed",
+                                run_id=str(run_id),
+                                role_id=ai_p.role_id,
+                                error=str(ai_err),
+                            )
+        except Exception as e:
+            logger.warning("ai_auto_play_query_failed", error=str(e))
+
+        # Return TurnResult shape expected by frontend
+        return {
+            "turn": new_turn,
+            "phase": current_phase,
+            "order_parameter": state.get("order_parameter", 0.0),
+            "world_state": state,
+            "events": events,
+            "phase_changed": old_phase != current_phase,
+            "previous_phase": old_phase,
+        }
+
+    async def quick_start(
+        self,
+        db: AsyncSession,
+        user_id: uuid.UUID,
+        scenario_id: uuid.UUID,
+        name: str | None = None,
+        seed: int | None = None,
+    ) -> Run:
+        """Create a single-player run with human as blue and AI as red, then start."""
+        # Ensure AI user exists
+        result = await db.execute(
+            select(User).where(User.username == "ai_commander")
+        )
+        ai_user = result.scalar_one_or_none()
+        if ai_user is None:
+            ai_user = User(
+                username="ai_commander",
+                display_name="AI Commander",
+                is_ai=True,
+            )
+            db.add(ai_user)
+            await db.flush()
+            await db.refresh(ai_user)
+
+        # Create the run
+        run_name = name or "Quick Start Game"
+        run_data = RunCreate(
+            scenario_id=scenario_id,
+            name=run_name,
+            seed=seed,
+        )
+        run = await self.create_run(db, run_data)
+
+        # Join human as blue_commander
+        await self.join_run(
+            db,
+            run.id,
+            RunParticipantCreate(
+                user_id=user_id,
+                role_id="blue_commander",
+                is_ai=False,
+            ),
+        )
+
+        # Join AI as red_commander
+        await self.join_run(
+            db,
+            run.id,
+            RunParticipantCreate(
+                user_id=ai_user.id,
+                role_id="red_commander",
+                is_ai=True,
+            ),
+        )
+
+        # Start the run
+        run = await self.start_run(db, run.id)
+
+        logger.info(
+            "quick_start_created",
+            run_id=str(run.id),
+            user_id=str(user_id),
+            scenario_id=str(scenario_id),
+        )
+        return run
 
     async def get_metrics(self, db: AsyncSession, run_id: uuid.UUID) -> dict:
         """Get simulation metrics."""

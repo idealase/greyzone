@@ -1,9 +1,14 @@
 import apiClient from "./client";
 import { ScenarioRead, ScenarioCreate, ScenarioSummary } from "../types/scenario";
 
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+}
+
 export async function listScenarios(): Promise<ScenarioSummary[]> {
-  const response = await apiClient.get<ScenarioSummary[]>("/scenarios");
-  return response.data;
+  const response = await apiClient.get<PaginatedResponse<ScenarioSummary>>("/scenarios");
+  return response.data.items;
 }
 
 export async function getScenario(id: string): Promise<ScenarioRead> {

@@ -24,7 +24,7 @@ export default function LobbyPage() {
   const joinMutation = useMutation({
     mutationFn: (role: Role) => {
       if (!runId || !user) throw new Error("Missing run ID or user");
-      return joinRun(runId, { user_id: user.id, role });
+      return joinRun(runId, { user_id: user.id, role_id: role });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["run", runId] });
@@ -65,7 +65,7 @@ export default function LobbyPage() {
     );
   }
 
-  if (run?.status === "in_progress") {
+  if (run?.status === "in_progress" || run?.status === "running") {
     navigate(`/runs/${runId}`);
     return null;
   }

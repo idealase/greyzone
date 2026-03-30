@@ -60,9 +60,9 @@ export const useRunStore = create<RunState>()((set) => ({
   setRun: (run) =>
     set({
       run,
-      worldState: run.world_state,
+      worldState: run.world_state ?? null,
       currentPhase: run.current_phase,
-      orderParameter: run.order_parameter,
+      orderParameter: run.order_parameter ?? 0,
       currentTurn: run.current_turn,
       participants: run.participants,
     }),

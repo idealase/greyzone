@@ -8,9 +8,14 @@ import {
   TurnResult,
 } from "../types/run";
 
+interface PaginatedResponse<T> {
+  items: T[];
+  total: number;
+}
+
 export async function listRuns(): Promise<RunSummary[]> {
-  const response = await apiClient.get<RunSummary[]>("/runs");
-  return response.data;
+  const response = await apiClient.get<PaginatedResponse<RunSummary>>("/runs");
+  return response.data.items;
 }
 
 export async function getRun(id: string): Promise<RunRead> {
@@ -23,8 +28,8 @@ export async function createRun(data: RunCreate): Promise<RunRead> {
   return response.data;
 }
 
-export async function joinRun(runId: string, data: JoinRunRequest): Promise<RunRead> {
-  const response = await apiClient.post<RunRead>(`/runs/${runId}/join`, data);
+export async function joinRun(runId: string, data: JoinRunRequest): Promise<unknown> {
+  const response = await apiClient.post(`/runs/${runId}/join`, data);
   return response.data;
 }
 
@@ -41,9 +46,19 @@ export async function getLegalActions(
   runId: string,
   side: "blue" | "red"
 ): Promise<LegalAction[]> {
-  const response = await apiClient.get<LegalAction[]>(
+  const response = await apiClient.get(
     `/runs/${runId}/legal-actions?side=${side}`
   );
+  return response.data.actions;
+}
+
+export async function quickStart(params: {
+  scenario_id: string;
+  user_id: string;
+  name?: string;
+  seed?: number;
+}): Promise<RunRead> {
+  const response = await apiClient.post('/runs/quick-start', params);
   return response.data;
 }
 

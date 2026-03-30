@@ -6,7 +6,7 @@ import LoadingSpinner from "../components/common/LoadingSpinner";
 
 export default function HomePage() {
   const user = useAuthStore((s) => s.user);
-  const { data: runs, isLoading } = useQuery({
+  const { data: runs, isLoading, error: runsError } = useQuery({
     queryKey: ["runs"],
     queryFn: listRuns,
   });
@@ -55,6 +55,8 @@ export default function HomePage() {
           <div className="card__body">
             {isLoading ? (
               <LoadingSpinner />
+            ) : runsError ? (
+              <span className="text-muted">Failed to load runs</span>
             ) : activeRuns && activeRuns.length > 0 ? (
               <ul style={{ listStyle: "none", padding: 0 }}>
                 {activeRuns.slice(0, 5).map((run) => (

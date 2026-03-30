@@ -48,6 +48,16 @@ export default function Sidebar() {
             New Run
           </NavLink>
         </li>
+        <li className="sidebar-nav__item">
+          <NavLink
+            to="/tutorial"
+            className={({ isActive }) =>
+              `sidebar-nav__link${isActive ? " active" : ""}`
+            }
+          >
+            Tutorial
+          </NavLink>
+        </li>
       </ul>
 
       {activeRuns && activeRuns.length > 0 && (

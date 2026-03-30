@@ -8,9 +8,12 @@ from pydantic import BaseModel, ConfigDict
 
 class ActionSubmit(BaseModel):
     user_id: uuid.UUID
-    role_id: str
+    role_id: str | None = None
     action_type: str
     action_payload: dict = {}
+    target_domain: str | None = None
+    target_actor: str | None = None
+    intensity: float | None = None
 
 
 class ActionResult(BaseModel):

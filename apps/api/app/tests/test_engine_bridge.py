@@ -19,22 +19,23 @@ def bridge() -> EngineBridge:
 async def test_start_engine_binary_not_found(bridge: EngineBridge):
     """Starting engine with missing binary should raise EngineError."""
     with pytest.raises(EngineError, match="Engine binary not found"):
-        await bridge.start_engine(uuid.uuid4(), {"map": "test"}, seed=42)
+        await bridge.start_engine(uuid.uuid4(), "test_scenario", seed=42)
 
 
 @pytest.mark.asyncio
 async def test_send_command_no_engine(bridge: EngineBridge):
     """Sending command to non-existent engine should raise EngineError."""
     with pytest.raises(EngineError, match="No engine running"):
-        await bridge.send_command(uuid.uuid4(), {"command": "get_state"})
+        await bridge.send_command(uuid.uuid4(), "GetState")
 
 
 @pytest.mark.asyncio
 async def test_send_command_success(bridge: EngineBridge):
     """Test sending a command when an engine process exists."""
     run_id = uuid.uuid4()
-    response_data = {"status": "ok", "turn": 0}
-    response_bytes = (json.dumps(response_data) + "\n").encode()
+    inner_data = {"turn": 0}
+    response_envelope = {"status": "Ok", "data": inner_data}
+    response_bytes = (json.dumps(response_envelope) + "\n").encode()
 
     mock_process = MagicMock()
     mock_stdin = MagicMock()
@@ -48,8 +49,8 @@ async def test_send_command_success(bridge: EngineBridge):
 
     bridge._processes[run_id] = mock_process
 
-    result = await bridge.send_command(run_id, {"command": "get_state"})
-    assert result == response_data
+    result = await bridge.send_command(run_id, "GetState")
+    assert result == inner_data
     mock_stdin.write.assert_called_once()
 
 
@@ -85,8 +86,9 @@ async def test_shutdown_nonexistent_engine(bridge: EngineBridge):
 async def test_get_state_delegates(bridge: EngineBridge):
     """get_state should call send_command with correct args."""
     run_id = uuid.uuid4()
-    response = {"turn": 1, "phase": "Escalation"}
-    response_bytes = (json.dumps(response) + "\n").encode()
+    inner_data = {"turn": 1, "phase": "Escalation"}
+    response_envelope = {"status": "Ok", "data": inner_data}
+    response_bytes = (json.dumps(response_envelope) + "\n").encode()
 
     mock_process = MagicMock()
     mock_stdin = MagicMock()
@@ -101,7 +103,7 @@ async def test_get_state_delegates(bridge: EngineBridge):
     bridge._processes[run_id] = mock_process
 
     result = await bridge.get_state(run_id)
-    assert result == response
+    assert result == inner_data
 
 
 @pytest.mark.asyncio

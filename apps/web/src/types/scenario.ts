@@ -4,7 +4,7 @@ export interface ScenarioRead {
   id: string;
   name: string;
   description: string;
-  author: string;
+  author?: string;
   domain_config: Record<DomainLayer, DomainConfig>;
   actors: ActorConfig[];
   coupling_matrix: Record<string, Record<string, number>>;
@@ -27,7 +27,7 @@ export interface ScenarioSummary {
   id: string;
   name: string;
   description: string;
-  author: string;
+  author?: string;
   created_at: string;
 }
 

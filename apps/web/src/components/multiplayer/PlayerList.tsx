@@ -20,7 +20,7 @@ export default function PlayerList({ participants }: PlayerListProps) {
     <div className="player-list">
       {participants.map((p) => (
         <div key={p.user_id} className="player-item">
-          <PresenceIndicator isOnline={p.is_online} />
+          <PresenceIndicator isOnline={p.is_online ?? false} />
           <div style={{ flex: 1 }}>
             <div className="player-item__name">{p.username}</div>
             <div

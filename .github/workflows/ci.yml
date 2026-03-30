@@ -100,3 +100,33 @@ jobs:
       - name: Build
         working-directory: apps/ai-agent
         run: npm run build
+
+  deploy:
+    name: Deploy
+    needs: [engine, api, web, ai-agent]
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy
+        run: bash infra/dev/deploy.sh
+
+  e2e:
+    name: E2E Tests
+    needs: [deploy]
+    runs-on: self-hosted
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Install dependencies
+        working-directory: apps/web
+        run: npm ci
+      - name: Install Playwright
+        working-directory: apps/web
+        run: npx playwright install chromium
+      - name: Run E2E tests
+        working-directory: apps/web
+        run: npx playwright test

@@ -1,0 +1,18 @@
+[Unit]
+Description=Greyzone API Server
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=brodie
+WorkingDirectory=/home/brodie/Desktop/Repos/greyzone/apps/api
+Environment=GREYZONE_DATABASE_URL=postgresql+asyncpg://greyzone:greyzone@localhost:5432/greyzone
+Environment=GREYZONE_ENGINE_BINARY=/home/brodie/Desktop/Repos/greyzone/services/sim-engine/target/release/greyzone-engine
+Environment=GREYZONE_AI_AGENT_URL=http://localhost:3100
+Environment=GREYZONE_CORS_ORIGINS=https://greyzone.sandford.systems,http://localhost:5173
+ExecStart=/home/brodie/Desktop/Repos/greyzone/apps/api/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8010
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -14,7 +14,7 @@ export default function ActorPanel({ participants }: ActorPanelProps) {
       <div className="player-list mt-1">
         {participants.map((p) => (
           <div key={p.user_id} className="player-item">
-            <PresenceIndicator isOnline={p.is_online} />
+            <PresenceIndicator isOnline={p.is_online ?? false} />
             <div style={{ flex: 1 }}>
               <div className="player-item__name">{p.username}</div>
               <div className="player-item__role">

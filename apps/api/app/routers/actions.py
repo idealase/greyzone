@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
@@ -36,10 +36,17 @@ def get_run_manager() -> RunManager:
 @router.get("/legal-actions", response_model=LegalActionsResponse)
 async def get_legal_actions(
     run_id: uuid.UUID,
-    role_id: str = Query(...),
+    role_id: str | None = Query(None),
+    side: str | None = Query(None),
     db: AsyncSession = Depends(get_session),
     svc: ActionService = Depends(get_action_service),
 ) -> dict:
+    # Map side shorthand to role_id if role_id not provided
+    if not role_id and side:
+        side_map = {"blue": "blue_commander", "red": "red_commander"}
+        role_id = side_map.get(side.lower(), side)
+    if not role_id:
+        raise HTTPException(status_code=400, detail="Either role_id or side query parameter is required")
     return await svc.get_legal_actions(db, run_id, role_id)
 
 
@@ -53,7 +60,7 @@ async def submit_action(
     return await svc.submit_action(db, run_id, data)
 
 
-@router.post("/advance-turn")
+@router.post("/advance")
 async def advance_turn(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),

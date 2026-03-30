@@ -1,20 +1,20 @@
 import { DomainLayer, LayerState } from "./domain";
 import { Phase } from "./phase";
 
-export type RunStatus = "lobby" | "in_progress" | "paused" | "completed" | "aborted";
+export type RunStatus = "created" | "lobby" | "in_progress" | "running" | "paused" | "completed" | "aborted";
 export type Role = "blue_commander" | "red_commander" | "observer";
 
 export interface RunRead {
   id: string;
   name: string;
   scenario_id: string;
-  scenario_name: string;
+  scenario_name?: string;
   status: RunStatus;
   current_turn: number;
   current_phase: Phase;
-  order_parameter: number;
+  order_parameter?: number;
   seed: number | null;
-  world_state: WorldState;
+  world_state: WorldState | null;
   participants: RunParticipant[];
   created_at: string;
   updated_at: string;
@@ -29,20 +29,23 @@ export interface RunCreate {
 export interface RunSummary {
   id: string;
   name: string;
-  scenario_name: string;
+  scenario_name?: string;
   status: RunStatus;
   current_turn: number;
   current_phase: Phase;
-  participant_count: number;
+  participant_count?: number;
   created_at: string;
 }
 
 export interface RunParticipant {
+  id?: string;
   user_id: string;
   username: string;
+  display_name?: string;
   role: Role;
+  role_id?: string;
   is_human: boolean;
-  is_online: boolean;
+  is_online?: boolean;
   joined_at: string;
 }
 
@@ -56,7 +59,8 @@ export interface WorldState {
 
 export interface JoinRunRequest {
   user_id: string;
-  role: Role;
+  role_id: string;
+  is_ai?: boolean;
 }
 
 export interface LegalAction {

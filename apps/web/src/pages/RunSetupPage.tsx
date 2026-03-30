@@ -2,19 +2,25 @@ import { useState, FormEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { listScenarios } from "../api/scenarios";
-import { createRun } from "../api/runs";
+import { createRun, quickStart } from "../api/runs";
+import { useAuthStore } from "../stores/authStore";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 
 export default function RunSetupPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const preselectedScenario = searchParams.get("scenarioId") ?? "";
+  const user = useAuthStore((s) => s.user);
 
   const [scenarioId, setScenarioId] = useState(preselectedScenario);
   const [name, setName] = useState("");
   const [seed, setSeed] = useState("");
 
-  const { data: scenarios, isLoading: scenariosLoading } = useQuery({
+  const {
+    data: scenarios,
+    isLoading: scenariosLoading,
+    error: scenariosError,
+  } = useQuery({
     queryKey: ["scenarios"],
     queryFn: listScenarios,
   });
@@ -25,6 +31,24 @@ export default function RunSetupPage() {
       navigate(`/runs/${run.id}/lobby`);
     },
   });
+
+  const quickStartMutation = useMutation({
+    mutationFn: quickStart,
+    onSuccess: (run) => {
+      navigate(`/runs/${run.id}`);
+    },
+  });
+
+  const handleQuickStart = () => {
+    if (!scenarioId || !user) return;
+
+    quickStartMutation.mutate({
+      scenario_id: scenarioId,
+      user_id: user.id,
+      name: name.trim() || "Quick Game",
+      seed: seed ? parseInt(seed, 10) : undefined,
+    });
+  };
 
   const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
@@ -42,6 +66,19 @@ export default function RunSetupPage() {
       <div className="loading-container">
         <LoadingSpinner />
         <span>Loading scenarios...</span>
+      </div>
+    );
+  }
+
+  if (scenariosError) {
+    return (
+      <div className="error-container">
+        <div className="error-container__title">Failed to load scenarios</div>
+        <div className="error-container__message">
+          {scenariosError instanceof Error
+            ? scenariosError.message
+            : "Unknown error"}
+        </div>
       </div>
     );
   }
@@ -106,24 +143,36 @@ export default function RunSetupPage() {
             />
           </div>
 
-          {createRunMutation.error && (
+          {(createRunMutation.error || quickStartMutation.error) && (
             <div className="error-container mb-2">
               <div className="error-container__message">
-                {createRunMutation.error instanceof Error
-                  ? createRunMutation.error.message
+                {(createRunMutation.error ?? quickStartMutation.error) instanceof Error
+                  ? (createRunMutation.error ?? quickStartMutation.error as Error).message
                   : "Failed to create run"}
               </div>
             </div>
           )}
 
           <button
-            type="submit"
+            type="button"
             className="btn btn--primary btn--lg w-full"
+            disabled={
+              !scenarioId || !user || quickStartMutation.isPending
+            }
+            onClick={handleQuickStart}
+            style={{ marginBottom: "0.75rem" }}
+          >
+            {quickStartMutation.isPending ? "Starting..." : "Quick Start vs AI"}
+          </button>
+
+          <button
+            type="submit"
+            className="btn btn--secondary btn--lg w-full"
             disabled={
               !scenarioId || !name.trim() || createRunMutation.isPending
             }
           >
-            {createRunMutation.isPending ? "Creating..." : "Create Run"}
+            {createRunMutation.isPending ? "Creating..." : "Create Multiplayer Run"}
           </button>
         </form>
       </div>

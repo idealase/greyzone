@@ -28,7 +28,7 @@ export class GameWebSocket {
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = import.meta.env.VITE_WS_URL || `${protocol}//${window.location.host}`;
-    const url = `${host}/ws/runs/${runId}?user_id=${userId}`;
+    const url = `${host}/api/v1/runs/${runId}/ws?user_id=${userId}`;
 
     this.ws = new WebSocket(url);
 
