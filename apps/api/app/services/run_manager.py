@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+import asyncio
 import uuid
 
 import httpx
 import structlog
 from fastapi import HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -29,6 +31,13 @@ class RunManager:
     def __init__(self, engine: EngineBridge) -> None:
         self.engine = engine
         self.narrative_service = NarrativeService()
+        self._advance_locks: dict[uuid.UUID, asyncio.Lock] = {}
+
+    def _get_run_lock(self, run_id: uuid.UUID) -> asyncio.Lock:
+        """Return a per-run asyncio lock."""
+        if run_id not in self._advance_locks:
+            self._advance_locks[run_id] = asyncio.Lock()
+        return self._advance_locks[run_id]
 
     async def create_run(self, db: AsyncSession, data: RunCreate) -> Run:
         """Create a new run from a scenario."""
@@ -115,6 +124,37 @@ class RunManager:
             raise HTTPException(status_code=404, detail="Run not found")
         return run
 
+    async def _get_run_for_update(self, db: AsyncSession, run_id: uuid.UUID) -> Run:
+        """Get a run row with a database lock when supported."""
+        stmt = (
+            select(Run)
+            .where(Run.id == run_id)
+            .options(
+                selectinload(Run.scenario),
+                selectinload(Run.participants).selectinload(RunParticipant.user),
+            )
+        )
+
+        # SQLite does not support FOR UPDATE; rely on in-process lock there.
+        bind = db.get_bind()
+        if bind and getattr(bind.dialect, "name", "") != "sqlite":
+            stmt = stmt.with_for_update(nowait=True)
+
+        try:
+            result = await db.execute(stmt)
+        except DBAPIError as e:
+            message = str(e.orig).lower() if e.orig else str(e).lower()
+            if any(token in message for token in ["lock", "deadlock", "serialize"]):
+                raise HTTPException(
+                    status_code=409, detail="Turn advance already in progress"
+                )
+            raise
+
+        run = result.scalar_one_or_none()
+        if run is None:
+            raise HTTPException(status_code=404, detail="Run not found")
+        return run
+
     async def list_runs(self, db: AsyncSession) -> list[Run]:
         """List all runs."""
         result = await db.execute(
@@ -189,168 +229,190 @@ class RunManager:
 
     async def advance_turn(self, db: AsyncSession, run_id: uuid.UUID) -> dict:
         """Advance to the next turn."""
-        run = await self.get_run(db, run_id)
-        if run.status != RunStatus.RUNNING:
-            raise HTTPException(status_code=400, detail="Run is not running")
+        run_lock = self._get_run_lock(run_id)
+        if run_lock.locked():
+            raise HTTPException(status_code=409, detail="Turn advance already in progress")
 
-        old_phase = run.current_phase
+        async with run_lock:
+            run = await self._get_run_for_update(db, run_id)
+            if run.status != RunStatus.RUNNING:
+                raise HTTPException(status_code=400, detail="Run is not running")
 
-        try:
-            result = await self.engine.advance_turn(run_id)
-        except EngineError as e:
-            raise HTTPException(status_code=503, detail=str(e))
+            old_phase = run.current_phase
 
-        # Get full world state from engine
-        try:
-            state = await self.engine.get_state(run_id)
-        except EngineError:
-            state = {}
+            try:
+                result = await self.engine.advance_turn(run_id)
+            except EngineError as e:
+                raise HTTPException(status_code=503, detail=str(e))
 
-        new_turn = result.get("turn", run.current_turn + 1)
-        current_phase = result.get("phase", run.current_phase)
-        events = result.get("events", [])
+            # Get full world state from engine
+            try:
+                state = await self.engine.get_state(run_id)
+            except EngineError as e:
+                raise HTTPException(status_code=503, detail=f"Failed to fetch world state: {e}")
 
-        # Update run in database
-        run.current_turn = new_turn
-        run.current_phase = current_phase
+            if not state or not isinstance(state, dict):
+                raise HTTPException(status_code=503, detail="Engine returned an empty world state")
 
-        # Persist events from this turn
-        for evt in events:
-            event = RunEvent(
-                run_id=run_id,
-                turn=new_turn,
-                event_type=evt.get("type", "unknown"),
-                payload=evt,
-            )
-            db.add(event)
-
-        # Take and persist snapshot
-        try:
-            snapshot_data = await self.engine.take_snapshot(run_id)
-            snapshot = RunSnapshot(
-                run_id=run_id,
-                turn=new_turn,
-                state=snapshot_data,
-            )
-            db.add(snapshot)
-        except EngineError:
-            pass  # Snapshot failure is non-fatal
-
-        # Pre-generate and persist narrative for this turn
-        try:
-            narrative_result = await db.execute(
-                select(RunNarrative).where(
-                    RunNarrative.run_id == run_id,
-                    RunNarrative.turn == new_turn,
+            required_keys = ["layers", "order_parameter", "turn", "phase"]
+            if any(key not in state for key in required_keys):
+                raise HTTPException(
+                    status_code=503, detail="Engine returned an incomplete world state"
                 )
-            )
-            existing_narrative = narrative_result.scalar_one_or_none()
-            if existing_narrative is None:
-                prev_snapshot_result = await db.execute(
-                    select(RunSnapshot).where(
-                        RunSnapshot.run_id == run_id,
-                        RunSnapshot.turn == new_turn - 1,
-                    )
-                )
-                prev_snapshot = prev_snapshot_result.scalar_one_or_none()
-                prev_state = prev_snapshot.state if prev_snapshot is not None else state
-                domain_states = state.get("layers", {})
-                prev_domain_states = prev_state.get("layers", {})
-                order_parameter = float(state.get("order_parameter", 0.0))
-                prev_order_parameter = float(prev_state.get("order_parameter", 0.0))
-                narrative = self.narrative_service.generate(
+
+            new_turn = result.get("turn", state.get("turn", run.current_turn + 1))
+            current_phase = result.get("phase", state.get("phase", run.current_phase))
+            events = result.get("events", [])
+
+            # Update run in database
+            run.current_turn = new_turn
+            run.current_phase = current_phase
+
+            # Persist events from this turn
+            for evt in events:
+                event = RunEvent(
+                    run_id=run_id,
                     turn=new_turn,
-                    phase=current_phase,
-                    order_parameter=order_parameter,
-                    prev_order_parameter=prev_order_parameter,
-                    events=[
-                        {
-                            "event_type": evt.get("type", "unknown"),
-                            "description": evt.get("description", ""),
-                            "layer": evt.get("layer", ""),
-                        }
-                        for evt in events
-                    ],
-                    domain_states=domain_states,
-                    prev_domain_states=prev_domain_states,
-                    scenario_name=run.scenario.name,
-                    scenario_id=str(run.scenario_id),
+                    event_type=evt.get("type", "unknown"),
+                    payload=evt,
                 )
-                db.add(
-                    RunNarrative(
-                        run_id=run_id,
-                        turn=new_turn,
-                        headline=narrative.headline,
-                        body=narrative.body,
-                        domain_highlights=[
-                            {
-                                "domain": h.domain,
-                                "label": h.label,
-                                "direction": h.direction,
-                                "delta": h.delta,
-                                "note": h.note,
-                            }
-                            for h in narrative.domain_highlights
-                        ],
-                        threat_assessment=narrative.threat_assessment,
-                        intelligence_note=narrative.intelligence_note,
+                db.add(event)
+
+            snapshot_taken = False
+            # Take and persist snapshot
+            try:
+                snapshot_data = await self.engine.take_snapshot(run_id)
+                snapshot = RunSnapshot(
+                    run_id=run_id,
+                    turn=new_turn,
+                    state=snapshot_data,
+                )
+                db.add(snapshot)
+                snapshot_taken = True
+            except EngineError as e:
+                logger.warning(
+                    "snapshot_failed",
+                    run_id=str(run_id),
+                    turn=new_turn,
+                    error=str(e),
+                )
+
+            # Pre-generate and persist narrative for this turn
+            try:
+                narrative_result = await db.execute(
+                    select(RunNarrative).where(
+                        RunNarrative.run_id == run_id,
+                        RunNarrative.turn == new_turn,
                     )
                 )
-        except Exception as e:
-            logger.exception(
-                "turn_narrative_generation_failed",
-                run_id=str(run_id),
-                turn=new_turn,
-                error=str(e),
-            )
+                existing_narrative = narrative_result.scalar_one_or_none()
+                if existing_narrative is None:
+                    prev_snapshot_result = await db.execute(
+                        select(RunSnapshot).where(
+                            RunSnapshot.run_id == run_id,
+                            RunSnapshot.turn == new_turn - 1,
+                        )
+                    )
+                    prev_snapshot = prev_snapshot_result.scalar_one_or_none()
+                    prev_state = prev_snapshot.state if prev_snapshot is not None else state
+                    domain_states = state.get("layers", {})
+                    prev_domain_states = prev_state.get("layers", {})
+                    order_parameter = float(state.get("order_parameter", 0.0))
+                    prev_order_parameter = float(prev_state.get("order_parameter", 0.0))
+                    narrative = self.narrative_service.generate(
+                        turn=new_turn,
+                        phase=current_phase,
+                        order_parameter=order_parameter,
+                        prev_order_parameter=prev_order_parameter,
+                        events=[
+                            {
+                                "event_type": evt.get("type", "unknown"),
+                                "description": evt.get("description", ""),
+                                "layer": evt.get("layer", ""),
+                            }
+                            for evt in events
+                        ],
+                        domain_states=domain_states,
+                        prev_domain_states=prev_domain_states,
+                        scenario_name=run.scenario.name,
+                        scenario_id=str(run.scenario_id),
+                    )
+                    db.add(
+                        RunNarrative(
+                            run_id=run_id,
+                            turn=new_turn,
+                            headline=narrative.headline,
+                            body=narrative.body,
+                            domain_highlights=[
+                                {
+                                    "domain": h.domain,
+                                    "label": h.label,
+                                    "direction": h.direction,
+                                    "delta": h.delta,
+                                    "note": h.note,
+                                }
+                                for h in narrative.domain_highlights
+                            ],
+                            threat_assessment=narrative.threat_assessment,
+                            intelligence_note=narrative.intelligence_note,
+                        )
+                    )
+            except Exception as e:
+                logger.exception(
+                    "turn_narrative_generation_failed",
+                    run_id=str(run_id),
+                    turn=new_turn,
+                    error=str(e),
+                )
 
-        await db.flush()
-
-        # Check for game over
-        if result.get("game_over", False):
-            run.status = RunStatus.COMPLETED
             await db.flush()
 
-        # Step 6: AI auto-play after human turn
-        try:
-            ai_result = await db.execute(
-                select(RunParticipant).where(
-                    RunParticipant.run_id == run_id,
-                    RunParticipant.is_ai == True,  # noqa: E712
-                )
-            )
-            ai_participants = list(ai_result.scalars().all())
-            if ai_participants:
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    for ai_p in ai_participants:
-                        try:
-                            await client.post(
-                                "http://localhost:3100/ai/take-turn",
-                                json={
-                                    "runId": str(run_id),
-                                    "roleId": ai_p.role_id,
-                                },
-                            )
-                        except Exception as ai_err:
-                            logger.warning(
-                                "ai_auto_play_failed",
-                                run_id=str(run_id),
-                                role_id=ai_p.role_id,
-                                error=str(ai_err),
-                            )
-        except Exception as e:
-            logger.warning("ai_auto_play_query_failed", error=str(e))
+            # Check for game over
+            if result.get("game_over", False):
+                run.status = RunStatus.COMPLETED
+                await db.flush()
 
-        # Return TurnResult shape expected by frontend
-        return {
-            "turn": new_turn,
-            "phase": current_phase,
-            "order_parameter": state.get("order_parameter", 0.0),
-            "world_state": state,
-            "events": events,
-            "phase_changed": old_phase != current_phase,
-            "previous_phase": old_phase,
-        }
+            # Step 6: AI auto-play after human turn
+            try:
+                ai_result = await db.execute(
+                    select(RunParticipant).where(
+                        RunParticipant.run_id == run_id,
+                        RunParticipant.is_ai == True,  # noqa: E712
+                    )
+                )
+                ai_participants = list(ai_result.scalars().all())
+                if ai_participants:
+                    async with httpx.AsyncClient(timeout=30.0) as client:
+                        for ai_p in ai_participants:
+                            try:
+                                await client.post(
+                                    "http://localhost:3100/ai/take-turn",
+                                    json={
+                                        "runId": str(run_id),
+                                        "roleId": ai_p.role_id,
+                                    },
+                                )
+                            except Exception as ai_err:
+                                logger.warning(
+                                    "ai_auto_play_failed",
+                                    run_id=str(run_id),
+                                    role_id=ai_p.role_id,
+                                    error=str(ai_err),
+                                )
+            except Exception as e:
+                logger.warning("ai_auto_play_query_failed", error=str(e))
+
+            # Return TurnResult shape expected by frontend
+            return {
+                "turn": new_turn,
+                "phase": current_phase,
+                "order_parameter": state.get("order_parameter", 0.0),
+                "world_state": state,
+                "events": events,
+                "phase_changed": old_phase != current_phase,
+                "previous_phase": old_phase,
+                "snapshot_taken": snapshot_taken,
+            }
 
     async def quick_start(
         self,

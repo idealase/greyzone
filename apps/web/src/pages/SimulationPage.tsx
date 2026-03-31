@@ -4,6 +4,7 @@ import { useWebSocket } from "../hooks/useWebSocket";
 import SimulationDashboard from "../components/simulation/SimulationDashboard";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import ConnectionBanner from "../components/common/ConnectionBanner";
+import ErrorBoundary from "../components/common/ErrorBoundary";
 
 export default function SimulationPage() {
   const { runId } = useParams<{ runId: string }>();
@@ -33,13 +34,22 @@ export default function SimulationPage() {
   }
 
   return (
-    <>
+    <ErrorBoundary
+      fallback={
+        <div className="error-container">
+          <div className="error-container__title">Simulation crashed</div>
+          <div className="error-container__message">
+            Please try reloading the page or rejoining the run.
+          </div>
+        </div>
+      }
+    >
       <ConnectionBanner />
       <SimulationDashboard
         runId={runId!}
         myRole={myRole}
         side={side as "blue" | "red"}
       />
-    </>
+    </ErrorBoundary>
   );
 }

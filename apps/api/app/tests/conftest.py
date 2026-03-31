@@ -64,7 +64,12 @@ def mock_engine_bridge() -> EngineBridge:
     bridge.start_engine = AsyncMock(return_value=None)
     bridge.send_command = AsyncMock(return_value={"status": "ok"})
     bridge.get_state = AsyncMock(
-        return_value={"turn": 0, "phase": "CompetitiveNormality", "units": []}
+        return_value={
+            "turn": 0,
+            "phase": "CompetitiveNormality",
+            "order_parameter": 0.0,
+            "layers": {},
+        }
     )
     bridge.get_role_state = AsyncMock(
         return_value={"turn": 0, "phase": "CompetitiveNormality", "visible_units": []}

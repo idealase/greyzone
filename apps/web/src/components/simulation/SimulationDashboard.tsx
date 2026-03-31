@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRunStore } from "../../stores/runStore";
 import { useActions } from "../../hooks/useActions";
 import { ALL_DOMAINS } from "../../types/domain";
@@ -43,20 +43,42 @@ export default function SimulationDashboard({
   const aiMoves = useRunStore((s) => s.aiMoves);
   const isAdvancingTurn = useRunStore((s) => s.isAdvancingTurn);
 
-  const { submitAction, isSubmitting, advanceTurn, isAdvancing } =
+  const { submitAction, isSubmitting, advanceTurn, isAdvancing, advanceError } =
     useActions(runId);
 
   const [showAAR, setShowAAR] = useState(false);
   const [aarData, setAarData] = useState<AarData | null>(null);
+  const [advanceErrorMessage, setAdvanceErrorMessage] = useState<string | null>(null);
   const prevWorldStateRef = useRef<WorldState | null>(null);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (advanceError) {
+      setAdvanceErrorMessage(
+        advanceError instanceof Error
+          ? advanceError.message
+          : "Failed to advance turn"
+      );
+    }
+  }, [advanceError]);
 
   function handleAdvanceTurn() {
     prevWorldStateRef.current = worldState;
+    setAdvanceErrorMessage(null);
     advanceTurn(undefined, {
       onSuccess: (result: TurnResult) => {
+        if (!isMountedRef.current) {
+          return;
+        }
         const prev = prevWorldStateRef.current;
         const deltas: DomainDelta[] =
-          prev ? computeDomainDeltas(prev, result.world_state) : [];
+          prev && result.world_state ? computeDomainDeltas(prev, result.world_state) : [];
         setAarData({
           completedTurn: result.turn,
           currentPhase: result.phase,
@@ -65,6 +87,14 @@ export default function SimulationDashboard({
           phaseChanged: result.phase_changed,
         });
         setShowAAR(true);
+      },
+      onError: (error) => {
+        if (!isMountedRef.current) {
+          return;
+        }
+        setAdvanceErrorMessage(
+          error instanceof Error ? error.message : "Failed to advance turn"
+        );
       },
     });
   }
@@ -82,6 +112,14 @@ export default function SimulationDashboard({
           onAdvanceTurn={handleAdvanceTurn}
           isObserver={myRole === "observer"}
         />
+        {advanceErrorMessage && (
+          <div className="error-container">
+            <div className="error-container__title">Advance failed</div>
+            <div className="error-container__message">
+              {advanceErrorMessage}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="sim-layout__left">
