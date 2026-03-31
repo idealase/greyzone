@@ -19,7 +19,7 @@ async def _create_run_with_events(client: AsyncClient) -> str:
     run_id = resp.json()["id"]
 
     await client.post(f"/api/v1/runs/{run_id}/start")
-    await client.post(f"/api/v1/runs/{run_id}/advance-turn")
+    await client.post(f"/api/v1/runs/{run_id}/advance")
 
     return run_id
 

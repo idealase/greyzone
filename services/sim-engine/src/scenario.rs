@@ -207,10 +207,20 @@ mod tests {
         let actor_ids: Vec<Uuid> = scenario.actors.iter().map(|a| a.id).collect();
         for role in &scenario.roles {
             for aid in &role.controlled_actor_ids {
-                assert!(actor_ids.contains(aid), "Role {} references unknown actor {}", role.id, aid);
+                assert!(
+                    actor_ids.contains(aid),
+                    "Role {} references unknown actor {}",
+                    role.id,
+                    aid
+                );
             }
             for aid in &role.allied_actor_ids {
-                assert!(actor_ids.contains(aid), "Role {} references unknown allied actor {}", role.id, aid);
+                assert!(
+                    actor_ids.contains(aid),
+                    "Role {} references unknown allied actor {}",
+                    role.id,
+                    aid
+                );
             }
         }
     }

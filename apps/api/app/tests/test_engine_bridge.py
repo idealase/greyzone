@@ -1,9 +1,8 @@
 """Tests for the engine bridge with mock subprocess."""
 
-import asyncio
 import json
 import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 

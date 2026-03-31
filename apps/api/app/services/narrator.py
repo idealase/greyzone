@@ -394,7 +394,7 @@ def generate_turn_narrative(
     phase = turn_result.get("phase", "CompetitiveNormality")
     order_param = turn_result.get("order_parameter", 0.0)
     events = turn_result.get("events", [])
-    effects = turn_result.get("effects", [])
+    _ = turn_result.get("effects", [])
     phase_changed = turn_result.get("phase_changed", False)
     previous_phase = turn_result.get("previous_phase")
 

@@ -93,7 +93,8 @@ class RunRead(BaseModel):
                 d[field] = getattr(obj, field, None)
             # Map DB "running" to frontend "in_progress"
             status = getattr(obj, "status", None)
-            d["status"] = "in_progress" if str(status) == "running" or (hasattr(status, 'value') and status.value == "running") else str(status.value) if hasattr(status, 'value') else str(status)
+            status_str: str = str(getattr(status, 'value', status))
+            d["status"] = "in_progress" if status_str == "running" else status_str
             scenario = getattr(obj, "scenario", None)
             if scenario is not None:
                 d["scenario_name"] = getattr(scenario, "name", "")
