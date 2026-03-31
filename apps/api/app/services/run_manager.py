@@ -21,7 +21,6 @@ from app.services.engine_bridge import EngineBridge, EngineError
 from app.services.narrative_service import NarrativeService
 
 logger = structlog.get_logger()
-_narrative_service = NarrativeService()
 
 
 class RunManager:
@@ -29,6 +28,7 @@ class RunManager:
 
     def __init__(self, engine: EngineBridge) -> None:
         self.engine = engine
+        self.narrative_service = NarrativeService()
 
     async def create_run(self, db: AsyncSession, data: RunCreate) -> Run:
         """Create a new run from a scenario."""
@@ -246,13 +246,23 @@ class RunManager:
             )
             existing_narrative = narrative_result.scalar_one_or_none()
             if existing_narrative is None:
+                prev_snapshot_result = await db.execute(
+                    select(RunSnapshot).where(
+                        RunSnapshot.run_id == run_id,
+                        RunSnapshot.turn == new_turn - 1,
+                    )
+                )
+                prev_snapshot = prev_snapshot_result.scalar_one_or_none()
+                prev_state = prev_snapshot.state if prev_snapshot is not None else {}
                 domain_states = state.get("layers", {})
+                prev_domain_states = prev_state.get("layers", {})
                 order_parameter = float(state.get("order_parameter", 0.0))
-                narrative = _narrative_service.generate(
+                prev_order_parameter = float(prev_state.get("order_parameter", 0.0))
+                narrative = self.narrative_service.generate(
                     turn=new_turn,
                     phase=current_phase,
                     order_parameter=order_parameter,
-                    prev_order_parameter=order_parameter,
+                    prev_order_parameter=prev_order_parameter,
                     events=[
                         {
                             "event_type": evt.get("type", "unknown"),
@@ -262,7 +272,7 @@ class RunManager:
                         for evt in events
                     ],
                     domain_states=domain_states,
-                    prev_domain_states=domain_states,
+                    prev_domain_states=prev_domain_states,
                     scenario_name=run.scenario.name,
                     scenario_id=str(run.scenario_id),
                 )
