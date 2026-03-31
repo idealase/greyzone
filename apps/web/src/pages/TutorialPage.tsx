@@ -1,13 +1,14 @@
-import { useState, useEffect, useCallback } from "react";
+import { lazy, Suspense, useState, useEffect, useCallback } from "react";
 import TutorialProgress from "../components/tutorial/TutorialProgress";
-import WelcomeStep from "../components/tutorial/steps/WelcomeStep";
-import DomainsStep from "../components/tutorial/steps/DomainsStep";
-import RolesStep from "../components/tutorial/steps/RolesStep";
-import EscalationStep from "../components/tutorial/steps/EscalationStep";
-import ActionsStep from "../components/tutorial/steps/ActionsStep";
-import BoardStep from "../components/tutorial/steps/BoardStep";
-import CouplingsStep from "../components/tutorial/steps/CouplingsStep";
-import ReadyStep from "../components/tutorial/steps/ReadyStep";
+
+const WelcomeStep = lazy(() => import("../components/tutorial/steps/WelcomeStep"));
+const DomainsStep = lazy(() => import("../components/tutorial/steps/DomainsStep"));
+const RolesStep = lazy(() => import("../components/tutorial/steps/RolesStep"));
+const EscalationStep = lazy(() => import("../components/tutorial/steps/EscalationStep"));
+const ActionsStep = lazy(() => import("../components/tutorial/steps/ActionsStep"));
+const BoardStep = lazy(() => import("../components/tutorial/steps/BoardStep"));
+const CouplingsStep = lazy(() => import("../components/tutorial/steps/CouplingsStep"));
+const ReadyStep = lazy(() => import("../components/tutorial/steps/ReadyStep"));
 
 const STEPS = [
   { title: "Welcome", subtitle: "What is Greyzone?" },
@@ -76,7 +77,9 @@ export default function TutorialPage() {
       />
 
       <div key={currentStep} className="tutorial-step">
-        {renderStep(currentStep, handleReplay)}
+        <Suspense fallback={<div style={{ color: "var(--text-muted)" }}>Loading step…</div>}>
+          {renderStep(currentStep, handleReplay)}
+        </Suspense>
       </div>
 
       <div className="tutorial-nav">
