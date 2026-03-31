@@ -27,6 +27,7 @@ function hexToRgb(hex: string): [number, number, number] {
 // Grid layout: 4 columns x 2 rows
 const COLS = 4;
 const ROWS = 2;
+const ZONE_PAD = 3;
 
 // Short labels for compact display
 const SHORT_LABELS: Record<DomainLayer, string> = {
@@ -38,6 +39,17 @@ const SHORT_LABELS: Record<DomainLayer, string> = {
   [DomainLayer.SpacePnt]: "SPC",
   [DomainLayer.InformationCognitive]: "INF",
   [DomainLayer.DomesticPoliticalFiscal]: "POL",
+};
+
+const DOMAIN_FULL_LABELS: Record<DomainLayer, string> = {
+  [DomainLayer.Kinetic]: "Kinetic",
+  [DomainLayer.MaritimeLogistics]: "Maritime",
+  [DomainLayer.Energy]: "Energy",
+  [DomainLayer.GeoeconomicIndustrial]: "Geoeconomic",
+  [DomainLayer.Cyber]: "Cyber",
+  [DomainLayer.SpacePnt]: "Space/PNT",
+  [DomainLayer.InformationCognitive]: "Info/Cogn",
+  [DomainLayer.DomesticPoliticalFiscal]: "Domestic",
 };
 
 export default function BattlespaceCanvas({
@@ -79,7 +91,7 @@ export default function BattlespaceCanvas({
     const cellH = displayHeight / ROWS;
 
     // 1. Background
-    ctx.fillStyle = "#111";
+    ctx.fillStyle = "#0c0c0c";
     ctx.fillRect(0, 0, displayWidth, displayHeight);
 
     // Phase-tinted background overlay
@@ -91,29 +103,36 @@ export default function BattlespaceCanvas({
       ctx.fillRect(0, 0, displayWidth, displayHeight);
     }
 
-    // 2. Grid lines
-    ctx.strokeStyle = "#1a1a1a";
-    ctx.lineWidth = 0.5;
-    for (let c = 0; c <= COLS; c++) {
-      const x = c * cellW;
-      ctx.beginPath();
-      ctx.moveTo(x, 0);
-      ctx.lineTo(x, displayHeight);
-      ctx.stroke();
-    }
-    for (let r = 0; r <= ROWS; r++) {
-      const y = r * cellH;
-      ctx.beginPath();
-      ctx.moveTo(0, y);
-      ctx.lineTo(displayWidth, y);
-      ctx.stroke();
-    }
-
     if (!worldState) {
-      // Empty state label
-      ctx.fillStyle = "#555";
-      ctx.font = "12px monospace";
+      // Empty state — draw zone outlines as structural skeleton
+      ALL_DOMAINS.forEach((domain, idx) => {
+        const col = idx % COLS;
+        const row = Math.floor(idx / COLS);
+        const x = col * cellW;
+        const y = row * cellH;
+
+        // Dim zone fill
+        const [dr, dg, db] = hexToRgb(DOMAIN_COLORS[domain]);
+        ctx.fillStyle = `rgba(${dr},${dg},${db},0.08)`;
+        ctx.fillRect(x + ZONE_PAD, y + ZONE_PAD, cellW - ZONE_PAD * 2, cellH - ZONE_PAD * 2);
+
+        // Border
+        ctx.strokeStyle = `rgba(${dr},${dg},${db},0.3)`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(x + ZONE_PAD, y + ZONE_PAD, cellW - ZONE_PAD * 2, cellH - ZONE_PAD * 2);
+
+        // Label
+        ctx.fillStyle = "rgba(160,160,160,0.5)";
+        ctx.font = "bold 10px monospace";
+        ctx.textAlign = "left";
+        ctx.textBaseline = "top";
+        ctx.fillText(SHORT_LABELS[domain], x + ZONE_PAD + 4, y + ZONE_PAD + 4);
+      });
+
+      ctx.fillStyle = "#444";
+      ctx.font = "11px monospace";
       ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
       ctx.fillText(
         "Awaiting world state\u2026",
         displayWidth / 2,
@@ -127,61 +146,76 @@ export default function BattlespaceCanvas({
     // Zone center coordinates for coupling lines
     const zoneCenters: Record<string, [number, number]> = {};
 
-    // 3. Domain zones
+    // 2. Domain zones
     ALL_DOMAINS.forEach((domain, idx) => {
       const col = idx % COLS;
       const row = Math.floor(idx / COLS);
       const x = col * cellW;
       const y = row * cellH;
+      const zx = x + ZONE_PAD;
+      const zy = y + ZONE_PAD;
+      const zw = cellW - ZONE_PAD * 2;
+      const zh = cellH - ZONE_PAD * 2;
       const layer = layers[domain];
 
       const cx = x + cellW / 2;
       const cy = y + cellH / 2;
       zoneCenters[domain] = [cx, cy];
 
-      // Zone fill: domain color at stress-driven alpha
       const [dr, dg, db] = hexToRgb(DOMAIN_COLORS[domain]);
-      const fillAlpha = 0.15 + layer.stress * 0.85;
-      ctx.fillStyle = `rgba(${dr},${dg},${db},${fillAlpha})`;
-      ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
 
-      // Resilience border
-      const borderWidth = 1 + layer.resilience * 4;
-      ctx.strokeStyle = DOMAIN_COLORS[domain];
+      // Zone fill: domain color with minimum visibility + stress-driven intensity
+      const fillAlpha = 0.12 + layer.stress * 0.75;
+      ctx.fillStyle = `rgba(${dr},${dg},${db},${fillAlpha})`;
+      ctx.fillRect(zx, zy, zw, zh);
+
+      // Inner glow — brighter bar at bottom proportional to stress
+      if (layer.stress > 0.01) {
+        const barH = Math.max(2, zh * layer.stress * 0.3);
+        ctx.fillStyle = `rgba(${dr},${dg},${db},${0.3 + layer.stress * 0.5})`;
+        ctx.fillRect(zx, zy + zh - barH, zw, barH);
+      }
+
+      // Resilience border — always visible, thickness scales with resilience
+      const borderAlpha = 0.35 + layer.resilience * 0.65;
+      const borderWidth = 1 + layer.resilience * 3;
+      ctx.strokeStyle = `rgba(${dr},${dg},${db},${borderAlpha})`;
       ctx.lineWidth = borderWidth;
       ctx.strokeRect(
-        x + borderWidth / 2,
-        y + borderWidth / 2,
-        cellW - borderWidth,
-        cellH - borderWidth
+        zx + borderWidth / 2,
+        zy + borderWidth / 2,
+        zw - borderWidth,
+        zh - borderWidth
       );
 
-      // Activity particles
-      const particleCount = Math.floor(layer.activity_level * 20);
-      ctx.fillStyle = "rgba(255,255,255,0.4)";
+      // Activity particles — minimum 2 so zones always look "alive"
+      const particleCount = Math.max(2, Math.floor(layer.activity_level * 25));
+      const particleAlpha = 0.2 + layer.activity_level * 0.4;
+      ctx.fillStyle = `rgba(255,255,255,${particleAlpha})`;
       for (let i = 0; i < particleCount; i++) {
         const seed = turn * 1000 + idx * 100 + i;
-        const px = x + 4 + seededRandom(seed) * (cellW - 8);
-        const py = y + 4 + seededRandom(seed + 7) * (cellH - 8);
-        const size = 2 + seededRandom(seed + 13);
+        const px = zx + 6 + seededRandom(seed) * (zw - 12);
+        const py = zy + 18 + seededRandom(seed + 7) * (zh - 24);
+        const size = 1.5 + seededRandom(seed + 13) * 1.5;
         ctx.fillRect(px, py, size, size);
       }
 
       // Friction hatching
-      if (layer.friction > 0.3) {
+      if (layer.friction > 0.2) {
         ctx.save();
         ctx.beginPath();
-        ctx.rect(x, y, cellW, cellH);
+        ctx.rect(zx, zy, zw, zh);
         ctx.clip();
 
-        ctx.strokeStyle = `rgba(255,255,255,0.15)`;
+        const hatchAlpha = 0.06 + layer.friction * 0.12;
+        ctx.strokeStyle = `rgba(255,255,255,${hatchAlpha})`;
         ctx.lineWidth = 0.5;
-        const spacing = 8;
-        const diag = cellW + cellH;
+        const spacing = 6;
+        const diag = zw + zh;
         for (let d = -diag; d < diag; d += spacing) {
           ctx.beginPath();
-          ctx.moveTo(x + d, y);
-          ctx.lineTo(x + d + cellH, y + cellH);
+          ctx.moveTo(zx + d, zy);
+          ctx.lineTo(zx + d + zh, zy + zh);
           ctx.stroke();
         }
         ctx.restore();
@@ -190,21 +224,41 @@ export default function BattlespaceCanvas({
       // Turn flash: highlight domains with significant stress change
       if (previousWorldState) {
         const prevLayer = previousWorldState.layers[domain];
-        if (prevLayer && Math.abs(layer.stress - prevLayer.stress) > 0.05) {
-          ctx.fillStyle = "rgba(255,255,255,0.15)";
-          ctx.fillRect(x + 1, y + 1, cellW - 2, cellH - 2);
+        if (prevLayer && Math.abs(layer.stress - prevLayer.stress) > 0.03) {
+          const flashAlpha = Math.min(0.25, Math.abs(layer.stress - prevLayer.stress) * 0.8);
+          ctx.fillStyle = `rgba(255,255,255,${flashAlpha})`;
+          ctx.fillRect(zx, zy, zw, zh);
         }
       }
+
+      // Domain label — short code top-left, full name below
+      ctx.textAlign = "left";
+      ctx.textBaseline = "top";
+      ctx.font = "bold 10px monospace";
+      ctx.fillStyle = `rgba(${dr},${dg},${db},0.9)`;
+      ctx.fillText(SHORT_LABELS[domain], zx + 4, zy + 4);
+
+      ctx.font = "8px monospace";
+      ctx.fillStyle = "rgba(180,180,180,0.5)";
+      ctx.fillText(DOMAIN_FULL_LABELS[domain], zx + 4, zy + 16);
+
+      // Stress value readout bottom-right
+      const stressPct = (layer.stress * 100).toFixed(0);
+      ctx.textAlign = "right";
+      ctx.textBaseline = "bottom";
+      ctx.font = "9px monospace";
+      ctx.fillStyle = `rgba(${dr},${dg},${db},0.7)`;
+      ctx.fillText(`${stressPct}%`, zx + zw - 4, zy + zh - 4);
     });
 
-    // 4. Coupling lines
+    // 3. Coupling lines
     if (coupling_matrix) {
       const drawn = new Set<string>();
       for (const domA of Object.keys(coupling_matrix)) {
-        const row = coupling_matrix[domA];
-        if (!row) continue;
-        for (const domB of Object.keys(row)) {
-          const weight = row[domB];
+        const rowData = coupling_matrix[domA];
+        if (!rowData) continue;
+        for (const domB of Object.keys(rowData)) {
+          const weight = rowData[domB];
           if (weight <= 0.01) continue;
           const key = [domA, domB].sort().join("|");
           if (drawn.has(key)) continue;
@@ -214,8 +268,8 @@ export default function BattlespaceCanvas({
           const b = zoneCenters[domB];
           if (!a || !b) continue;
 
-          ctx.strokeStyle = `rgba(74,78,105,${0.2 + weight * 0.5})`;
-          ctx.lineWidth = 0.5 + weight * 3;
+          ctx.strokeStyle = `rgba(100,110,140,${0.15 + weight * 0.4})`;
+          ctx.lineWidth = 0.5 + weight * 2.5;
           ctx.beginPath();
           ctx.moveTo(a[0], a[1]);
           ctx.lineTo(b[0], b[1]);
@@ -223,19 +277,6 @@ export default function BattlespaceCanvas({
         }
       }
     }
-
-    // 5. Domain labels
-    ctx.textAlign = "left";
-    ctx.textBaseline = "top";
-    ctx.font = "9px monospace";
-    ALL_DOMAINS.forEach((domain, idx) => {
-      const col = idx % COLS;
-      const row = Math.floor(idx / COLS);
-      const x = col * cellW + 4;
-      const y = row * cellH + 3;
-      ctx.fillStyle = "rgba(204,204,204,0.7)";
-      ctx.fillText(SHORT_LABELS[domain], x, y);
-    });
   }, [worldState, previousWorldState, containerWidth]);
 
   return (
