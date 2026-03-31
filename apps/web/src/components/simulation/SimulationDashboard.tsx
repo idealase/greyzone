@@ -206,6 +206,8 @@ export default function SimulationDashboard({
               {advanceErrorMessage}
             </div>
           </div>
+        )}
+      </div>
 
       {isMobile ? (
         <>

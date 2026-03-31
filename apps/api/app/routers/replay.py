@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.dependencies.auth import get_current_user
 from app.db.session import get_session
 from app.models.user import User
-from app.schemas.event import EventList, EventRead
+from app.schemas.event import EventList
 from app.services.access_control import ensure_run_member
 from app.services.engine_bridge import EngineBridge
 from app.services.replay_service import ReplayService

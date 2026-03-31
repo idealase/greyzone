@@ -222,7 +222,10 @@ mod tests {
     #[test]
     fn test_action_type_display_is_human_readable() {
         assert_eq!(ActionType::CyberAttack.to_string(), "Cyber Attack");
-        assert_eq!(ActionType::InformationOp.to_string(), "Information Operation");
+        assert_eq!(
+            ActionType::InformationOp.to_string(),
+            "Information Operation"
+        );
         assert_eq!(
             ActionType::DomesticPolicyShift.to_string(),
             "Domestic Policy Shift"
