@@ -98,6 +98,20 @@ async def test_advance_turn(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_advance_turn_pre_generates_narrative(client: AsyncClient):
+    run_id, _, _ = await _setup_running_run(client)
+
+    advance_resp = await client.post(f"/api/v1/runs/{run_id}/advance")
+    assert advance_resp.status_code == 200
+
+    narrative_resp = await client.get(f"/api/v1/runs/{run_id}/turns/1/narrative")
+    assert narrative_resp.status_code == 200
+    narrative_data = narrative_resp.json()
+    assert narrative_data["turn"] == 1
+    assert narrative_data["cached"] is True
+
+
+@pytest.mark.asyncio
 async def test_get_action_history(client: AsyncClient):
     run_id, user_id, _ = await _setup_running_run(client)
 
