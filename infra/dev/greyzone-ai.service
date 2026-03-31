@@ -8,7 +8,9 @@ User=brodie
 WorkingDirectory=/home/brodie/Desktop/Repos/greyzone/apps/ai-agent
 Environment=AI_AGENT_PORT=3100
 Environment=API_BASE_URL=http://localhost:8010/api/v1
-Environment=USE_MOCK_AI=true
+Environment=USE_MOCK_AI=false
+# Set USE_MOCK_AI=true in development/CI environments to use heuristic AI
+# Set COPILOT_API_KEY to enable LLM-based AI opponent
 ExecStart=/usr/bin/node --import tsx/esm src/index.ts
 Restart=on-failure
 RestartSec=5

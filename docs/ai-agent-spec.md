@@ -1,11 +1,17 @@
 # Greyzone AI Agent Specification
 
-Version: 1.0
+Version: 2.0
 Status: Governing
 
 ## 1. Overview
 
-The AI agent service provides automated opponents and allies for Greyzone simulation runs. An AI agent fills a player role (e.g., Red Commander, Blue Diplomat) and participates in the simulation through the same move submission pipeline as human players. The agent is a bounded planner: it receives a compiled state view, reasons about strategy using an LLM, and submits legal moves. It never directly mutates simulation state.
+The AI agent service provides automated opponents and allies for Greyzone simulation runs. An AI agent fills a player role (e.g., Red Commander, Blue Commander) and participates in the simulation through the same action submission pipeline as human players.
+
+The agent operates in one of two modes:
+1. **Heuristic Mode** (default when `USE_MOCK_AI=true` or no LLM API key configured): Uses deterministic scoring algorithms to select actions based on domain stress, resilience, phase, and role objectives.
+2. **LLM Mode** (when `USE_MOCK_AI=false` and `COPILOT_API_KEY` is set): Uses GitHub Copilot API (GPT-4) to reason about strategy and select actions, with automatic fallback to heuristic mode on API failures.
+
+The agent never directly mutates simulation state—it only reads compiled state and submits actions through the standard API.
 
 ## 2. Design Principles
 
@@ -17,378 +23,377 @@ The AI agent service provides automated opponents and allies for Greyzone simula
 
 ## 3. Architecture
 
+### 3.1 Current Implementation
+
 ```
 ┌────────────────────────────────────────────────────────┐
 │                    AI Agent Service                      │
 │                                                          │
 │  ┌──────────┐  ┌──────────────┐  ┌───────────────────┐ │
-│  │  State    │  │   Prompt     │  │   Tool            │ │
-│  │  Compiler │→ │   Assembler  │→ │   Executor        │ │
-│  └──────────┘  └──────────────┘  └───────┬───────────┘ │
+│  │  State    │  │  Action      │  │   AI Client       │ │
+│  │  Compiler │→ │  Selector    │→ │   (Heuristic or   │ │
+│  └──────────┘  └──────────────┘  │    Copilot LLM)   │ │
+│                                   └───────────────────┘ │
 │                                          │              │
 │                                          ▼              │
 │                                   ┌─────────────┐      │
-│                                   │  LLM Client │      │
-│                                   │  (Copilot   │      │
-│                                   │   SDK)      │      │
+│                                   │  Tool       │      │
+│                                   │  Executor   │      │
+│                                   │  +          │      │
+│                                   │  Guardrails │      │
 │                                   └─────────────┘      │
 └────────────────────────────────────────────────────────┘
          ▲                                    │
-         │ Compiled State                     │ Move Submission
+         │ State + Legal Actions              │ Action Submission
          │ (from FastAPI)                     ▼ (to FastAPI)
 ```
 
-## 4. State Compiler
+### 3.2 Key Components
 
-The state compiler transforms the raw role-scoped state view (received from FastAPI) into a structured prompt-friendly representation.
+1. **State Compiler** (`stateCompiler.ts`): Transforms raw state into strategic briefing including domain status, trends, couplings, and objectives
+2. **Action Selector** (`actionSelector.ts`): Orchestrates the turn-taking workflow
+3. **AI Client** (`aiClient.ts`): Two implementations:
+   - `HeuristicAiClient`: Deterministic scoring-based decision making
+   - `CopilotAiClient`: LLM-based reasoning with automatic fallback
+4. **Tool Executor** (`toolExecutor.ts`): Executes API calls with guardrail enforcement
+5. **Guardrails** (`guardrails.ts`): Validates actions and detects loops
+6. **Audit Logger** (`auditLogger.ts`): Records all decisions for analysis
 
-### 4.1 Input
+### 3.3 Decision Flow
+
+1. Receive `/ai/take-turn` request with `runId` and `roleId`
+2. Compile turn brief (objectives, constraints, domain status)
+3. Fetch legal actions from backend
+4. AI client selects action based on:
+   - **Heuristic**: Score all actions, pick from top 3 with pseudo-randomness
+   - **LLM**: Prompt GPT-4 with strategic context, parse JSON response
+5. Validate decision through guardrails (legality, intensity range, loop detection)
+6. Submit action to backend API
+7. End turn
+8. Log decision with rationale and timing
+
+### 3.4 Configuration
+
+The agent mode is controlled by environment variables:
+
+```bash
+USE_MOCK_AI=false           # false = try LLM first, true = always heuristic
+COPILOT_API_KEY=sk-...      # Required for LLM mode
+COPILOT_MODEL=gpt-4         # LLM model (default: gpt-4)
+AI_AGENT_PORT=3100          # Service port
+API_BASE_URL=...            # Backend API endpoint
+LOG_LEVEL=info              # Logging verbosity
+```
+
+**Default behavior**: If `COPILOT_API_KEY` is not set, the agent automatically uses heuristic mode regardless of `USE_MOCK_AI` setting.
+
+## 4. Heuristic AI Implementation
+
+### 4.1 Overview
+
+The heuristic AI (`HeuristicAiClient`) provides deterministic, strategic decision-making without requiring external LLM APIs. It uses a sophisticated scoring system that considers:
+- Domain stress and resilience levels
+- Current escalation phase
+- Role-specific objectives (Red vs Blue)
+- Domain trend analysis (rising/falling)
+- Action impact predictions
+
+### 4.2 Action Scoring Algorithm
+
+For each legal action, the AI computes a score based on:
+
+**Red Commander (Adversary)**:
+- High-stress domains: `score += stress × 2`
+- Low-resilience targets: `score += (1 - resilience) × 1.5`
+- Phase-dependent escalation:
+  - Competition/Crisis: Prefer stress-increasing actions (+2)
+  - War/Escalation: Heavy weight on stress impact (×3)
+  - Penalize de-escalation unless critical (-2)
+- Rising trend domains: +1 bonus
+- Pseudo-random variation: 0-0.5 based on turn seed
+
+**Blue Commander (Defender)**:
+- Prioritize high-stress domains: `score += stress × 3` (if >0.5)
+- Build resilience: `score += (1 - resilience) × 2`
+- Prefer defensive actions (negative stress impact): +2
+- Late-phase de-escalation: +3 bonus
+- Defensive keywords (defense, counter, reinforcement): +1.5
+- Rising trend domains: +1 bonus
+
+### 4.3 Selection Strategy
+
+1. Score all legal actions
+2. Sort by score descending
+3. Select from top 3 actions with weighted randomness (ensures variety)
+4. Compute intensity based on phase and role
+5. Generate rationale explaining decision
+
+### 4.4 Intensity Calculation
+
+**Red**: Escalation curve by phase
+- Competition: 30% + randomness
+- Crisis: 40% + randomness
+- HybridCoercion: 50% + randomness
+- Later phases: 60% + randomness
+
+**Blue**: Stress-responsive
+- Base 30% + (domain_stress × 40%) + randomness
+
+### 4.5 Determinism
+
+All randomness is seeded by turn number, ensuring reproducible behavior for testing and replay validation.
+
+## 5. LLM AI Implementation
+
+### 5.1 Overview
+
+The LLM AI (`CopilotAiClient`) uses GitHub Copilot API (GPT-4 by default) for strategic reasoning. It:
+- Receives compiled turn brief with domain status and strategic context
+- Is prompted with role-specific objectives
+- Returns structured JSON with action selection and rationale
+- Automatically falls back to heuristic mode on API failures
+
+### 5.2 API Configuration
+
+- Endpoint: `https://api.githubcopilot.com/chat/completions`
+- Model: Configurable (default: `gpt-4`)
+- Temperature: 0.7 (some creativity)
+- Max tokens: 1024
+- Timeout: 25 seconds
+
+### 5.3 Fallback Strategy
+
+If the LLM API call fails (timeout, error, invalid response), the client automatically falls back to `HeuristicAiClient` and logs the failure for monitoring.
+
+## 6. State Compiler
+
+The state compiler transforms the raw role-scoped state view (received from FastAPI) into a strategic turn brief.
+
+### 6.1 Input
 
 The control plane sends the AI agent a request containing:
 
 ```json
 {
-  "run_id": "uuid",
-  "tick": 42,
-  "role": "red_commander",
-  "state_view": { ... },
-  "available_moves": [ ... ],
-  "phase": 2,
-  "recent_events": [ ... ],
-  "agent_config": { ... }
+  "runId": "uuid",
+  "roleId": "red_commander" | "blue_commander"
 }
 ```
 
-- `state_view`: The role-filtered world state (same format a human client receives).
-- `available_moves`: List of legal move types with their parameters, costs, and preconditions.
-- `recent_events`: Last N events visible to this role (configurable, default: 20).
-- `agent_config`: Difficulty, persona, strategy hints, tool budget.
+The AI agent then fetches:
+- Current world state from `/runs/{runId}/state`
+- Legal actions from `/runs/{runId}/actions/legal`
+- Recent events from `/runs/{runId}/events`
 
-### 4.2 Compilation Steps
+### 6.2 Compilation Steps
 
-1. **Prune**: Remove state variables that have not changed in the last 5 ticks (reduces token count).
-2. **Summarize**: Convert numerical state vectors into natural-language summaries (e.g., "Force readiness: HIGH (0.82), declining from 0.91 three ticks ago").
-3. **Highlight**: Flag state variables near critical thresholds (e.g., "WARNING: Fiscal reserves at 0.12, approaching exhaustion").
-4. **Contextualize**: Add phase-specific strategic context (e.g., "Current phase: Acute Polycrisis. Full mobilization is not yet available.").
-5. **Budget**: Estimate token count; if over limit, progressively summarize less-critical layers.
+1. **Extract domain status**: Compute stress, resilience, and trends for each domain
+2. **Identify couplings**: Flag strong domain couplings (>0.3 strength) that could cause cascades
+3. **Analyze trends**: Detect rising/falling patterns in stress and order parameter
+4. **Generate objectives**: Create role-specific strategic objectives based on phase
+5. **Compile constraints**: List resource limits and action constraints
+6. **Suggest tradeoffs**: Identify key strategic choices and their implications
 
-### 4.3 Output
+### 6.3 Output (TurnBrief)
 
-A structured text block (Markdown) suitable for insertion into the LLM prompt.
-
-## 5. Prompt Assembly
-
-The prompt assembler constructs the full LLM prompt from the following components, in order:
-
-### 5.1 System Prompt
-
-```
-You are a strategic AI advisor playing the role of {role_name} in a distributed
-battlespace simulation called Greyzone. You must analyze the current situation
-and decide on moves for this tick.
-
-CONSTRAINTS:
-- You may only submit moves from the provided available_moves list.
-- You must respect move costs; do not submit moves whose costs exceed your resources.
-- You must think strategically across all layers within your visibility.
-- Your goal is: {persona_goal}
-
-PHASE: {current_phase_name} ({current_phase_number}/5)
-This means: {phase_description}
+```typescript
+{
+  turn: number;
+  phase: "competition" | "crisis" | "hybrid_coercion" | "war_transition" | "limited_war";
+  orderParameter: number;
+  orderTrend: "rising" | "falling" | "stable";
+  domains: {
+    [key: string]: {
+      stress: number;
+      resilience: number;
+      trend: "rising" | "falling" | "stable";
+    };
+  };
+  objectives: string[];      // Role-specific goals
+  constraints: string[];     // Resource/policy limits
+  tradeoffs: string[];       // Strategic considerations
+  couplings: string[];       // Domain interdependencies
+}
 ```
 
-### 5.2 State Block
+## 7. API Interface
 
-The compiled state view from Section 4.
+### 7.1 Take Turn Endpoint
 
-### 5.3 Recent Events Block
+**POST** `/ai/take-turn`
 
-Narrative summary of the last N events visible to the role:
-
-```
-## Recent Events (last 5 ticks)
-- Tick 38: Blue increased force posture in Region A to 0.6
-- Tick 39: SLOC throughput on Route Alpha dropped to 0.4 (likely Blue naval presence)
-- Tick 40: Energy price index spiked to 2.1 (sanctions impact)
-- Tick 41: Your cyber attack on Blue energy grid partially succeeded (infrastructure -0.15)
-- Tick 42: Phase transition to Acute Polycrisis
-```
-
-### 5.4 Available Moves Block
-
-```
-## Available Moves
-1. increase_force_posture(region="Baltic", amount=0.1) — Cost: readiness -0.05, fiscal -0.03
-2. launch_cyber_attack(target="blue", sector="energy") — Cost: attack_capacity -0.3
-3. impose_sanctions(target="blue_ally_1") — Cost: trade_flow -0.1, credibility -0.05
-4. conduct_psyop(target="blue", narrative="war_weariness") — Cost: fiscal -0.02
-...
-```
-
-### 5.5 Instruction Block
-
-```
-## Instructions
-Analyze the situation. Use the provided tools to inspect specific state details
-if needed. Then submit 1-{max_moves_per_tick} moves for this tick.
-
-Call submit_moves with your chosen moves when ready.
-```
-
-## 6. Tool Definitions
-
-The AI agent has access to the following tools via the LLM tool-use interface:
-
-### 6.1 `inspect_layer`
-
-Retrieve detailed state for a specific layer.
-
+Request:
 ```json
 {
-  "name": "inspect_layer",
-  "description": "Get detailed current state for a simulation layer",
-  "parameters": {
-    "layer": "string — one of: kinetic, maritime, energy, geoeconomic, cyber, space, information, domestic"
-  }
+  "runId": "uuid",
+  "roleId": "red_commander" | "blue_commander"
 }
 ```
 
-Returns the full state view for that layer (within role visibility).
-
-### 6.2 `inspect_actor`
-
-Retrieve detailed state for a specific actor.
-
+Response:
 ```json
 {
-  "name": "inspect_actor",
-  "description": "Get detailed current state for a specific actor",
-  "parameters": {
-    "actor_id": "string — UUID of the actor"
-  }
+  "success": boolean,
+  "action": {
+    "actionType": "string",
+    "targetDomain": "string",
+    "targetActorId": "string?",
+    "intensity": number,
+    "rationale": "string",
+    "confidence": number
+  },
+  "rationale": "string",
+  "toolCalls": [
+    {
+      "tool": "string",
+      "input": {},
+      "output": {},
+      "durationMs": number
+    }
+  ],
+  "error": "string?"
 }
 ```
 
-Returns the actor's state variables within role visibility.
+### 7.2 Health Check
 
-### 6.3 `query_history`
+**GET** `/health`
 
-Retrieve historical values for a state variable.
+Returns service health status and configuration mode (heuristic/LLM).
 
-```json
-{
-  "name": "query_history",
-  "description": "Get historical values of a state variable over recent ticks",
-  "parameters": {
-    "layer": "string",
-    "variable": "string",
-    "ticks_back": "integer — max 20"
-  }
-}
-```
+## 8. Guardrails
 
-Returns an array of (tick, value) pairs.
+### 8.1 Action Validation
 
-### 6.4 `evaluate_move`
+All actions submitted by the AI are validated:
+- Must be in the legal actions list
+- Intensity must be within allowed range
+- Cannot submit forbidden action types (configurable)
 
-Hypothetically evaluate a move without submitting it.
+### 8.2 Loop Detection
 
-```json
-{
-  "name": "evaluate_move",
-  "description": "Preview the estimated effects of a move without submitting it",
-  "parameters": {
-    "move_type": "string",
-    "parameters": "object"
-  }
-}
-```
+The guardrails system detects and prevents action loops:
+- Tracks last 3 actions
+- Rejects if new action is identical to all 3 previous actions
+- Forces the AI to try a different approach
 
-Returns estimated effects (deterministic component only, no stochastic preview) and cost. This does not consume a "real" move; it is purely informational.
+### 8.3 Tool Call Limits
 
-### 6.5 `submit_moves`
+- Maximum 10 tool calls per turn (configurable)
+- Maximum 2 retries on validation failures
+- Maximum 30 seconds thinking time
 
-Submit the agent's chosen moves for this tick.
+### 8.4 State Isolation
 
-```json
-{
-  "name": "submit_moves",
-  "description": "Submit one or more moves for the current tick. This is a terminal action.",
-  "parameters": {
-    "moves": [
-      {
-        "move_type": "string",
-        "parameters": "object"
-      }
-    ]
-  }
-}
-```
+The AI agent service does not have direct access to the database or simulation engine. It receives state only through the API and submits actions only through the REST API—same as human players.
 
-This is a terminal tool call. After `submit_moves`, the LLM conversation ends for this tick. The moves are forwarded to FastAPI for standard validation and processing.
+## 9. Observability
 
-### 6.6 `pass_turn`
-
-Submit no moves for this tick.
-
-```json
-{
-  "name": "pass_turn",
-  "description": "Explicitly pass this tick without submitting any moves",
-  "parameters": {}
-}
-```
-
-## 7. Tool Budget
-
-Each AI agent invocation (one tick) is constrained by:
-
-| Constraint | Default | Configurable |
-|---|---|---|
-| Max tool calls | 10 | Yes, range [3, 25] |
-| Max input tokens | 8,000 | Yes, range [2000, 32000] |
-| Max output tokens | 2,000 | Yes, range [500, 8000] |
-| Timeout | 10 seconds | Yes, range [5, 30] |
-| Max moves per tick | 3 | Yes, range [1, 5] |
-
-If the LLM exceeds the tool call budget, the executor stops processing further calls and submits whatever moves have been accumulated (or passes if none).
-
-If the timeout expires, the agent passes the turn.
-
-## 8. Difficulty Levels
-
-Agent difficulty is controlled through several knobs:
-
-| Difficulty | Tool Budget | State Detail | Strategy Hints | Mistakes |
-|---|---|---|---|---|
-| Easy | 5 calls | Summarized | None | Injects suboptimal moves 30% of the time |
-| Medium | 10 calls | Full | Phase-appropriate hints | No injection |
-| Hard | 15 calls | Full + trends | Detailed strategic guidance | No injection |
-| Expert | 25 calls | Full + trends + forecasts | Comprehensive doctrine | No injection |
-
-### 8.1 Mistake Injection (Easy Mode)
-
-On Easy difficulty, after the LLM produces its moves, the agent service randomly replaces 30% of them with suboptimal alternatives. The replacement is drawn from the available move set using a weighted random selection that favors low-impact or misdirected moves. The seed for this randomness comes from the run seed, so mistakes are reproducible in replay.
-
-## 9. Persona System
-
-Each AI agent can be configured with a persona that affects its strategic priorities:
-
-```json
-{
-  "persona": {
-    "name": "The Hawk",
-    "goal": "Maximize military advantage and escalation dominance",
-    "priorities": ["kinetic", "cyber", "space"],
-    "risk_tolerance": 0.8,
-    "description": "Aggressive military strategist who prioritizes force projection and escalation dominance. Willing to accept economic and political costs for military gains."
-  }
-}
-```
-
-The persona is injected into the system prompt and guides the LLM's strategic reasoning. Available personas:
-
-| Persona | Goal | Priority Layers | Risk Tolerance |
-|---|---|---|---|
-| The Hawk | Escalation dominance | Kinetic, Cyber, Space | 0.8 |
-| The Diplomat | De-escalation and negotiation advantage | Geoeconomic, Information, Domestic | 0.3 |
-| The Strategist | Balanced advantage across all domains | All equally | 0.5 |
-| The Disruptor | Maximize opponent cost and chaos | Cyber, Energy, Information | 0.7 |
-| The Turtle | Defensive posture and attrition warfare | Maritime, Energy, Domestic | 0.2 |
-
-## 10. Guardrails
-
-### 10.1 Move Validation
-
-All moves submitted by the AI go through the same FastAPI validation pipeline as human moves. The AI agent service does not have any privileged access.
-
-### 10.2 State Isolation
-
-The AI agent service does not have direct access to the database or the simulation engine. It receives state only through the compiled view provided by FastAPI and submits moves only through the REST API.
-
-### 10.3 Output Sanitization
-
-LLM output is parsed strictly. Only recognized tool calls are processed. Free-text output is logged but not acted upon. If the LLM produces malformed tool calls, they are rejected and logged.
-
-### 10.4 Rate Limiting
-
-The AI agent service enforces its own rate limits independent of the control plane:
-
-- Maximum 1 concurrent invocation per run.
-- Maximum 6 invocations per minute per run (one per tick at maximum tick rate).
-- Maximum 100 invocations per hour per run.
-
-### 10.5 Content Filtering
-
-The LLM prompt includes an instruction to avoid generating content that is gratuitously violent, discriminatory, or otherwise inappropriate. The agent service applies a post-filter to LLM output that redacts flagged content from logs while still processing valid tool calls.
-
-### 10.6 Fallback Behavior
-
-If the LLM fails (error, timeout, malformed output), the agent service:
-
-1. Logs the failure with full context.
-2. Passes the turn (submits no moves).
-3. Increments a failure counter.
-4. If failures exceed 3 consecutive ticks, notifies the run admin.
-5. If failures exceed 10 consecutive ticks, the AI player is deactivated and the run admin is prompted to replace or remove the AI player.
-
-## 11. Observability
-
-### 11.1 Logging
+### 9.1 Logging
 
 Every AI agent invocation produces a detailed log entry:
 
 ```json
 {
-  "run_id": "uuid",
-  "tick": 42,
-  "role": "red_commander",
-  "persona": "the_hawk",
-  "difficulty": "medium",
-  "prompt_tokens": 6500,
-  "completion_tokens": 1200,
-  "tool_calls": [
-    {"tool": "inspect_layer", "args": {"layer": "kinetic"}, "duration_ms": 50},
-    {"tool": "evaluate_move", "args": {"move_type": "increase_force_posture", "parameters": {"region": "Baltic", "amount": 0.1}}, "duration_ms": 30},
-    {"tool": "submit_moves", "args": {"moves": [...]}, "duration_ms": 10}
+  "runId": "uuid",
+  "turn": 42,
+  "roleId": "red_commander",
+  "mode": "heuristic" | "llm",
+  "toolCalls": [
+    {
+      "tool": "getTurnBrief",
+      "durationMs": 50
+    },
+    {
+      "tool": "listLegalActions",
+      "durationMs": 30
+    },
+    {
+      "tool": "submitAction",
+      "durationMs": 10
+    }
   ],
-  "total_duration_ms": 3200,
-  "moves_submitted": 2,
-  "outcome": "success"
+  "totalDurationMs": 3200,
+  "actionSubmitted": true,
+  "outcome": "success" | "error"
 }
 ```
 
-### 11.2 Metrics
+### 9.2 Audit Trail
 
-The agent service exposes Prometheus metrics:
+All decisions are logged with:
+- Full turn brief
+- List of legal actions considered
+- Selected action with scores
+- Rationale for decision
+- Validation results
 
-- `ai_agent_invocation_duration_seconds` (histogram)
-- `ai_agent_tool_calls_total` (counter, labeled by tool name)
-- `ai_agent_moves_submitted_total` (counter)
-- `ai_agent_failures_total` (counter, labeled by failure type)
-- `ai_agent_token_usage_total` (counter, labeled by direction: input/output)
+This enables post-game analysis and AI behavior tuning.
 
-## 12. Configuration
+## 10. Deployment
 
-Agent configuration is stored per-run and can be modified by admins:
+### 10.1 Production Configuration
 
-```json
-{
-  "agent_config": {
-    "enabled": true,
-    "role": "red_commander",
-    "difficulty": "medium",
-    "persona": "the_hawk",
-    "tool_budget": 10,
-    "max_input_tokens": 8000,
-    "max_output_tokens": 2000,
-    "timeout_seconds": 10,
-    "max_moves_per_tick": 3,
-    "llm_model": "gpt-4",
-    "llm_temperature": 0.3,
-    "seed": 12345
-  }
-}
+For production deployment with real LLM opponent:
+
+```bash
+# .env or systemd Environment
+USE_MOCK_AI=false
+COPILOT_API_KEY=your_api_key_here
+COPILOT_MODEL=gpt-4
+AI_AGENT_PORT=3100
+API_BASE_URL=http://localhost:8010/api/v1
+LOG_LEVEL=info
 ```
 
-The `seed` field, combined with `llm_temperature: 0` and a deterministic model, enables reproducible agent behavior for replay validation. Note that exact reproducibility depends on the LLM provider's determinism guarantees.
+### 10.2 Development/CI Configuration
+
+For development and CI environments using deterministic heuristic AI:
+
+```bash
+USE_MOCK_AI=true
+AI_AGENT_PORT=3100
+API_BASE_URL=http://localhost:8010/api/v1
+LOG_LEVEL=debug
+```
+
+### 10.3 Graceful Degradation
+
+If `COPILOT_API_KEY` is not set or LLM calls fail:
+1. Agent automatically falls back to heuristic mode
+2. Logs the fallback for monitoring
+3. Continues gameplay without interruption
+4. No manual intervention required
+
+This ensures the game remains playable even if the LLM service is unavailable.
+
+## 11. Future Enhancements
+
+Potential improvements for future versions:
+
+1. **Difficulty Levels**: Easy/Medium/Hard modes with adjustable scoring weights
+2. **Persona System**: Different AI personalities (Hawk, Diplomat, Strategist)
+3. **Learning System**: Track successful strategies and adapt over time
+4. **Multi-action Turns**: Allow AI to submit multiple actions per turn
+5. **Lookahead Planning**: Evaluate action sequences, not just single actions
+6. **Metrics Dashboard**: Real-time visualization of AI decision-making
+
+## Appendix A: Action Types
+
+The AI can select from 30+ action types across 8 domains:
+
+- **Kinetic**: military_posture, air_defense_activation, naval_patrol, special_operations
+- **Maritime & Logistics**: trade_route_disruption, port_security, logistics_reinforcement
+- **Energy**: energy_supply_pressure, pipeline_interdiction, energy_reserve_release
+- **Geoeconomic & Industrial**: sanction_package, trade_incentive, industrial_sabotage, supply_chain_diversification
+- **Cyber**: cyber_intrusion, cyber_defense_hardening, ddos_attack
+- **Space & PNT**: satellite_interference, pnt_spoofing, space_surveillance
+- **Information & Cognitive**: disinformation_campaign, media_counter_narrative, strategic_leaks
+- **Domestic Political & Fiscal**: domestic_mobilization, fiscal_stimulus, political_messaging
+- **Meta**: deescalate, hold_steady
+
+Each action has:
+- Specific intensity ranges
+- Estimated stress impact on target domains
+- Role visibility constraints
+- Phase availability rules
