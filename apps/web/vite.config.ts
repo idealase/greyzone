@@ -7,9 +7,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          if (id.includes("node_modules/recharts")) return "vendor-charts";
-          if (id.includes("node_modules/@tanstack/react-query")) return "vendor-query";
-          if (id.includes("node_modules/react") || id.includes("node_modules/react-dom")) {
+          const normalizedId = id.replace(/\\/g, "/");
+          if (normalizedId.includes("/node_modules/recharts/")) return "vendor-charts";
+          if (normalizedId.includes("/node_modules/@tanstack/react-query/")) return "vendor-query";
+          if (
+            normalizedId.includes("/node_modules/react/") ||
+            normalizedId.includes("/node_modules/react-dom/")
+          ) {
             return "vendor-react";
           }
           return undefined;

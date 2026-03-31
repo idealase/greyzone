@@ -21,9 +21,19 @@ export function useScenarioLocale(): ScenarioLocale | null {
     if (cachedLocale) return;
 
     let cancelled = false;
-    loadScenarioLocale(scenarioId).then((loadedLocale) => {
-      if (!cancelled) setLocale(loadedLocale);
-    });
+    loadScenarioLocale(scenarioId)
+      .then((loadedLocale) => {
+        if (!cancelled) setLocale(loadedLocale);
+      })
+      .catch((error) => {
+        console.error(
+          `Failed to load locale for scenario '${scenarioId}'. The scenario may not be supported or there was a network/import error.`,
+          { scenarioId, error }
+        );
+        if (!cancelled) {
+          setLocale(null);
+        }
+      });
     return () => {
       cancelled = true;
     };

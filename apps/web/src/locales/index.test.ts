@@ -1,10 +1,8 @@
-import { getScenarioLocale, loadScenarioLocale, LOCALE_REGISTRY } from "./index";
+import { clearLocaleCache, getScenarioLocale, loadScenarioLocale } from "./index";
 
 describe("locales index", () => {
   beforeEach(() => {
-    Object.keys(LOCALE_REGISTRY).forEach((key) => {
-      delete LOCALE_REGISTRY[key];
-    });
+    clearLocaleCache();
   });
 
   it("loads and caches baltic locale on demand", async () => {

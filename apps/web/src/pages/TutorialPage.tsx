@@ -77,7 +77,13 @@ export default function TutorialPage() {
       />
 
       <div key={currentStep} className="tutorial-step">
-        <Suspense fallback={<div style={{ color: "var(--text-muted)" }}>Loading step…</div>}>
+        <Suspense
+          fallback={
+            <div role="status" aria-live="polite" style={{ color: "var(--text-muted)" }}>
+              Loading step…
+            </div>
+          }
+        >
           {renderStep(currentStep, handleReplay)}
         </Suspense>
       </div>
