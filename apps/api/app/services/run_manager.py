@@ -21,6 +21,10 @@ from app.models.narrative import RunNarrative
 from app.schemas.run import RunCreate, RunParticipantCreate
 from app.services.engine_bridge import EngineBridge, EngineError
 from app.services.narrative_service import NarrativeService
+from app.observability.metrics import (
+    record_engine_error,
+    turns_advanced_total,
+)
 
 logger = structlog.get_logger()
 
@@ -102,6 +106,12 @@ class RunManager:
         try:
             await self.engine.start_engine(run_id, run.scenario.name, run.seed)
         except EngineError as e:
+            record_engine_error("start_engine")
+            logger.warning(
+                "engine_start_failed",
+                run_id=str(run_id),
+                error=str(e),
+            )
             raise HTTPException(status_code=503, detail=str(e))
 
         run.status = RunStatus.RUNNING
@@ -187,6 +197,13 @@ class RunManager:
             else:
                 state = await self.engine.get_state(run_id)
         except EngineError as e:
+            record_engine_error("get_run_state")
+            logger.warning(
+                "engine_state_fetch_failed",
+                run_id=str(run_id),
+                role_id=role_id,
+                error=str(e),
+            )
             raise HTTPException(status_code=503, detail=str(e))
 
         return {
@@ -243,6 +260,8 @@ class RunManager:
             try:
                 result = await self.engine.advance_turn(run_id)
             except EngineError as e:
+                record_engine_error("advance_turn")
+                logger.warning("engine_advance_failed", run_id=str(run_id), error=str(e))
                 raise HTTPException(status_code=503, detail=str(e))
 
             # Get full world state from engine
@@ -290,6 +309,7 @@ class RunManager:
                 db.add(snapshot)
                 snapshot_taken = True
             except EngineError as e:
+                record_engine_error("take_snapshot")
                 logger.warning(
                     "snapshot_failed",
                     run_id=str(run_id),
@@ -365,6 +385,7 @@ class RunManager:
                     error=str(e),
                 )
 
+            turns_advanced_total.inc()
             await db.flush()
 
             # Check for game over
@@ -489,6 +510,12 @@ class RunManager:
         try:
             metrics = await self.engine.get_metrics(run_id)
         except EngineError as e:
+            record_engine_error("get_metrics")
+            logger.warning(
+                "engine_metrics_failed",
+                run_id=str(run_id),
+                error=str(e),
+            )
             raise HTTPException(status_code=503, detail=str(e))
 
         return {

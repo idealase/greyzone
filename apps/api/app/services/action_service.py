@@ -14,6 +14,7 @@ from app.models.action import UserActionLog
 from app.models.run import Run, RunParticipant, RunStatus
 from app.schemas.action import ActionSubmit
 from app.services.engine_bridge import EngineBridge, EngineError
+from app.observability.metrics import actions_submitted_total, record_engine_error
 
 logger = structlog.get_logger()
 
@@ -113,6 +114,14 @@ class ActionService:
         try:
             engine_result = await self.engine.submit_action(run_id, engine_action)
         except EngineError as e:
+            record_engine_error("submit_action")
+            logger.warning(
+                "engine_action_submit_failed",
+                run_id=str(run_id),
+                role_id=data.role_id,
+                action_type=data.action_type,
+                error=str(e),
+            )
             raise HTTPException(status_code=503, detail=str(e))
 
         # Engine may return a dict with validation/effects, a list of effects, or None
@@ -140,6 +149,7 @@ class ActionService:
         db.add(action_log)
         await db.flush()
         await db.refresh(action_log)
+        actions_submitted_total.inc()
 
         if validation != "accepted":
             raise HTTPException(

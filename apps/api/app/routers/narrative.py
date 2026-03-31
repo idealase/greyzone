@@ -16,6 +16,7 @@ from app.models.narrative import RunNarrative
 from app.models.run import Run
 from app.models.scenario import Scenario
 from app.services.narrative_service import NarrativeService
+from app.observability.metrics import narratives_generated_total
 
 router = APIRouter(prefix="/api/v1/runs", tags=["narrative"])
 
@@ -128,6 +129,7 @@ async def _generate_and_persist(
     db.add(record)
     await db.flush()
     await db.refresh(record)
+    narratives_generated_total.inc()
     return record
 
 

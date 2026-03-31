@@ -182,3 +182,13 @@ class EngineBridge:
         run_ids = list(self._processes.keys())
         for run_id in run_ids:
             await self.shutdown_engine(run_id)
+
+    def get_process_status(self) -> dict[str, str]:
+        """Return a summary of known engine subprocesses."""
+        status: dict[str, str] = {}
+        for run_id, process in self._processes.items():
+            if process.returncode is None:
+                status[str(run_id)] = "running"
+            else:
+                status[str(run_id)] = "stopped"
+        return status

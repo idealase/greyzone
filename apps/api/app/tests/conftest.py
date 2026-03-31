@@ -101,6 +101,7 @@ def mock_engine_bridge() -> EngineBridge:
     )
     bridge.shutdown_engine = AsyncMock(return_value=None)
     bridge.shutdown_all = AsyncMock(return_value=None)
+    bridge.get_process_status = MagicMock(return_value={})
     return bridge
 
 
