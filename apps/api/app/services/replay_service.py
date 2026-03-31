@@ -7,6 +7,7 @@ import uuid
 from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.models.event import RunEvent, RunSnapshot
 from app.models.run import Run
@@ -53,10 +54,60 @@ class ReplayService:
         self, db: AsyncSession, run_id: uuid.UUID
     ) -> dict:
         """Get full replay data for a run (events + snapshots)."""
-        events = await self.get_events(db, run_id)
-        snapshots = await self.get_snapshots(db, run_id)
+        result = await db.execute(
+            select(Run)
+            .where(Run.id == run_id)
+            .options(selectinload(Run.scenario))
+        )
+        run = result.scalar_one_or_none()
+        if run is None:
+            raise HTTPException(status_code=404, detail="Run not found")
+
+        events_result = await db.execute(
+            select(RunEvent)
+            .where(RunEvent.run_id == run_id)
+            .order_by(RunEvent.turn, RunEvent.created_at)
+        )
+        events = list(events_result.scalars().all())
+
+        snapshots_result = await db.execute(
+            select(RunSnapshot)
+            .where(RunSnapshot.run_id == run_id)
+            .order_by(RunSnapshot.turn)
+        )
+        snapshots = list(snapshots_result.scalars().all())
+
+        events_by_turn: dict[int, list[dict]] = {}
+        for e in events:
+            serialized = {
+                "id": str(e.id),
+                "turn": e.turn,
+                "event_type": e.event_type,
+                "payload": e.payload,
+                "visibility": e.visibility,
+            }
+            events_by_turn.setdefault(e.turn, []).append(serialized)
+
+        turns = [
+            {
+                "turn": s.turn,
+                "world_state": s.state,
+                "events": events_by_turn.get(s.turn, []),
+            }
+            for s in snapshots
+        ]
+        snapshot_turns = {s.turn for s in snapshots}
+        total_turns = max(run.current_turn + 1, len(snapshots)) if run else len(snapshots)
+        missing_turns = [
+            t for t in range(total_turns) if t not in snapshot_turns
+        ]
+
         return {
             "run_id": str(run_id),
+            "scenario_name": run.scenario.name if run.scenario else "",
+            "total_turns": total_turns,
+            "missing_turns": missing_turns,
+            "turns": sorted(turns, key=lambda t: t["turn"]),
             "events": [
                 {
                     "id": str(e.id),

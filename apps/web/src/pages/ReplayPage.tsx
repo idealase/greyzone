@@ -30,24 +30,42 @@ export default function ReplayPage() {
     );
   }
 
-  if (!replay.replayData) {
+  if (!replay.replayData || replay.totalTurns === 0) {
     return (
       <div className="error-container">
-        <div className="error-container__message">No replay data available</div>
+        <div className="error-container__title">Replay unavailable</div>
+        <div className="error-container__message">
+          {replay.snapshotWarning ??
+            "No snapshots were recorded for this run, so there is nothing to replay."}
+        </div>
       </div>
     );
   }
+
+  const scenarioName = replay.replayData.scenario_name || replay.replayData.run_id;
 
   return (
     <div>
       <div className="page-header">
         <h1 className="page-header__title">
-          Replay: {replay.replayData.scenario_name}
+          Replay: {scenarioName}
         </h1>
         <p className="page-header__subtitle">
-          {replay.replayData.total_turns} turns recorded
+          {replay.totalTurns} turns recorded
+          {replay.missingTurns.length > 0 && (
+            <span className="text-warning">
+              {" "}
+              · Missing turns: {replay.missingTurns.join(", ")}
+            </span>
+          )}
         </p>
       </div>
+
+      {replay.snapshotWarning && (
+        <div className="card" style={{ marginBottom: "1rem" }}>
+          <div className="card__body">{replay.snapshotWarning}</div>
+        </div>
+      )}
 
       <ReplayControls
         currentTurn={replay.currentTurn}
