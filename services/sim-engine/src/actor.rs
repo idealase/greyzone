@@ -136,8 +136,8 @@ mod tests {
 
     #[test]
     fn test_actor_serialization() {
-        let actor = Actor::new("Test", ActorKind::Alliance)
-            .with_capability(DomainLayer::Cyber, 0.5);
+        let actor =
+            Actor::new("Test", ActorKind::Alliance).with_capability(DomainLayer::Cyber, 0.5);
         let json = serde_json::to_string(&actor).unwrap();
         let deser: Actor = serde_json::from_str(&json).unwrap();
         assert_eq!(deser.name, "Test");

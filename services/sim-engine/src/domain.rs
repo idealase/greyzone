@@ -111,8 +111,7 @@ mod tests {
 
     #[test]
     fn test_layer_state_with_variable() {
-        let ls = LayerState::new(0.1, 0.5, 0.1, 0.2)
-            .with_variable("troop_count", 1000.0);
+        let ls = LayerState::new(0.1, 0.5, 0.1, 0.2).with_variable("troop_count", 1000.0);
         assert_eq!(ls.variables.get("troop_count"), Some(&1000.0));
     }
 
