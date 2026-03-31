@@ -15,10 +15,13 @@ from app.models.run import Run, RunParticipant, RunStatus
 from app.models.scenario import Scenario
 from app.models.user import User
 from app.models.event import RunEvent, RunSnapshot
+from app.models.narrative import RunNarrative
 from app.schemas.run import RunCreate, RunParticipantCreate
 from app.services.engine_bridge import EngineBridge, EngineError
+from app.services.narrative_service import NarrativeService
 
 logger = structlog.get_logger()
+_narrative_service = NarrativeService()
 
 
 class RunManager:
@@ -232,6 +235,64 @@ class RunManager:
             db.add(snapshot)
         except EngineError:
             pass  # Snapshot failure is non-fatal
+
+        # Pre-generate and persist narrative for this turn
+        try:
+            narrative_result = await db.execute(
+                select(RunNarrative).where(
+                    RunNarrative.run_id == run_id,
+                    RunNarrative.turn == new_turn,
+                )
+            )
+            existing_narrative = narrative_result.scalar_one_or_none()
+            if existing_narrative is None:
+                domain_states = state.get("layers", {})
+                order_parameter = float(state.get("order_parameter", 0.0))
+                narrative = _narrative_service.generate(
+                    turn=new_turn,
+                    phase=current_phase,
+                    order_parameter=order_parameter,
+                    prev_order_parameter=order_parameter,
+                    events=[
+                        {
+                            "event_type": evt.get("type", "unknown"),
+                            "description": evt.get("description", ""),
+                            "layer": evt.get("layer", ""),
+                        }
+                        for evt in events
+                    ],
+                    domain_states=domain_states,
+                    prev_domain_states=domain_states,
+                    scenario_name=run.scenario.name,
+                    scenario_id=str(run.scenario_id),
+                )
+                db.add(
+                    RunNarrative(
+                        run_id=run_id,
+                        turn=new_turn,
+                        headline=narrative.headline,
+                        body=narrative.body,
+                        domain_highlights=[
+                            {
+                                "domain": h.domain,
+                                "label": h.label,
+                                "direction": h.direction,
+                                "delta": h.delta,
+                                "note": h.note,
+                            }
+                            for h in narrative.domain_highlights
+                        ],
+                        threat_assessment=narrative.threat_assessment,
+                        intelligence_note=narrative.intelligence_note,
+                    )
+                )
+        except Exception as e:
+            logger.warning(
+                "turn_narrative_generation_failed",
+                run_id=str(run_id),
+                turn=new_turn,
+                error=str(e),
+            )
 
         await db.flush()
 
