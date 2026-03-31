@@ -15,8 +15,21 @@ export function useReplay(runId: string | undefined) {
   });
 
   const replayData: ReplayData | undefined = replayQuery.data;
-  const totalTurns = replayData?.total_turns ?? 0;
-  const currentTurnData = replayData?.turns[currentTurn] ?? null;
+  const turns = replayData?.turns ?? [];
+  const totalTurns = replayData?.total_turns ?? turns.length;
+  const missingTurns = replayData?.missing_turns ?? [];
+  const currentTurnData =
+    totalTurns > 0 && currentTurn < turns.length
+      ? turns[currentTurn]
+      : turns[turns.length - 1] ?? null;
+
+  useEffect(() => {
+    if (totalTurns === 0 && currentTurn !== 0) {
+      setCurrentTurn(0);
+    } else if (totalTurns > 0 && currentTurn > totalTurns - 1) {
+      setCurrentTurn(Math.max(0, totalTurns - 1));
+    }
+  }, [currentTurn, totalTurns]);
 
   const stepForward = useCallback(() => {
     setCurrentTurn((prev) => Math.min(prev + 1, totalTurns - 1));
@@ -36,6 +49,13 @@ export function useReplay(runId: string | undefined) {
   const togglePlay = useCallback(() => {
     setIsPlaying((prev) => !prev);
   }, []);
+
+  const snapshotWarning =
+    replayData && totalTurns === 0
+      ? "No snapshots are available for this run, so replay cannot be shown."
+      : missingTurns.length > 0
+        ? `Replay data is incomplete. Missing turns: ${missingTurns.join(", ")}.`
+        : null;
 
   useEffect(() => {
     if (isPlaying) {
@@ -69,8 +89,10 @@ export function useReplay(runId: string | undefined) {
     currentTurn,
     currentTurnData,
     totalTurns,
+    missingTurns,
     isPlaying,
     playbackSpeed,
+    snapshotWarning,
     stepForward,
     stepBackward,
     goToTurn,
