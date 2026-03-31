@@ -53,39 +53,28 @@ fn main() {
     }
 }
 
-fn handle_command(
-    engine: &mut Option<SimulationEngine>,
-    command: EngineCommand,
-) -> EngineResponse {
+fn handle_command(engine: &mut Option<SimulationEngine>, command: EngineCommand) -> EngineResponse {
     match command {
-        EngineCommand::NewGame { scenario_id, seed } => {
-            match get_scenario(&scenario_id) {
-                Some(scenario) => {
-                    let eng = SimulationEngine::new(scenario, seed);
-                    let state = eng.get_state().clone();
-                    *engine = Some(eng);
-                    info!("New game started: scenario={}, seed={}", scenario_id, seed);
-                    EngineResponse::ok(state)
-                }
-                None => EngineResponse::error(
-                    "SCENARIO_NOT_FOUND",
-                    format!("Scenario '{}' not found", scenario_id),
-                ),
+        EngineCommand::NewGame { scenario_id, seed } => match get_scenario(&scenario_id) {
+            Some(scenario) => {
+                let eng = SimulationEngine::new(scenario, seed);
+                let state = eng.get_state().clone();
+                *engine = Some(eng);
+                info!("New game started: scenario={}, seed={}", scenario_id, seed);
+                EngineResponse::ok(state)
             }
-        }
-        EngineCommand::GetState => {
-            with_engine(engine, |eng| EngineResponse::ok(eng.get_state()))
-        }
-        EngineCommand::GetRoleState { role_id } => {
-            with_engine(engine, |eng| {
-                EngineResponse::ok(eng.get_role_visible_state(&role_id))
-            })
-        }
-        EngineCommand::GetLegalActions { role_id } => {
-            with_engine(engine, |eng| {
-                EngineResponse::ok(eng.derive_legal_actions(&role_id))
-            })
-        }
+            None => EngineResponse::error(
+                "SCENARIO_NOT_FOUND",
+                format!("Scenario '{}' not found", scenario_id),
+            ),
+        },
+        EngineCommand::GetState => with_engine(engine, |eng| EngineResponse::ok(eng.get_state())),
+        EngineCommand::GetRoleState { role_id } => with_engine(engine, |eng| {
+            EngineResponse::ok(eng.get_role_visible_state(&role_id))
+        }),
+        EngineCommand::GetLegalActions { role_id } => with_engine(engine, |eng| {
+            EngineResponse::ok(eng.derive_legal_actions(&role_id))
+        }),
         EngineCommand::ValidateAction { action } => {
             with_engine(engine, |eng| match eng.validate_action(&action) {
                 Ok(()) => EngineResponse::ok("valid"),
@@ -98,18 +87,14 @@ fn handle_command(
                 Err(e) => EngineResponse::error("ACTION_ERROR", e.to_string()),
             })
         }
-        EngineCommand::AdvanceTurn => {
-            with_engine_mut(engine, |eng| {
-                let result = eng.advance_turn();
-                EngineResponse::ok(result)
-            })
-        }
-        EngineCommand::TakeSnapshot => {
-            with_engine_mut(engine, |eng| {
-                eng.take_snapshot();
-                EngineResponse::ok("snapshot_taken")
-            })
-        }
+        EngineCommand::AdvanceTurn => with_engine_mut(engine, |eng| {
+            let result = eng.advance_turn();
+            EngineResponse::ok(result)
+        }),
+        EngineCommand::TakeSnapshot => with_engine_mut(engine, |eng| {
+            eng.take_snapshot();
+            EngineResponse::ok("snapshot_taken")
+        }),
         EngineCommand::GetEventLog => {
             with_engine(engine, |eng| EngineResponse::ok(eng.get_event_log()))
         }
@@ -135,7 +120,10 @@ fn with_engine(
 ) -> EngineResponse {
     match engine {
         Some(eng) => f(eng),
-        None => EngineResponse::error("NOT_INITIALIZED", "No game in progress. Send NewGame first."),
+        None => EngineResponse::error(
+            "NOT_INITIALIZED",
+            "No game in progress. Send NewGame first.",
+        ),
     }
 }
 
@@ -145,7 +133,10 @@ fn with_engine_mut(
 ) -> EngineResponse {
     match engine {
         Some(eng) => f(eng),
-        None => EngineResponse::error("NOT_INITIALIZED", "No game in progress. Send NewGame first."),
+        None => EngineResponse::error(
+            "NOT_INITIALIZED",
+            "No game in progress. Send NewGame first.",
+        ),
     }
 }
 

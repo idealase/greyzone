@@ -150,7 +150,10 @@ mod tests {
 
     #[test]
     fn test_action_type_min_phase() {
-        assert_eq!(ActionType::Escalate.min_phase(), Phase::CompetitiveNormality);
+        assert_eq!(
+            ActionType::Escalate.min_phase(),
+            Phase::CompetitiveNormality
+        );
         assert_eq!(ActionType::MilitaryDeploy.min_phase(), Phase::WarTransition);
         assert_eq!(ActionType::CyberAttack.min_phase(), Phase::HybridCoercion);
     }

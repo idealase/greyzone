@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.db.session import get_session
-from app.schemas.event import EventList, EventRead
+from app.schemas.event import EventList
 from app.services.engine_bridge import EngineBridge
 from app.services.replay_service import ReplayService
 
