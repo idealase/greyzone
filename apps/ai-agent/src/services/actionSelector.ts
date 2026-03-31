@@ -194,17 +194,29 @@ export class ActionSelector {
     legalActions: LegalAction[],
     brief: TurnBrief
   ): ActionDecision {
-    // Simple fallback: pick the first legal action with moderate intensity
-    const action = legalActions[0];
+    const ranked = [...legalActions].sort((a, b) => {
+      const stressA =
+        brief.domainSummary.find((d) => d.domain === a.targetDomain)?.stress ?? 0.5;
+      const stressB =
+        brief.domainSummary.find((d) => d.domain === b.targetDomain)?.stress ?? 0.5;
+
+      if (stressB !== stressA) return stressB - stressA;
+      return (b.estimatedStressImpact ?? 0) - (a.estimatedStressImpact ?? 0);
+    });
+
+    const action = ranked[0];
+    const domainStress =
+      brief.domainSummary.find((d) => d.domain === action.targetDomain)?.stress ?? 0.5;
     const [min, max] = action.intensityRange;
-    const intensity = Math.round(((min + max) / 2) * 100) / 100;
+    const proportion = Math.max(0.5, 0.4 + domainStress * 0.6);
+    const intensity = Math.round((min + (max - min) * proportion) * 100) / 100;
 
     return {
       actionType: action.actionType,
       targetDomain: action.targetDomain,
       targetActorId: action.targetActorId,
       intensity,
-      rationale: `Fallback action selected after primary decision failed validation. Turn ${brief.turn}, Phase ${brief.phase}.`,
+      rationale: `Fallback action selected for high-stress domain (${action.targetDomain}) at elevated intensity due to Turn ${brief.turn}, Phase ${brief.phase}.`,
       confidence: 0.3,
     };
   }

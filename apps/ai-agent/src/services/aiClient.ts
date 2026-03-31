@@ -50,26 +50,37 @@ export class HeuristicAiClient implements AiClient {
     const phase = brief.phase;
 
     // Score each legal action
-    const scored = legalActions.map((action) => ({
-      action,
-      score: this.scoreAction(action, brief, isRed, phase),
-    }));
+    const scored = legalActions.map((action) => {
+      const domainInfo = brief.domainSummary.find(
+        (d) => d.domain === action.targetDomain
+      );
+      return {
+        action,
+        domainStress: domainInfo?.stress ?? 0.5,
+        score: this.scoreAction(action, brief, isRed, phase),
+      };
+    });
 
     // Sort by score descending
-    scored.sort((a, b) => b.score - a.score);
+    scored.sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return b.domainStress - a.domainStress;
+    });
 
     // Pick from top 3 with some randomness for variety
     const topN = Math.min(3, scored.length);
-    const pickIndex = this.pseudoRandom(brief.turn, topN);
+    const hasClearLeader =
+      topN === 1 ||
+      scored[0].score - (scored[1]?.score ?? 0) > 0.5 ||
+      scored[0].domainStress - (scored[1]?.domainStress ?? 0) > 0.15;
+
+    const pickIndex = hasClearLeader
+      ? 0
+      : this.pseudoRandom(brief.turn, topN);
     const selected = scored[pickIndex];
 
     // Determine intensity
-    const intensity = this.computeIntensity(
-      selected.action,
-      brief,
-      isRed,
-      phase
-    );
+    const intensity = this.computeIntensity(selected.action, brief, isRed, phase, selected.domainStress);
 
     const rationale = this.buildRationale(
       selected.action,
@@ -100,6 +111,9 @@ export class HeuristicAiClient implements AiClient {
     );
 
     if (!domainSummary) return 0;
+
+    // Always prioritize domains under high stress
+    score += domainSummary.stress * 4;
 
     if (isRed) {
       // Red prefers: high-stress domains (exploitable), low-resilience targets
@@ -149,8 +163,8 @@ export class HeuristicAiClient implements AiClient {
     // Rising trend domains get priority
     if (domainSummary.trend === "rising") score += 1;
 
-    // Bonus for variety (prefer domains not recently targeted)
-    score += this.pseudoRandom(brief.turn + score, 100) / 200;
+      // Bonus for variety (prefer domains not recently targeted)
+      score += this.pseudoRandom(brief.turn + score, 100) / 200;
 
     return score;
   }
@@ -159,7 +173,8 @@ export class HeuristicAiClient implements AiClient {
     action: LegalAction,
     brief: TurnBrief,
     isRed: boolean,
-    phase: string
+    phase: string,
+    domainStress: number
   ): number {
     const [min, max] = action.intensityRange;
     const range = max - min;
@@ -189,6 +204,10 @@ export class HeuristicAiClient implements AiClient {
 
       proportion = 0.3 + urgency * 0.4 + this.pseudoRandom(brief.turn, 100) / 500;
     }
+
+    // Ensure high-stress domains push toward the upper end of the range
+    const stressDriven = 0.4 + domainStress * 0.6;
+    proportion = Math.max(proportion, stressDriven);
 
     proportion = Math.max(0, Math.min(1, proportion));
     return Math.round((min + range * proportion) * 100) / 100;
@@ -351,7 +370,8 @@ export class CopilotAiClient implements AiClient {
  */
 export function createAiClient(): AiClient {
   if (config.useMockAi || !config.copilotApiKey) {
-    logger.info("Using heuristic AI client (mock mode)");
+    const reason = config.useMockAi ? "mock mode enabled" : "no Copilot API key configured";
+    logger.info({ reason }, "Using heuristic AI client");
     return new HeuristicAiClient();
   }
 

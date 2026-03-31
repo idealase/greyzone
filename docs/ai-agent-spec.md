@@ -392,3 +392,18 @@ Agent configuration is stored per-run and can be modified by admins:
 ```
 
 The `seed` field, combined with `llm_temperature: 0` and a deterministic model, enables reproducible agent behavior for replay validation. Note that exact reproducibility depends on the LLM provider's determinism guarantees.
+
+## 13. Runtime Settings
+
+- `USE_MOCK_AI`: Defaults to `false` for deployed services. CI/test runs force this to `true` so suites don't depend on an external LLM. When `true`, the agent always uses the heuristic client. Set to `false` (or unset) in production to allow LLM-backed turns.
+- `COPILOT_API_KEY` / `COPILOT_MODEL`: Provide these to enable Copilot-powered action selection. If missing, the agent cleanly falls back to heuristic mode.
+- `AI_AGENT_PORT`, `API_BASE_URL`, `LOG_LEVEL`: Standard service settings; defaults target local development.
+
+## 14. Heuristic Decision Path
+
+When operating without an LLM (or when guardrails reject an LLM decision), the heuristic client:
+
+1. Scores legal actions by domain stress and resilience, preferring the most stressed domains.
+2. Biases intensity toward the upper end of the allowed range for high-stress domains to create meaningful pressure.
+3. Uses deterministic pseudo-random tie-breakers for variety while remaining reproducible per turn seed.
+4. Falls back to the highest-stress legal action if validation fails, logging the rationale for auditability.
