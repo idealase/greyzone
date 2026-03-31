@@ -3,6 +3,7 @@ use crate::domain::DomainLayer;
 use crate::phase::Phase;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
+use std::fmt;
 use uuid::Uuid;
 
 /// Types of actions available in the simulation.
@@ -96,6 +97,27 @@ impl ActionType {
             ActionType::NavalBlockade => 15.0,
             ActionType::SpaceAssetDeploy => 18.0,
             ActionType::DomesticPolicyShift => 5.0,
+        }
+    }
+}
+
+impl fmt::Display for ActionType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ActionType::Escalate => write!(f, "Escalate"),
+            ActionType::DeEscalate => write!(f, "De-escalate"),
+            ActionType::Reinforce => write!(f, "Reinforce"),
+            ActionType::Disrupt => write!(f, "Disrupt"),
+            ActionType::Mobilize => write!(f, "Mobilize"),
+            ActionType::Negotiate => write!(f, "Negotiate"),
+            ActionType::CyberAttack => write!(f, "Cyber Attack"),
+            ActionType::InformationOp => write!(f, "Information Operation"),
+            ActionType::SanctionImpose => write!(f, "Sanction Imposition"),
+            ActionType::SanctionRelief => write!(f, "Sanction Relief"),
+            ActionType::MilitaryDeploy => write!(f, "Military Deployment"),
+            ActionType::NavalBlockade => write!(f, "Naval Blockade"),
+            ActionType::SpaceAssetDeploy => write!(f, "Space Asset Deployment"),
+            ActionType::DomesticPolicyShift => write!(f, "Domestic Policy Shift"),
         }
     }
 }
@@ -195,5 +217,15 @@ mod tests {
         for at in ActionType::ALL.iter() {
             assert!(at.resource_cost() > 0.0);
         }
+    }
+
+    #[test]
+    fn test_action_type_display_is_human_readable() {
+        assert_eq!(ActionType::CyberAttack.to_string(), "Cyber Attack");
+        assert_eq!(ActionType::InformationOp.to_string(), "Information Operation");
+        assert_eq!(
+            ActionType::DomesticPolicyShift.to_string(),
+            "Domestic Policy Shift"
+        );
     }
 }
