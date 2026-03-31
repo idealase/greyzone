@@ -86,7 +86,7 @@ async def test_submit_action_wrong_role(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_advance_turn(client: AsyncClient):
     run_id, _, _ = await _setup_running_run(client)
-    resp = await client.post(f"/api/v1/runs/{run_id}/advance-turn")
+    resp = await client.post(f"/api/v1/runs/{run_id}/advance")
     assert resp.status_code == 200
     data = resp.json()
     assert data["turn"] == 1
