@@ -19,7 +19,7 @@ export function useWebSocket(runId: string | undefined) {
     addStressSnapshot,
     addAiMove,
   } = useRunStore();
-  const { setStatus, setError } = useWebSocketStore();
+  const { setStatus, setError, setReconnectInfo, reset } = useWebSocketStore();
   const cleanupRef = useRef<Array<() => void>>([]);
 
   useEffect(() => {
@@ -33,12 +33,28 @@ export function useWebSocket(runId: string | undefined) {
     unsubs.push(
       gameWebSocket.on("connected", () => {
         setStatus("connected");
+        setReconnectInfo(null, null);
       })
     );
 
     unsubs.push(
       gameWebSocket.on("disconnected", () => {
         setStatus("disconnected");
+      })
+    );
+
+    unsubs.push(
+      gameWebSocket.on("reconnecting", (data) => {
+        const info = data as { attempt: number; delayMs: number };
+        setReconnectInfo(info.attempt, info.delayMs);
+        setStatus("reconnecting");
+      })
+    );
+
+    unsubs.push(
+      gameWebSocket.on("connection_error", (data) => {
+        const err = data as { message: string };
+        setError(err.message);
       })
     );
 
@@ -130,6 +146,7 @@ export function useWebSocket(runId: string | undefined) {
       unsubs.forEach((fn) => fn());
       gameWebSocket.disconnect();
       setStatus("disconnected");
+      reset();
     };
   }, [
     runId,
@@ -143,5 +160,7 @@ export function useWebSocket(runId: string | undefined) {
     addAiMove,
     setStatus,
     setError,
+    setReconnectInfo,
+    reset,
   ]);
 }

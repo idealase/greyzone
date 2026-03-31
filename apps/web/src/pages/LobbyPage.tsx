@@ -9,6 +9,7 @@ import { Role } from "../types/run";
 import PlayerList from "../components/multiplayer/PlayerList";
 import RoleSelector from "../components/multiplayer/RoleSelector";
 import LoadingSpinner from "../components/common/LoadingSpinner";
+import ConnectionBanner from "../components/common/ConnectionBanner";
 
 export default function LobbyPage() {
   const { runId } = useParams<{ runId: string }>();
@@ -72,6 +73,7 @@ export default function LobbyPage() {
 
   return (
     <div>
+      <ConnectionBanner />
       <div className="page-header">
         <h1 className="page-header__title">{run?.name ?? "Lobby"}</h1>
         <p className="page-header__subtitle">
