@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.db.session import get_session
 from app.schemas.auth import AuthResponse, LoginRequest, RefreshRequest, RegisterRequest
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserRead
 from app.services.user_service import UserService
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
@@ -62,7 +62,7 @@ async def register(
     refresh_token = _create_token(
         str(user.id), "refresh", settings.refresh_token_expire_minutes
     )
-    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=user)
+    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=UserRead.model_validate(user))
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -81,7 +81,7 @@ async def login(
     refresh_token = _create_token(
         str(user.id), "refresh", settings.refresh_token_expire_minutes
     )
-    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=user)
+    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=UserRead.model_validate(user))
 
 
 @router.post("/refresh", response_model=AuthResponse)
@@ -102,7 +102,7 @@ async def refresh(
     refresh_token = _create_token(
         str(user.id), "refresh", settings.refresh_token_expire_minutes
     )
-    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=user)
+    return AuthResponse(access_token=access_token, refresh_token=refresh_token, user=UserRead.model_validate(user))
 
 
 @router.post("/logout", status_code=204)
