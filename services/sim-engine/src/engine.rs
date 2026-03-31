@@ -1087,8 +1087,7 @@ mod tests {
             escalate.description
         );
         assert!(
-            escalate.description.contains(" by ")
-                && escalate.description.contains(" targeting "),
+            escalate.description.contains(" by ") && escalate.description.contains(" targeting "),
             "Description should be human-readable: {}",
             escalate.description
         );
