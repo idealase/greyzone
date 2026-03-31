@@ -280,7 +280,7 @@ impl SimulationEngine {
 
         // Intensity validation
         let intensity = action.intensity();
-        if intensity < 0.0 || intensity > 1.0 {
+        if !(0.0..=1.0).contains(&intensity) {
             return Err(ActionError::InvalidParameter(
                 "intensity must be between 0.0 and 1.0".into(),
             ));
