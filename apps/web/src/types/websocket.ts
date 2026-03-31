@@ -14,7 +14,11 @@ export type WebSocketMessageType =
   | "ai_move"
   | "game_started"
   | "game_ended"
-  | "error";
+  | "error"
+  | "connected"
+  | "disconnected"
+  | "reconnecting"
+  | "connection_error";
 
 export interface WebSocketMessage {
   type: WebSocketMessageType;
@@ -81,4 +85,19 @@ export interface GameEndedMessage {
 export interface ErrorMessage {
   type: "error";
   data: { message: string; code: string };
+}
+
+export interface ReconnectingMessage {
+  type: "reconnecting";
+  data: { attempt: number; delayMs: number };
+}
+
+export interface DisconnectedMessage {
+  type: "disconnected";
+  data: { code?: number; reason?: string };
+}
+
+export interface ConnectionErrorMessage {
+  type: "connection_error";
+  data: { message: string };
 }

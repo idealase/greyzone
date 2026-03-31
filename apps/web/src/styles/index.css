@@ -660,6 +660,54 @@ input[type="range"] {
   background: var(--text-muted);
 }
 
+.presence-dot--unknown {
+  background: var(--accent-yellow);
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.6);
+  opacity: 0.9;
+}
+
+.connection-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, rgba(234, 179, 8, 0.1), rgba(59, 130, 246, 0.05));
+}
+
+.connection-banner--error {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.14), rgba(59, 130, 246, 0.04));
+}
+
+.connection-banner__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-top: 0.2rem;
+  background: var(--accent-yellow);
+  box-shadow: 0 0 6px rgba(234, 179, 8, 0.7);
+  flex-shrink: 0;
+}
+
+.connection-banner__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.connection-banner__title {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.connection-banner__message {
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+}
+
 /* Simulation layout */
 .sim-layout {
   display: grid;

@@ -1,14 +1,21 @@
+type PresenceState = "online" | "offline" | "unknown";
+
 interface PresenceIndicatorProps {
-  isOnline: boolean;
+  state: PresenceState;
 }
 
-export default function PresenceIndicator({ isOnline }: PresenceIndicatorProps) {
+export default function PresenceIndicator({ state }: PresenceIndicatorProps) {
+  const title =
+    state === "unknown"
+      ? "Status unknown (connection lost)"
+      : state === "online"
+      ? "Online"
+      : "Offline";
+
   return (
     <span
-      className={`presence-dot ${
-        isOnline ? "presence-dot--online" : "presence-dot--offline"
-      }`}
-      title={isOnline ? "Online" : "Offline"}
+      className={`presence-dot presence-dot--${state}`}
+      title={title}
     />
   );
 }
