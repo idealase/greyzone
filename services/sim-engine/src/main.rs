@@ -107,7 +107,7 @@ fn handle_command(
         EngineCommand::TakeSnapshot => {
             with_engine_mut(engine, |eng| {
                 eng.take_snapshot();
-                EngineResponse::ok("snapshot_taken")
+                EngineResponse::ok(eng.get_state())
             })
         }
         EngineCommand::GetEventLog => {
@@ -119,6 +119,10 @@ fn handle_command(
                 Err(e) => EngineResponse::error("REPLAY_ERROR", e.to_string()),
             })
         }
+        EngineCommand::LoadSnapshot { state } => with_engine_mut(engine, |eng| {
+            eng.load_snapshot(state);
+            EngineResponse::ok("snapshot_loaded")
+        }),
         EngineCommand::GetMetrics => {
             with_engine(engine, |eng| EngineResponse::ok(eng.get_metrics()))
         }

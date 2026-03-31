@@ -1,4 +1,5 @@
 use crate::action::Action;
+use crate::engine::WorldState;
 use serde::{Deserialize, Serialize};
 
 /// Commands that can be sent to the engine via the JSON protocol.
@@ -27,6 +28,9 @@ pub enum EngineCommand {
     GetEventLog,
     ReplayToTurn {
         turn: u32,
+    },
+    LoadSnapshot {
+        state: WorldState,
     },
     GetMetrics,
     Shutdown,
@@ -104,6 +108,7 @@ mod tests {
             r#"{"command":"GetRoleState","data":{"role_id":"blue_commander"}}"#,
             r#"{"command":"GetLegalActions","data":{"role_id":"blue_commander"}}"#,
             r#"{"command":"ReplayToTurn","data":{"turn":5}}"#,
+            r#"{"command":"LoadSnapshot","data":{"state":{"turn":0,"phase":"CompetitiveNormality","order_parameter":0.0,"layers":{},"actors":[],"roles":[],"events":[],"pending_actions":[],"rng_seed":42,"phase_history":[[0,"CompetitiveNormality"]],"max_turns":20}}}"#,
             r#"{"command":"NewGame","data":{"scenario_id":"default","seed":42}}"#,
         ];
 

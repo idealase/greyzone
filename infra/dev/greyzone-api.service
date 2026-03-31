@@ -13,6 +13,7 @@ Environment=GREYZONE_CORS_ORIGINS=https://greyzone.sandford.systems,http://local
 ExecStart=/home/brodie/Desktop/Repos/greyzone/apps/api/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8010
 Restart=on-failure
 RestartSec=5
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target

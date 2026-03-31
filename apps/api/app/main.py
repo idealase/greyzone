@@ -8,6 +8,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.db.session import async_session_factory
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.middleware.logging import LoggingMiddleware
 from app.routers import (
@@ -36,6 +37,7 @@ structlog.configure(
         getattr(structlog, "_log_once", None) or __import__("logging").getLevelName(settings.log_level.upper())
     ),
 )
+logger = structlog.get_logger()
 
 # Shared service instances
 engine_bridge = EngineBridge(settings.engine_binary)
@@ -54,6 +56,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     runs_mod.set_services(engine_bridge, run_manager, ws_manager)
     actions_mod.set_services(engine_bridge, run_manager)
     replay_mod.set_services(engine_bridge)
+    engine_bridge.install_signal_handlers()
+
+    async with async_session_factory() as db:
+        try:
+            await run_manager.restore_running_runs(db)
+        except Exception as e:
+            logger.warning("running_runs_restore_failed", error=str(e))
 
     yield
 

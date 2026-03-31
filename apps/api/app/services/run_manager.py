@@ -27,6 +27,54 @@ class RunManager:
     def __init__(self, engine: EngineBridge) -> None:
         self.engine = engine
 
+    async def restore_running_runs(self, db: AsyncSession) -> None:
+        """Restore engine processes for runs marked RUNNING from latest snapshots."""
+        result = await db.execute(
+            select(Run)
+            .where(Run.status == RunStatus.RUNNING)
+            .options(selectinload(Run.scenario))
+        )
+        running_runs = list(result.scalars().all())
+
+        for run in running_runs:
+            try:
+                await self.engine.start_engine(run.id, run.scenario.name, run.seed)
+            except EngineError as e:
+                logger.warning(
+                    "run_restore_engine_start_failed",
+                    run_id=str(run.id),
+                    error=str(e),
+                )
+                continue
+
+            latest_snapshot_result = await db.execute(
+                select(RunSnapshot)
+                .where(RunSnapshot.run_id == run.id)
+                .order_by(RunSnapshot.turn.desc(), RunSnapshot.created_at.desc())
+                .limit(1)
+            )
+            latest_snapshot = latest_snapshot_result.scalar_one_or_none()
+            if latest_snapshot is None:
+                logger.warning("run_restore_snapshot_missing", run_id=str(run.id))
+                await self.engine.shutdown_engine(run.id)
+                continue
+
+            try:
+                await self.engine.load_snapshot(run.id, latest_snapshot.state)
+                logger.info(
+                    "run_restored_from_snapshot",
+                    run_id=str(run.id),
+                    turn=latest_snapshot.turn,
+                )
+            except EngineError as e:
+                logger.warning(
+                    "run_restore_load_snapshot_failed",
+                    run_id=str(run.id),
+                    turn=latest_snapshot.turn,
+                    error=str(e),
+                )
+                await self.engine.shutdown_engine(run.id)
+
     async def create_run(self, db: AsyncSession, data: RunCreate) -> Run:
         """Create a new run from a scenario."""
         scenario = await db.get(Scenario, data.scenario_id)

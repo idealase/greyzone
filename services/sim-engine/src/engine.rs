@@ -98,6 +98,14 @@ impl SimulationEngine {
         &self.state
     }
 
+    /// Load engine state from a persisted snapshot.
+    pub fn load_snapshot(&mut self, state: WorldState) {
+        self.rng = ChaCha8Rng::seed_from_u64(state.rng_seed);
+        self.event_log = state.events.clone();
+        self.snapshots = vec![(state.turn, state.clone())];
+        self.state = state;
+    }
+
     /// Get the world state filtered for a specific role's visibility.
     pub fn get_role_visible_state(&self, role_id: &RoleId) -> RoleVisibleState {
         let role = self.state.roles.iter().find(|r| &r.id == role_id);

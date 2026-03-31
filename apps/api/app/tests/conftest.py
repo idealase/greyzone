@@ -91,6 +91,7 @@ def mock_engine_bridge() -> EngineBridge:
     )
     bridge.get_event_log = AsyncMock(return_value=[])
     bridge.replay_to_turn = AsyncMock(return_value={"turn": 0, "state": {}})
+    bridge.load_snapshot = AsyncMock(return_value={"status": "ok"})
     bridge.get_metrics = AsyncMock(
         return_value={"escalation_level": 0.3, "force_balance": 0.5}
     )

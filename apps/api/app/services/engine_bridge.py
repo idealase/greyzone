@@ -5,6 +5,7 @@ from __future__ import annotations
 import asyncio
 import json
 import re
+import signal
 import uuid
 from typing import Any
 
@@ -31,6 +32,31 @@ class EngineBridge:
     def __init__(self, binary_path: str) -> None:
         self.binary_path = binary_path
         self._processes: dict[uuid.UUID, asyncio.subprocess.Process] = {}
+        self._signal_handlers_installed = False
+        self._background_tasks: set[asyncio.Task[None]] = set()
+
+    def _track_background_task(self, task: asyncio.Task[None]) -> None:
+        """Track background tasks and remove them when done."""
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
+    def install_signal_handlers(self) -> None:
+        """Install process signal handlers for graceful snapshotting."""
+        if self._signal_handlers_installed:
+            return
+
+        try:
+            loop = asyncio.get_running_loop()
+            loop.add_signal_handler(
+                signal.SIGTERM,
+                lambda: self._track_background_task(
+                    asyncio.create_task(self.snapshot_all_active_runs())
+                ),
+            )
+            self._signal_handlers_installed = True
+        except (NotImplementedError, RuntimeError):
+            # Signal handlers may be unavailable in some test/runtime environments.
+            return
 
     async def start_engine(
         self, run_id: uuid.UUID, scenario_name: str, seed: int
@@ -154,9 +180,25 @@ class EngineBridge:
         """Replay game state to a specific turn."""
         return await self.send_command(run_id, "ReplayToTurn", {"turn": turn})
 
+    async def load_snapshot(self, run_id: uuid.UUID, state: dict) -> dict:
+        """Load a persisted snapshot state into the engine."""
+        return await self.send_command(run_id, "LoadSnapshot", {"state": state})
+
     async def get_metrics(self, run_id: uuid.UUID) -> dict:
         """Get current simulation metrics."""
         return await self.send_command(run_id, "GetMetrics")
+
+    async def snapshot_all_active_runs(self) -> None:
+        """Attempt to snapshot all active runs before shutdown."""
+        run_ids = list(self._processes.keys())
+        for run_id in run_ids:
+            try:
+                await self.take_snapshot(run_id)
+                logger.info("engine_snapshot_taken", run_id=str(run_id))
+            except Exception as e:
+                logger.warning(
+                    "engine_snapshot_failed", run_id=str(run_id), error=str(e)
+                )
 
     async def shutdown_engine(self, run_id: uuid.UUID) -> None:
         """Shut down an engine subprocess."""
@@ -179,6 +221,7 @@ class EngineBridge:
 
     async def shutdown_all(self) -> None:
         """Shut down all engine subprocesses."""
+        await self.snapshot_all_active_runs()
         run_ids = list(self._processes.keys())
         for run_id in run_ids:
             await self.shutdown_engine(run_id)
