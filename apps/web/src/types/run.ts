@@ -10,6 +10,7 @@ export interface RunRead {
   scenario_id: string;
   scenario_name?: string;
   status: RunStatus;
+  owner_id?: string;
   current_turn: number;
   current_phase: Phase;
   order_parameter?: number;
@@ -31,10 +32,12 @@ export interface RunSummary {
   name: string;
   scenario_name?: string;
   status: RunStatus;
+  owner_id?: string;
   current_turn: number;
   current_phase: Phase;
   participant_count?: number;
   created_at: string;
+  participants?: RunParticipant[];
 }
 
 export interface RunParticipant {

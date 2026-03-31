@@ -14,7 +14,10 @@ export async function endTurn(
   const response = await axios.post<EndTurnResult>(
     `${config.apiBaseUrl}/runs/${runId}/advance-turn`,
     { roleId },
-    { timeout: 10000 }
+    {
+      timeout: 10000,
+      headers: { "X-User-Id": config.aiUserId },
+    }
   );
 
   return response.data;

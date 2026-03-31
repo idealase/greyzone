@@ -2,10 +2,12 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dependencies.auth import get_current_user
 from app.db.session import get_session
+from app.models.user import User
 from app.schemas.metrics import MetricsResponse
 from app.schemas.run import (
     QuickStartRequest,
@@ -16,6 +18,7 @@ from app.schemas.run import (
     RunRead,
     RunStateResponse,
 )
+from app.services.access_control import ensure_run_member
 from app.services.engine_bridge import EngineBridge
 from app.services.run_manager import RunManager
 from app.services.streaming import ConnectionManager
@@ -52,16 +55,18 @@ async def create_run(
     data: RunCreate,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> object:
-    return await mgr.create_run(db, data)
+    return await mgr.create_run(db, data, owner_id=current_user.id)
 
 
 @router.get("", response_model=RunList)
 async def list_runs(
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
-    items = await mgr.list_runs(db)
+    items = await mgr.list_runs(db, user_id=current_user.id)
     return {"items": items, "total": len(items)}
 
 
@@ -70,10 +75,13 @@ async def quick_start(
     data: QuickStartRequest,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> object:
+    if data.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="User mismatch for quick start")
     return await mgr.quick_start(
         db,
-        user_id=data.user_id,
+        user_id=current_user.id,
         scenario_id=data.scenario_id,
         name=data.name,
         seed=data.seed,
@@ -85,8 +93,10 @@ async def get_run(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> object:
-    return await mgr.get_run(db, run_id)
+    run, _ = await ensure_run_member(db, run_id, current_user.id)
+    return run
 
 
 @router.post("/{run_id}/join", response_model=RunParticipantRead, status_code=201)
@@ -95,8 +105,9 @@ async def join_run(
     data: RunParticipantCreate,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> object:
-    return await mgr.join_run(db, run_id, data)
+    return await mgr.join_run(db, run_id, data, requester_id=current_user.id)
 
 
 @router.post("/{run_id}/start", response_model=RunRead)
@@ -104,8 +115,9 @@ async def start_run(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> object:
-    return await mgr.start_run(db, run_id)
+    return await mgr.start_run(db, run_id, user_id=current_user.id)
 
 
 @router.post("/{run_id}/pause", response_model=RunRead)
@@ -113,8 +125,9 @@ async def pause_run(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> object:
-    return await mgr.pause_run(db, run_id)
+    return await mgr.pause_run(db, run_id, user_id=current_user.id)
 
 
 @router.post("/{run_id}/resume", response_model=RunRead)
@@ -122,8 +135,9 @@ async def resume_run(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> object:
-    return await mgr.resume_run(db, run_id)
+    return await mgr.resume_run(db, run_id, user_id=current_user.id)
 
 
 @router.post("/{run_id}/stop", response_model=RunRead)
@@ -131,8 +145,9 @@ async def stop_run(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> object:
-    return await mgr.stop_run(db, run_id)
+    return await mgr.stop_run(db, run_id, user_id=current_user.id)
 
 
 @router.get("/{run_id}/state", response_model=RunStateResponse)
@@ -141,8 +156,9 @@ async def get_run_state(
     role_id: str | None = Query(None),
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
-    return await mgr.get_run_state(db, run_id, role_id)
+    return await mgr.get_run_state(db, run_id, role_id, user_id=current_user.id)
 
 
 @router.get("/{run_id}/metrics", response_model=MetricsResponse)
@@ -150,17 +166,26 @@ async def get_run_metrics(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
-    return await mgr.get_metrics(db, run_id)
+    return await mgr.get_metrics(db, run_id, user_id=current_user.id)
 
 
 @router.websocket("/{run_id}/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
     run_id: uuid.UUID,
-    user_id: str = Query(...),
+    db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ) -> None:
+    try:
+        await ensure_run_member(db, run_id, current_user.id)
+    except HTTPException:
+        await websocket.close(code=1008)
+        return
+
     ws_mgr = get_ws_manager()
+    user_id = str(current_user.id)
     await ws_mgr.connect(run_id, user_id, websocket)
     try:
         while True:

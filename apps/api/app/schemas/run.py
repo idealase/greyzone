@@ -67,6 +67,7 @@ class RunRead(BaseModel):
     name: str
     status: str
     seed: int
+    owner_id: uuid.UUID | None = None
     current_turn: int
     current_phase: str
     config: dict
@@ -87,7 +88,7 @@ class RunRead(BaseModel):
             d: dict[str, Any] = {}
             for field in (
                 "id", "scenario_id", "name", "seed",
-                "current_turn", "current_phase", "config",
+                "owner_id", "current_turn", "current_phase", "config",
                 "created_at", "updated_at", "participants",
             ):
                 d[field] = getattr(obj, field, None)
@@ -109,6 +110,10 @@ class RunRead(BaseModel):
         if "participant_count" not in data:
             participants = data.get("participants")
             data["participant_count"] = len(participants) if participants else 0
+        if "owner_id" not in data and "owner" in data:
+            owner = data.get("owner")
+            if isinstance(owner, dict):
+                data["owner_id"] = owner.get("id")
         return data
 
 

@@ -26,7 +26,11 @@ class ActionService:
         self.engine = engine
 
     async def get_legal_actions(
-        self, db: AsyncSession, run_id: uuid.UUID, role_id: str
+        self,
+        db: AsyncSession,
+        run_id: uuid.UUID,
+        role_id: str,
+        user_id: uuid.UUID,
     ) -> dict:
         """Get legal actions for a role in a run."""
         run = await db.get(Run, run_id)
@@ -34,6 +38,19 @@ class ActionService:
             raise HTTPException(status_code=404, detail="Run not found")
         if run.status != RunStatus.RUNNING:
             raise HTTPException(status_code=400, detail="Run is not running")
+        result = await db.execute(
+            select(RunParticipant).where(
+                RunParticipant.run_id == run_id,
+                RunParticipant.user_id == user_id,
+                RunParticipant.role_id == role_id,
+            )
+        )
+        participant = result.scalar_one_or_none()
+        if participant is None:
+            raise HTTPException(
+                status_code=403,
+                detail="User does not have this role in this run",
+            )
 
         try:
             actions = await self.engine.get_legal_actions(run_id, role_id)

@@ -93,6 +93,28 @@ async def test_submit_action_wrong_role(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_non_participant_cannot_submit_action(client: AsyncClient):
+    run_id, _, _ = await _setup_running_run(client)
+    resp = await client.post(
+        "/api/v1/users",
+        json={"username": "intruder", "display_name": "Intruder"},
+    )
+    intruder_id = resp.json()["id"]
+    client.headers["X-User-Id"] = intruder_id
+
+    resp = await client.post(
+        f"/api/v1/runs/{run_id}/actions",
+        json={
+            "user_id": intruder_id,
+            "role_id": "blue_commander",
+            "action_type": "move",
+            "action_payload": {"unit_id": "u1"},
+        },
+    )
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_advance_turn(client: AsyncClient):
     run_id, _, _ = await _setup_running_run(client)
     resp = await client.post(f"/api/v1/runs/{run_id}/advance")

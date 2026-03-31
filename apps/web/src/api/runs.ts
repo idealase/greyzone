@@ -7,6 +7,7 @@ import {
   LegalAction,
   TurnResult,
 } from "../types/run";
+import { useAuthStore } from "../stores/authStore";
 
 interface PaginatedResponse<T> {
   items: T[];
@@ -15,7 +16,13 @@ interface PaginatedResponse<T> {
 
 export async function listRuns(): Promise<RunSummary[]> {
   const response = await apiClient.get<PaginatedResponse<RunSummary>>("/runs");
-  return response.data.items;
+  const user = useAuthStore.getState().user;
+  if (!user) return [];
+  return response.data.items.filter(
+    (run) =>
+      run.owner_id === user.id ||
+      (run.participants || []).some((p) => p.user_id === user.id)
+  );
 }
 
 export async function getRun(id: string): Promise<RunRead> {

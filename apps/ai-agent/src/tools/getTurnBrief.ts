@@ -13,11 +13,19 @@ export async function getTurnBrief(
   const [stateResponse, actionsResponse] = await Promise.all([
     axios.get<GameState>(
       `${config.apiBaseUrl}/runs/${runId}/state`,
-      { params: { role_id: roleId }, timeout: 10000 }
+      {
+        params: { role_id: roleId },
+        timeout: 10000,
+        headers: { "X-User-Id": config.aiUserId },
+      }
     ),
     axios.get<LegalAction[]>(
       `${config.apiBaseUrl}/runs/${runId}/legal-actions`,
-      { params: { role_id: roleId }, timeout: 10000 }
+      {
+        params: { role_id: roleId },
+        timeout: 10000,
+        headers: { "X-User-Id": config.aiUserId },
+      }
     ),
   ]);
 

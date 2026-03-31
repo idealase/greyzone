@@ -24,7 +24,10 @@ export async function submitAction(
   const response = await axios.post<SubmitActionResult>(
     `${config.apiBaseUrl}/runs/${runId}/actions`,
     payload,
-    { timeout: 10000 }
+    {
+      timeout: 10000,
+      headers: { "X-User-Id": config.aiUserId },
+    }
   );
 
   return response.data;

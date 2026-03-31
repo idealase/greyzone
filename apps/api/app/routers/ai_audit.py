@@ -5,7 +5,10 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dependencies.auth import get_current_user
 from app.db.session import get_session
+from app.models.user import User
+from app.services.access_control import ensure_run_member
 from app.services.ai_audit_service import AiAuditService
 
 router = APIRouter(prefix="/api/v1/runs/{run_id}/ai-audit", tags=["ai-audit"])
@@ -17,7 +20,9 @@ _audit_service = AiAuditService()
 async def get_audit_log(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
+    await ensure_run_member(db, run_id, current_user.id)
     items = await _audit_service.get_audit_log(db, run_id)
     return {
         "items": [
@@ -45,7 +50,9 @@ async def get_audit_for_turn(
     run_id: uuid.UUID,
     turn: int,
     db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
+    await ensure_run_member(db, run_id, current_user.id)
     items = await _audit_service.get_audit_for_turn(db, run_id, turn)
     return {
         "items": [
