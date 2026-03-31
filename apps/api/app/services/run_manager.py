@@ -54,7 +54,7 @@ class RunManager:
         participant = next((p for p in run.participants if p.user_id == user_id), None)
         if participant is None and run.owner_id != user_id:
             raise HTTPException(status_code=403, detail="Not authorized for this run")
-        if require_participant and participant is None and run.owner_id != user_id:
+        if require_participant and participant is None:
             raise HTTPException(
                 status_code=403,
                 detail="Only participants may perform this action",

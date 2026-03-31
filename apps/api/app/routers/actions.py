@@ -48,8 +48,6 @@ async def get_legal_actions(
     run, participant = await ensure_run_member(
         db, run_id, current_user.id, require_participant=True
     )
-    if participant is None:
-        raise HTTPException(status_code=403, detail="Only participants may request actions")
     # Map side shorthand to role_id if role_id not provided
     if not role_id and side:
         side_map = {"blue": "blue_commander", "red": "red_commander"}
@@ -74,8 +72,7 @@ async def submit_action(
     run, participant = await ensure_run_member(
         db, run_id, current_user.id, require_participant=True
     )
-    if participant is None:
-        raise HTTPException(status_code=403, detail="Only participants may submit actions")
+    assert participant is not None  # ensure_run_member raises 403 if not a participant
     if data.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="User mismatch")
     if data.role_id and data.role_id != participant.role_id:
@@ -97,8 +94,6 @@ async def advance_turn(
     _, participant = await ensure_run_member(
         db, run_id, current_user.id, require_participant=True
     )
-    if participant is None:
-        raise HTTPException(status_code=403, detail="Only participants may advance turns")
     return await mgr.advance_turn(db, run_id, user_id=current_user.id)
 
 

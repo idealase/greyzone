@@ -15,9 +15,9 @@ interface PaginatedResponse<T> {
 }
 
 export async function listRuns(): Promise<RunSummary[]> {
-  const response = await apiClient.get<PaginatedResponse<RunSummary>>("/runs");
   const user = useAuthStore.getState().user;
   if (!user) return [];
+  const response = await apiClient.get<PaginatedResponse<RunSummary>>("/runs");
   return response.data.items.filter(
     (run) =>
       run.owner_id === user.id ||
