@@ -1,11 +1,45 @@
-import { getScenarioLocale } from "../locales";
+import { useEffect, useState } from "react";
+import { getScenarioLocale, loadScenarioLocale } from "../locales";
 import type { ScenarioLocale, DomainLocale, ActionLocale } from "../types/scenario-locale";
 import { useRunStore } from "../stores/runStore";
 
 export function useScenarioLocale(): ScenarioLocale | null {
   const run = useRunStore((state) => state.run);
-  if (!run?.scenario_id) return null;
-  return getScenarioLocale(run.scenario_id);
+  const scenarioId = run?.scenario_id;
+  const [locale, setLocale] = useState<ScenarioLocale | null>(() =>
+    scenarioId ? getScenarioLocale(scenarioId) : null
+  );
+
+  useEffect(() => {
+    if (!scenarioId) {
+      setLocale(null);
+      return;
+    }
+
+    const cachedLocale = getScenarioLocale(scenarioId);
+    setLocale(cachedLocale);
+    if (cachedLocale) return;
+
+    let cancelled = false;
+    loadScenarioLocale(scenarioId)
+      .then((loadedLocale) => {
+        if (!cancelled) setLocale(loadedLocale);
+      })
+      .catch((error) => {
+        console.error(
+          `Failed to load locale for scenario '${scenarioId}'. The scenario may not be supported or there was a network/import error.`,
+          { scenarioId, error }
+        );
+        if (!cancelled) {
+          setLocale(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [scenarioId]);
+
+  return locale;
 }
 
 export function useLocaleDomain(domainKey: string): DomainLocale | null {
