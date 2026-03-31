@@ -14,9 +14,10 @@ const TutorialPage = lazy(() => import("./pages/TutorialPage"));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
+  const accessToken = useAuthStore((s) => s.accessToken);
   const location = useLocation();
 
-  if (!user) {
+  if (!user || !accessToken) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 

@@ -4,15 +4,17 @@ from contextlib import asynccontextmanager
 from collections.abc import AsyncGenerator
 
 import structlog
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.middleware.auth import get_current_user
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.middleware.logging import LoggingMiddleware
 from app.routers import (
     actions_router,
     ai_audit_router,
+    auth_router,
     health_router,
     narrative_router,
     replay_router,
@@ -81,10 +83,11 @@ app.add_middleware(CorrelationIdMiddleware)
 
 # Routers
 app.include_router(health_router)
-app.include_router(scenarios_router)
-app.include_router(runs_router)
-app.include_router(actions_router)
-app.include_router(users_router)
-app.include_router(replay_router)
-app.include_router(ai_audit_router)
-app.include_router(narrative_router)
+app.include_router(auth_router)
+app.include_router(scenarios_router, dependencies=[Depends(get_current_user)])
+app.include_router(runs_router, dependencies=[Depends(get_current_user)])
+app.include_router(actions_router, dependencies=[Depends(get_current_user)])
+app.include_router(users_router, dependencies=[Depends(get_current_user)])
+app.include_router(replay_router, dependencies=[Depends(get_current_user)])
+app.include_router(ai_audit_router, dependencies=[Depends(get_current_user)])
+app.include_router(narrative_router, dependencies=[Depends(get_current_user)])

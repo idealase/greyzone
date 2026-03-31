@@ -15,10 +15,15 @@ async def _setup_running_run(client: AsyncClient) -> tuple[str, str, str]:
 
     # Create user
     resp = await client.post(
-        "/api/v1/users",
-        json={"username": "actionplayer", "display_name": "Action Player"},
+        "/api/auth/register",
+        json={
+            "username": "actionplayer",
+            "display_name": "Action Player",
+            "email": "actionplayer@example.com",
+            "password": "actionpass123",
+        },
     )
-    user_id = resp.json()["id"]
+    user_id = resp.json()["user"]["id"]
 
     # Create and start run
     resp = await client.post(

@@ -19,11 +19,16 @@ async def _create_scenario(client: AsyncClient) -> str:
 
 async def _create_user(client: AsyncClient, username: str = "testplayer") -> str:
     resp = await client.post(
-        "/api/v1/users",
-        json={"username": username, "display_name": "Test", "is_ai": False},
+        "/api/auth/register",
+        json={
+            "username": username,
+            "display_name": "Test",
+            "email": f"{username}@example.com",
+            "password": "testpassword123",
+        },
     )
-    assert resp.status_code == 201
-    return resp.json()["id"]
+    assert resp.status_code in [200, 201]
+    return resp.json()["user"]["id"]
 
 
 @pytest.mark.asyncio
