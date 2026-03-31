@@ -22,6 +22,24 @@ interface AarData {
   phaseChanged: boolean;
 }
 
+type MobileTab = "overview" | "actions" | "domains";
+
+function useMediaQuery(query: string) {
+  const [matches, setMatches] = useState(() =>
+    typeof window !== "undefined" ? window.matchMedia(query).matches : false
+  );
+
+  useEffect(() => {
+    const media = window.matchMedia(query);
+    const handleChange = () => setMatches(media.matches);
+    handleChange();
+    media.addEventListener("change", handleChange);
+    return () => media.removeEventListener("change", handleChange);
+  }, [query]);
+
+  return matches;
+}
+
 interface SimulationDashboardProps {
   runId: string;
   myRole: Role | undefined;
@@ -46,11 +64,15 @@ export default function SimulationDashboard({
   const { submitAction, isSubmitting, advanceTurn, isAdvancing, advanceError } =
     useActions(runId);
 
+  const isTablet = useMediaQuery("(max-width: 1024px)");
+  const isMobile = useMediaQuery("(max-width: 768px)");
   const [showAAR, setShowAAR] = useState(false);
   const [aarData, setAarData] = useState<AarData | null>(null);
   const [advanceErrorMessage, setAdvanceErrorMessage] = useState<string | null>(null);
   const prevWorldStateRef = useRef<WorldState | null>(null);
   const isMountedRef = useRef(true);
+  const [activeMobileTab, setActiveMobileTab] =
+    useState<MobileTab>("overview");
 
   useEffect(() => {
     return () => {
@@ -67,6 +89,12 @@ export default function SimulationDashboard({
       );
     }
   }, [advanceError]);
+
+  useEffect(() => {
+    if (!isMobile) {
+      setActiveMobileTab("overview");
+    }
+  }, [isMobile]);
 
   function handleAdvanceTurn() {
     prevWorldStateRef.current = worldState;
@@ -99,8 +127,25 @@ export default function SimulationDashboard({
     });
   }
 
+  const mobileTabs: { id: MobileTab; label: string }[] = [
+    { id: "overview", label: "Overview" },
+    {
+      id: "actions",
+      label: myRole === "observer" ? "Events" : "Actions",
+    },
+    { id: "domains", label: "Domains" },
+  ];
+
+  const layoutClasses = [
+    "sim-layout",
+    isTablet ? "sim-layout--tablet" : "",
+    isMobile ? "sim-layout--mobile" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
-    <div className="sim-layout">
+    <div className={layoutClasses}>
       <div className="sim-layout__top">
         <PhaseIndicator
           phase={currentPhase}
@@ -122,44 +167,112 @@ export default function SimulationDashboard({
         )}
       </div>
 
-      <div className="sim-layout__left">
-        {ALL_DOMAINS.map((domain) => (
-          <DomainPanel
-            key={domain}
-            domain={domain}
-            layerState={worldState?.layers[domain] ?? null}
-          />
-        ))}
-      </div>
+      {isMobile ? (
+        <>
+          <div className="sim-mobile-tabs" role="tablist" aria-label="Simulation sections">
+            {mobileTabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                className={`sim-mobile-tab${activeMobileTab === tab.id ? " sim-mobile-tab--active" : ""}`}
+                onClick={() => setActiveMobileTab(tab.id)}
+                role="tab"
+                aria-selected={activeMobileTab === tab.id}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-      <div className="sim-layout__center">
-        <MetricsOverview
-          orderParameter={orderParameter}
-          phase={currentPhase}
-          turn={currentTurn}
-          eventCount={events.length}
-          worldState={worldState}
-        />
-        <DomainStressChart stressHistory={stressHistory} />
-        <EventFeed events={events} />
-      </div>
+          <div className="sim-mobile-panel">
+            {activeMobileTab === "overview" && (
+              <>
+                <MetricsOverview
+                  orderParameter={orderParameter}
+                  phase={currentPhase}
+                  turn={currentTurn}
+                  eventCount={events.length}
+                  worldState={worldState}
+                />
+                <DomainStressChart stressHistory={stressHistory} />
+              </>
+            )}
 
-      <div className="sim-layout__right">
-        {myRole !== "observer" && (
-          <ActionPanel
-            legalActions={legalActions}
-            onSubmit={(action) =>
-              submitAction({
-                ...action,
-                run_id: runId,
-              })
-            }
-            isSubmitting={isSubmitting}
-            side={side}
-          />
-        )}
-        {aiMoves.length > 0 && <AiMovePanel latestMove={aiMoves[0]} />}
-      </div>
+            {activeMobileTab === "actions" && (
+              <>
+                {myRole !== "observer" && (
+                  <ActionPanel
+                    legalActions={legalActions}
+                    onSubmit={(action) =>
+                      submitAction({
+                        ...action,
+                        run_id: runId,
+                      })
+                    }
+                    isSubmitting={isSubmitting}
+                    side={side}
+                  />
+                )}
+                <EventFeed events={events} />
+                {aiMoves.length > 0 && <AiMovePanel latestMove={aiMoves[0]} />}
+              </>
+            )}
+
+            {activeMobileTab === "domains" && (
+              <div className="sim-mobile-stack">
+                {ALL_DOMAINS.map((domain) => (
+                  <DomainPanel
+                    key={domain}
+                    domain={domain}
+                    layerState={worldState?.layers[domain] ?? null}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="sim-layout__left">
+            {ALL_DOMAINS.map((domain) => (
+              <DomainPanel
+                key={domain}
+                domain={domain}
+                layerState={worldState?.layers[domain] ?? null}
+              />
+            ))}
+          </div>
+
+          <div className="sim-layout__center">
+            <MetricsOverview
+              orderParameter={orderParameter}
+              phase={currentPhase}
+              turn={currentTurn}
+              eventCount={events.length}
+              worldState={worldState}
+            />
+            <DomainStressChart stressHistory={stressHistory} />
+            <EventFeed events={events} />
+          </div>
+
+          <div className="sim-layout__right">
+            {myRole !== "observer" && (
+              <ActionPanel
+                legalActions={legalActions}
+                onSubmit={(action) =>
+                  submitAction({
+                    ...action,
+                    run_id: runId,
+                  })
+                }
+                isSubmitting={isSubmitting}
+                side={side}
+              />
+            )}
+            {aiMoves.length > 0 && <AiMovePanel latestMove={aiMoves[0]} />}
+          </div>
+        </>
+      )}
 
       {showAAR && aarData && (
         <AfterActionReport
