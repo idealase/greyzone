@@ -1,25 +1,40 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { createUser, listUsers } from "../api/users";
+import { useMutation } from "@tanstack/react-query";
+import { login, register } from "../api/auth";
 import { useAuthStore } from "../stores/authStore";
-import { UserRead } from "../types/user";
+import { AuthResponse } from "../types/auth";
 
 export default function LoginPage() {
   const [callsign, setCallsign] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const setUser = useAuthStore((s) => s.setUser);
+  const setAuth = useAuthStore((s) => s.setAuth);
 
-  const { data: existingUsers, isLoading: usersLoading } = useQuery({
-    queryKey: ["users"],
-    queryFn: listUsers,
+  const loginMutation = useMutation({
+    mutationFn: login,
+    onSuccess: (auth: AuthResponse) => {
+      setAuth({
+        user: auth.user,
+        accessToken: auth.access_token,
+        refreshToken: auth.refresh_token,
+      });
+      navigate("/");
+    },
+    onError: (err: Error) => {
+      setError(err.message || "Failed to authenticate");
+    },
   });
 
-  const createMutation = useMutation({
-    mutationFn: createUser,
-    onSuccess: (user: UserRead) => {
-      setUser(user);
+  const registerMutation = useMutation({
+    mutationFn: register,
+    onSuccess: (auth: AuthResponse) => {
+      setAuth({
+        user: auth.user,
+        accessToken: auth.access_token,
+        refreshToken: auth.refresh_token,
+      });
       navigate("/");
     },
     onError: (err: Error) => {
@@ -27,20 +42,31 @@ export default function LoginPage() {
     },
   });
 
-  function handleCreate(e: React.FormEvent) {
+  function handleLogin(e: React.FormEvent) {
     e.preventDefault();
     const trimmed = callsign.trim();
-    if (!trimmed) {
-      setError("Callsign is required");
+    const trimmedPassword = password.trim();
+    if (!trimmed || !trimmedPassword) {
+      setError("Callsign and password are required");
       return;
     }
     setError("");
-    createMutation.mutate({ username: trimmed, display_name: trimmed });
+    loginMutation.mutate({ username: trimmed, password: trimmedPassword });
   }
 
-  function handleSelectUser(user: UserRead) {
-    setUser(user);
-    navigate("/");
+  function handleRegister() {
+    const trimmed = callsign.trim();
+    const trimmedPassword = password.trim();
+    if (!trimmed || !trimmedPassword) {
+      setError("Callsign and password are required");
+      return;
+    }
+    setError("");
+    registerMutation.mutate({
+      username: trimmed,
+      display_name: trimmed,
+      password: trimmedPassword,
+    });
   }
 
   return (
@@ -87,7 +113,7 @@ export default function LoginPage() {
           >
             New Operator
           </div>
-          <form onSubmit={handleCreate}>
+          <form onSubmit={handleLogin}>
             <div style={{ marginBottom: "1rem" }}>
               <label
                 htmlFor="callsign"
@@ -121,6 +147,38 @@ export default function LoginPage() {
                 }}
               />
             </div>
+            <div style={{ marginBottom: "1rem" }}>
+              <label
+                htmlFor="password"
+                style={{
+                  display: "block",
+                  marginBottom: "0.4rem",
+                  fontSize: "0.8rem",
+                  color: "var(--text-secondary)",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.05em",
+                }}
+              >
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                style={{
+                  width: "100%",
+                  padding: "0.6rem 0.75rem",
+                  backgroundColor: "var(--bg-primary)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius)",
+                  color: "var(--text-primary)",
+                  fontSize: "0.9rem",
+                  outline: "none",
+                }}
+              />
+            </div>
             {error && (
               <p
                 style={{
@@ -134,7 +192,7 @@ export default function LoginPage() {
             )}
             <button
               type="submit"
-              disabled={createMutation.isPending}
+              disabled={loginMutation.isPending || registerMutation.isPending}
               style={{
                 width: "100%",
                 padding: "0.6rem",
@@ -144,48 +202,43 @@ export default function LoginPage() {
                 borderRadius: "var(--radius)",
                 fontSize: "0.85rem",
                 fontWeight: 600,
-                cursor: createMutation.isPending ? "wait" : "pointer",
+                cursor:
+                  loginMutation.isPending || registerMutation.isPending
+                    ? "wait"
+                    : "pointer",
                 letterSpacing: "0.04em",
-                opacity: createMutation.isPending ? 0.7 : 1,
+                opacity:
+                  loginMutation.isPending || registerMutation.isPending
+                    ? 0.7
+                    : 1,
               }}
             >
-              {createMutation.isPending ? "Deploying..." : "Enter Battlespace"}
+              {loginMutation.isPending ? "Signing in..." : "Sign In"}
+            </button>
+            <button
+              type="button"
+              onClick={handleRegister}
+              disabled={loginMutation.isPending || registerMutation.isPending}
+              style={{
+                width: "100%",
+                marginTop: "0.6rem",
+                padding: "0.6rem",
+                backgroundColor: "var(--bg-tertiary)",
+                color: "var(--text-primary)",
+                border: "1px solid var(--border)",
+                borderRadius: "var(--radius)",
+                fontSize: "0.85rem",
+                fontWeight: 600,
+                cursor:
+                  loginMutation.isPending || registerMutation.isPending
+                    ? "wait"
+                    : "pointer",
+              }}
+            >
+              {registerMutation.isPending ? "Registering..." : "Register"}
             </button>
           </form>
         </div>
-
-        {!usersLoading && existingUsers && existingUsers.length > 0 && (
-          <div className="card" style={{ padding: "1.5rem" }}>
-            <div
-              className="card__title"
-              style={{ marginBottom: "1rem", fontSize: "0.95rem" }}
-            >
-              Returning Operator
-            </div>
-            <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-              {existingUsers.map((u) => (
-                <li key={u.id} style={{ marginBottom: "0.4rem" }}>
-                  <button
-                    onClick={() => handleSelectUser(u)}
-                    style={{
-                      width: "100%",
-                      textAlign: "left",
-                      padding: "0.5rem 0.75rem",
-                      backgroundColor: "var(--bg-tertiary)",
-                      border: "1px solid var(--border)",
-                      borderRadius: "var(--radius)",
-                      color: "var(--text-primary)",
-                      fontSize: "0.85rem",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {u.display_name || u.username}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
       </div>
     </div>
   );

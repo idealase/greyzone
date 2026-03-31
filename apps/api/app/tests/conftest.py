@@ -123,6 +123,46 @@ async def client(
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        auth_resp = await ac.post(
+            "/api/auth/register",
+            json={
+                "username": "testauthuser",
+                "display_name": "Test Auth User",
+                "email": "testauthuser@example.com",
+                "password": "testpassword123",
+            },
+        )
+        token = auth_resp.json()["access_token"]
+        ac.headers.update({"Authorization": f"Bearer {token}"})
+        yield ac
+
+    app.dependency_overrides.clear()
+
+
+@pytest_asyncio.fixture
+async def unauth_client(
+    db_session: AsyncSession, mock_engine_bridge: EngineBridge
+) -> AsyncGenerator[AsyncClient, None]:
+    """Create client without auth headers for auth guard tests."""
+    from app.main import app
+    from app.routers import actions as actions_mod
+    from app.routers import replay as replay_mod
+    from app.routers import runs as runs_mod
+
+    run_manager = RunManager(mock_engine_bridge)
+    ws_manager = ConnectionManager()
+
+    runs_mod.set_services(mock_engine_bridge, run_manager, ws_manager)
+    actions_mod.set_services(mock_engine_bridge, run_manager)
+    replay_mod.set_services(mock_engine_bridge)
+
+    async def override_get_session():
+        yield db_session
+
+    app.dependency_overrides[get_session] = override_get_session
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
 
     app.dependency_overrides.clear()
@@ -142,6 +182,8 @@ def sample_user_data() -> dict:
     return {
         "username": "testplayer",
         "display_name": "Test Player",
+        "email": "testplayer@example.com",
+        "password": "testpassword123",
         "is_ai": False,
     }
 
