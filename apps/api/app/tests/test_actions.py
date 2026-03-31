@@ -1,7 +1,11 @@
 """Tests for action endpoints."""
 
+import asyncio
+
 import pytest
 from httpx import AsyncClient
+
+from app.services.engine_bridge import EngineError
 
 
 async def _setup_running_run(client: AsyncClient) -> tuple[str, str, str]:
@@ -98,6 +102,15 @@ async def test_advance_turn(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_advance_turn_legacy_route(client: AsyncClient):
+    run_id, _, _ = await _setup_running_run(client)
+    resp = await client.post(f"/api/v1/runs/{run_id}/advance-turn")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["turn"] == 1
+
+
+@pytest.mark.asyncio
 async def test_advance_turn_pre_generates_narrative(client: AsyncClient):
     run_id, _, _ = await _setup_running_run(client)
 
@@ -109,6 +122,47 @@ async def test_advance_turn_pre_generates_narrative(client: AsyncClient):
     narrative_data = narrative_resp.json()
     assert narrative_data["turn"] == 1
     assert narrative_data["cached"] is True
+
+
+@pytest.mark.asyncio
+async def test_advance_turn_rejects_concurrent_requests(
+    client: AsyncClient, mock_engine_bridge
+):
+    run_id, _, _ = await _setup_running_run(client)
+
+    release_event = asyncio.Event()
+
+    async def slow_advance(*_args, **_kwargs):
+        await release_event.wait()
+        return {
+            "turn": 1,
+            "phase": "CompetitiveNormality",
+            "events": [],
+            "game_over": False,
+        }
+
+    mock_engine_bridge.advance_turn.side_effect = slow_advance
+
+    first = asyncio.create_task(client.post(f"/api/v1/runs/{run_id}/advance"))
+    # Give the first request a moment to acquire the lock
+    await asyncio.sleep(0.05)
+    second = await client.post(f"/api/v1/runs/{run_id}/advance")
+    assert second.status_code == 409
+
+    release_event.set()
+    first_response = await first
+    assert first_response.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_advance_turn_state_failure_returns_error(
+    client: AsyncClient, mock_engine_bridge
+):
+    run_id, _, _ = await _setup_running_run(client)
+    mock_engine_bridge.get_state.side_effect = EngineError("engine state failed")
+
+    resp = await client.post(f"/api/v1/runs/{run_id}/advance")
+    assert resp.status_code == 503
 
 
 @pytest.mark.asyncio

@@ -69,6 +69,15 @@ async def advance_turn(
     return await mgr.advance_turn(db, run_id)
 
 
+@router.post("/advance-turn", include_in_schema=False)
+async def advance_turn_legacy(
+    run_id: uuid.UUID,
+    db: AsyncSession = Depends(get_session),
+    mgr: RunManager = Depends(get_run_manager),
+) -> dict:
+    return await mgr.advance_turn(db, run_id)
+
+
 @router.get("/actions", response_model=list[ActionResult])
 async def get_action_history(
     run_id: uuid.UUID,

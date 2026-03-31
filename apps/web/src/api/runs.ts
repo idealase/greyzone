@@ -62,8 +62,10 @@ export async function quickStart(params: {
   return response.data;
 }
 
-export async function advanceTurn(runId: string): Promise<TurnResult> {
-  const response = await apiClient.post<TurnResult>(`/runs/${runId}/advance`);
+export async function advanceTurn(runId: string, signal?: AbortSignal): Promise<TurnResult> {
+  const response = await apiClient.post<TurnResult>(`/runs/${runId}/advance`, undefined, {
+    signal,
+  });
   return response.data;
 }
 

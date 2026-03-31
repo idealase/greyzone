@@ -23,7 +23,7 @@ interface RunState {
   isAdvancingTurn: boolean;
 
   setRun: (run: RunRead) => void;
-  setWorldState: (state: WorldState) => void;
+  setWorldState: (state: WorldState | null | undefined) => void;
   setPhase: (phase: Phase) => void;
   setOrderParameter: (psi: number) => void;
   setCurrentTurn: (turn: number) => void;
@@ -68,11 +68,24 @@ export const useRunStore = create<RunState>()((set) => ({
     }),
 
   setWorldState: (worldState) =>
-    set({
-      worldState,
-      currentPhase: worldState.phase,
-      orderParameter: worldState.order_parameter,
-      currentTurn: worldState.turn,
+    set((state) => {
+      if (!worldState || typeof worldState !== "object") {
+        return state;
+      }
+
+      const nextOrderParameter =
+        typeof worldState.order_parameter === "number"
+          ? worldState.order_parameter
+          : state.orderParameter;
+      const nextTurn =
+        typeof worldState.turn === "number" ? worldState.turn : state.currentTurn;
+
+      return {
+        worldState,
+        currentPhase: worldState.phase ?? state.currentPhase,
+        orderParameter: nextOrderParameter,
+        currentTurn: nextTurn,
+      };
     }),
 
   setPhase: (currentPhase) => set({ currentPhase }),
@@ -109,6 +122,10 @@ export const useRunStore = create<RunState>()((set) => ({
 
   addStressSnapshot: (turn, layers) =>
     set((state) => {
+      if (!layers) {
+        return state;
+      }
+
       const values = Object.fromEntries(
         Object.entries(layers).map(([k, v]) => [k, v.stress])
       ) as Record<DomainLayer, number>;

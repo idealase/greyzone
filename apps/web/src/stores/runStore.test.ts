@@ -199,4 +199,28 @@ describe("runStore", () => {
     expect(state.currentTurn).toBe(0);
     expect(state.events).toEqual([]);
   });
+
+  it("ignores null or undefined world state updates", () => {
+    const initialWorldState = makeWorldState();
+    useRunStore.getState().setWorldState(initialWorldState);
+    useRunStore.getState().setWorldState(undefined);
+    useRunStore.getState().setWorldState(null);
+
+    const state = useRunStore.getState();
+    expect(state.worldState).toBe(initialWorldState);
+    expect(state.currentTurn).toBe(initialWorldState.turn);
+  });
+
+  it("falls back to existing values when world state is missing fields", () => {
+    const baseWorldState = makeWorldState();
+    useRunStore.getState().setWorldState(baseWorldState);
+
+    // @ts-expect-error allow partial state for robustness test
+    useRunStore.getState().setWorldState({ layers: baseWorldState.layers });
+
+    const state = useRunStore.getState();
+    expect(state.currentPhase).toBe(baseWorldState.phase);
+    expect(state.orderParameter).toBe(baseWorldState.order_parameter);
+    expect(state.currentTurn).toBe(baseWorldState.turn);
+  });
 });
