@@ -8,7 +8,11 @@ export async function listLegalActions(
 ): Promise<LegalAction[]> {
   const response = await axios.get<LegalAction[]>(
     `${config.apiBaseUrl}/runs/${runId}/legal-actions`,
-    { params: { role_id: roleId }, timeout: 10000 }
+    {
+      params: { role_id: roleId },
+      timeout: 10000,
+      headers: { "X-User-Id": config.aiUserId },
+    }
   );
 
   return response.data;

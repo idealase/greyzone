@@ -10,11 +10,14 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dependencies.auth import get_current_user
 from app.db.session import get_session
 from app.models.event import RunEvent, RunSnapshot
 from app.models.narrative import RunNarrative
 from app.models.run import Run
 from app.models.scenario import Scenario
+from app.models.user import User
+from app.services.access_control import ensure_run_member
 from app.services.narrative_service import NarrativeService
 from app.observability.metrics import narratives_generated_total
 
@@ -150,7 +153,9 @@ async def get_turn_narrative(
     run_id: uuid.UUID,
     turn: int,
     db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ) -> TurnNarrativeResponse:
+    await ensure_run_member(db, run_id, current_user.id)
     result = await db.execute(
         select(RunNarrative).where(
             RunNarrative.run_id == run_id, RunNarrative.turn == turn
@@ -169,7 +174,9 @@ async def get_turn_narrative(
 async def generate_narrative(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
+    current_user: User = Depends(get_current_user),
 ) -> TurnNarrativeResponse:
+    await ensure_run_member(db, run_id, current_user.id)
     run, scenario = await _fetch_run_and_scenario(run_id, db)
     turn = run.current_turn
 

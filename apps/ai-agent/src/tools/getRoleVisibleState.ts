@@ -8,7 +8,11 @@ export async function getRoleVisibleState(
 ): Promise<GameState> {
   const response = await axios.get<GameState>(
     `${config.apiBaseUrl}/runs/${runId}/state`,
-    { params: { role_id: roleId }, timeout: 10000 }
+    {
+      params: { role_id: roleId },
+      timeout: 10000,
+      headers: { "X-User-Id": config.aiUserId },
+    }
   );
 
   return response.data;

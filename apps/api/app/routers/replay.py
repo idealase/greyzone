@@ -5,8 +5,11 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.dependencies.auth import get_current_user
 from app.db.session import get_session
-from app.schemas.event import EventList
+from app.models.user import User
+from app.schemas.event import EventList, EventRead
+from app.services.access_control import ensure_run_member
 from app.services.engine_bridge import EngineBridge
 from app.services.replay_service import ReplayService
 
@@ -30,7 +33,9 @@ async def get_replay(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
     svc: ReplayService = Depends(get_replay_service),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
+    await ensure_run_member(db, run_id, current_user.id)
     return await svc.get_replay(db, run_id)
 
 
@@ -40,7 +45,9 @@ async def get_replay_at_turn(
     turn: int,
     db: AsyncSession = Depends(get_session),
     svc: ReplayService = Depends(get_replay_service),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
+    await ensure_run_member(db, run_id, current_user.id)
     return await svc.replay_to_turn(db, run_id, turn)
 
 
@@ -49,7 +56,9 @@ async def get_events(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
     svc: ReplayService = Depends(get_replay_service),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
+    await ensure_run_member(db, run_id, current_user.id)
     items = await svc.get_events(db, run_id)
     return {"items": items, "total": len(items)}
 
@@ -59,7 +68,9 @@ async def get_snapshots(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
     svc: ReplayService = Depends(get_replay_service),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
+    await ensure_run_member(db, run_id, current_user.id)
     snapshots = await svc.get_snapshots(db, run_id)
     return {
         "items": [

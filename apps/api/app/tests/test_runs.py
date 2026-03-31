@@ -31,8 +31,16 @@ async def _create_user(client: AsyncClient, username: str = "testplayer") -> str
     return resp.json()["user"]["id"]
 
 
+async def _authenticate(client: AsyncClient, username: str) -> str:
+    """Create a user and set auth header for subsequent requests."""
+    user_id = await _create_user(client, username)
+    client.headers["X-User-Id"] = user_id
+    return user_id
+
+
 @pytest.mark.asyncio
 async def test_create_run(client: AsyncClient):
+    await _authenticate(client, "run_owner")
     scenario_id = await _create_scenario(client)
     resp = await client.post(
         "/api/v1/runs",
@@ -46,25 +54,36 @@ async def test_create_run(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_list_runs(client: AsyncClient):
+    owner_id = await _authenticate(client, "list_owner")
     scenario_id = await _create_scenario(client)
     await client.post(
         "/api/v1/runs",
         json={"scenario_id": scenario_id, "name": "Run 1"},
     )
+    # Create a run for another user that should not be visible
+    await _authenticate(client, "list_other")
+    await client.post(
+        "/api/v1/runs",
+        json={"scenario_id": scenario_id, "name": "Run 2"},
+    )
+    client.headers["X-User-Id"] = owner_id
     resp = await client.get("/api/v1/runs")
     assert resp.status_code == 200
-    assert resp.json()["total"] >= 1
+    data = resp.json()
+    assert data["total"] == 1
+    assert data["items"][0]["owner_id"] == owner_id
 
 
 @pytest.mark.asyncio
 async def test_join_run(client: AsyncClient):
+    await _authenticate(client, "join_owner")
     scenario_id = await _create_scenario(client)
     run_resp = await client.post(
         "/api/v1/runs",
         json={"scenario_id": scenario_id, "name": "Join Test"},
     )
     run_id = run_resp.json()["id"]
-    user_id = await _create_user(client)
+    user_id = await _authenticate(client, "join_user")
 
     resp = await client.post(
         f"/api/v1/runs/{run_id}/join",
@@ -76,6 +95,7 @@ async def test_join_run(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_start_run(client: AsyncClient):
+    await _authenticate(client, "start_owner")
     scenario_id = await _create_scenario(client)
     run_resp = await client.post(
         "/api/v1/runs",
@@ -90,6 +110,7 @@ async def test_start_run(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_get_run_state(client: AsyncClient):
+    await _authenticate(client, "state_owner")
     scenario_id = await _create_scenario(client)
     run_resp = await client.post(
         "/api/v1/runs",
@@ -104,7 +125,23 @@ async def test_get_run_state(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_get_run_denied_for_non_member(client: AsyncClient):
+    await _authenticate(client, "owner_access")
+    scenario_id = await _create_scenario(client)
+    run_resp = await client.post(
+        "/api/v1/runs",
+        json={"scenario_id": scenario_id, "name": "Access Test"},
+    )
+    run_id = run_resp.json()["id"]
+
+    await _authenticate(client, "intruder_access")
+    resp = await client.get(f"/api/v1/runs/{run_id}")
+    assert resp.status_code == 403
+
+
+@pytest.mark.asyncio
 async def test_pause_resume(client: AsyncClient):
+    await _authenticate(client, "pause_owner")
     scenario_id = await _create_scenario(client)
     run_resp = await client.post(
         "/api/v1/runs",
@@ -128,6 +165,7 @@ async def test_pause_resume(client: AsyncClient):
 
 @pytest.mark.asyncio
 async def test_stop_run(client: AsyncClient):
+    await _authenticate(client, "stop_owner")
     scenario_id = await _create_scenario(client)
     run_resp = await client.post(
         "/api/v1/runs",

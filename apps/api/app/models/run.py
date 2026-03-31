@@ -35,6 +35,9 @@ class Run(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(primary_key=True, default=uuid.uuid4)
     scenario_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("scenarios.id"))
+    owner_id: Mapped[uuid.UUID | None] = mapped_column(
+        ForeignKey("users.id"), nullable=True
+    )
     name: Mapped[str] = mapped_column(String(255))
     status: Mapped[RunStatus] = mapped_column(
         SAEnum(
@@ -53,6 +56,7 @@ class Run(Base):
     updated_at: Mapped[datetime] = mapped_column(default=func.now(), onupdate=func.now())
 
     scenario: Mapped[Scenario] = relationship(back_populates="runs")
+    owner: Mapped[User | None] = relationship()
     participants: Mapped[list[RunParticipant]] = relationship(back_populates="run")
     events: Mapped[list[RunEvent]] = relationship(back_populates="run")
     snapshots: Mapped[list[RunSnapshot]] = relationship(back_populates="run")

@@ -4,8 +4,20 @@ import pytest
 from httpx import AsyncClient
 
 
+async def _authenticate(client: AsyncClient, username: str) -> str:
+    resp = await client.post(
+        "/api/v1/users",
+        json={"username": username, "display_name": username},
+    )
+    user_id = resp.json()["id"]
+    client.headers["X-User-Id"] = user_id
+    return user_id
+
+
 async def _create_run_with_events(client: AsyncClient) -> str:
     """Create a scenario and run, advance a turn so events exist."""
+    user_id = await _authenticate(client, "replay_owner")
+
     resp = await client.post(
         "/api/v1/scenarios",
         json={"name": "Replay Scenario", "config": {"turns": 10}},
@@ -18,6 +30,10 @@ async def _create_run_with_events(client: AsyncClient) -> str:
     )
     run_id = resp.json()["id"]
 
+    await client.post(
+        f"/api/v1/runs/{run_id}/join",
+        json={"user_id": user_id, "role_id": "blue_commander"},
+    )
     await client.post(f"/api/v1/runs/{run_id}/start")
     await client.post(f"/api/v1/runs/{run_id}/advance")
 

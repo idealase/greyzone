@@ -8,7 +8,7 @@ import uuid
 import httpx
 import structlog
 from fastapi import HTTPException
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -43,17 +43,41 @@ class RunManager:
             self._advance_locks[run_id] = asyncio.Lock()
         return self._advance_locks[run_id]
 
-    async def create_run(self, db: AsyncSession, data: RunCreate) -> Run:
+    @staticmethod
+    def _assert_member(
+        run: Run, user_id: uuid.UUID | None, require_participant: bool = False
+    ) -> RunParticipant | None:
+        """Ensure the user owns or participates in the run."""
+        if user_id is None:
+            raise HTTPException(status_code=401, detail="User authentication required")
+
+        participant = next((p for p in run.participants if p.user_id == user_id), None)
+        if participant is None and run.owner_id != user_id:
+            raise HTTPException(status_code=403, detail="Not authorized for this run")
+        if require_participant and participant is None:
+            raise HTTPException(
+                status_code=403,
+                detail="Only participants may perform this action",
+            )
+        return participant
+
+    async def create_run(
+        self, db: AsyncSession, data: RunCreate, owner_id: uuid.UUID
+    ) -> Run:
         """Create a new run from a scenario."""
         scenario = await db.get(Scenario, data.scenario_id)
         if scenario is None:
             raise HTTPException(status_code=404, detail="Scenario not found")
+        owner = await db.get(User, owner_id)
+        if owner is None:
+            raise HTTPException(status_code=404, detail="Owner not found")
 
         run = Run(
             scenario_id=data.scenario_id,
             name=data.name,
             config=data.config or scenario.config,
             status=RunStatus.LOBBY,
+            owner_id=owner_id,
         )
         if data.seed is not None:
             run.seed = data.seed
@@ -66,7 +90,11 @@ class RunManager:
         return await self.get_run(db, run.id)
 
     async def join_run(
-        self, db: AsyncSession, run_id: uuid.UUID, data: RunParticipantCreate
+        self,
+        db: AsyncSession,
+        run_id: uuid.UUID,
+        data: RunParticipantCreate,
+        requester_id: uuid.UUID | None = None,
     ) -> RunParticipant:
         """Add a participant with a role to a run."""
         run = await db.get(Run, run_id)
@@ -76,6 +104,14 @@ class RunManager:
             raise HTTPException(
                 status_code=400, detail="Cannot join run in current state"
             )
+        if requester_id and requester_id not in (data.user_id, run.owner_id):
+            raise HTTPException(
+                status_code=403,
+                detail="Not authorized to add participants to this run",
+            )
+        user = await db.get(User, data.user_id)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
 
         participant = RunParticipant(
             run_id=run_id,
@@ -94,9 +130,12 @@ class RunManager:
         )
         return result.scalar_one()
 
-    async def start_run(self, db: AsyncSession, run_id: uuid.UUID) -> Run:
+    async def start_run(
+        self, db: AsyncSession, run_id: uuid.UUID, user_id: uuid.UUID
+    ) -> Run:
         """Transition a run from lobby to running, start engine."""
         run = await self.get_run(db, run_id)
+        self._assert_member(run, user_id)
         if run.status != RunStatus.LOBBY:
             raise HTTPException(
                 status_code=400,
@@ -126,6 +165,7 @@ class RunManager:
             .where(Run.id == run_id)
             .options(
                 selectinload(Run.scenario),
+                selectinload(Run.owner),
                 selectinload(Run.participants).selectinload(RunParticipant.user),
             )
         )
@@ -165,23 +205,35 @@ class RunManager:
             raise HTTPException(status_code=404, detail="Run not found")
         return run
 
-    async def list_runs(self, db: AsyncSession) -> list[Run]:
-        """List all runs."""
+    async def list_runs(self, db: AsyncSession, user_id: uuid.UUID) -> list[Run]:
+        """List runs owned by or involving the user."""
         result = await db.execute(
             select(Run)
             .options(
                 selectinload(Run.scenario),
                 selectinload(Run.participants).selectinload(RunParticipant.user),
             )
+            .outerjoin(RunParticipant, RunParticipant.run_id == Run.id)
+            .where(or_(Run.owner_id == user_id, RunParticipant.user_id == user_id))
             .order_by(Run.created_at.desc())
+            .distinct()
         )
         return list(result.scalars().all())
 
     async def get_run_state(
-        self, db: AsyncSession, run_id: uuid.UUID, role_id: str | None = None
+        self,
+        db: AsyncSession,
+        run_id: uuid.UUID,
+        role_id: str | None = None,
+        user_id: uuid.UUID | None = None,
     ) -> dict:
         """Get run state, optionally scoped to a role."""
         run = await self.get_run(db, run_id)
+        participant = self._assert_member(run, user_id)
+        if participant and role_id and participant.role_id != role_id:
+            raise HTTPException(status_code=403, detail="Role does not belong to user")
+        if participant and not role_id:
+            role_id = participant.role_id
         if run.status != RunStatus.RUNNING:
             return {
                 "run_id": str(run.id),
@@ -214,27 +266,36 @@ class RunManager:
             "role_id": role_id,
         }
 
-    async def pause_run(self, db: AsyncSession, run_id: uuid.UUID) -> Run:
+    async def pause_run(
+        self, db: AsyncSession, run_id: uuid.UUID, user_id: uuid.UUID
+    ) -> Run:
         """Pause a running run."""
         run = await self.get_run(db, run_id)
+        self._assert_member(run, user_id)
         if run.status != RunStatus.RUNNING:
             raise HTTPException(status_code=400, detail="Run is not running")
         run.status = RunStatus.PAUSED
         await db.flush()
         return await self.get_run(db, run_id)
 
-    async def resume_run(self, db: AsyncSession, run_id: uuid.UUID) -> Run:
+    async def resume_run(
+        self, db: AsyncSession, run_id: uuid.UUID, user_id: uuid.UUID
+    ) -> Run:
         """Resume a paused run."""
         run = await self.get_run(db, run_id)
+        self._assert_member(run, user_id)
         if run.status != RunStatus.PAUSED:
             raise HTTPException(status_code=400, detail="Run is not paused")
         run.status = RunStatus.RUNNING
         await db.flush()
         return await self.get_run(db, run_id)
 
-    async def stop_run(self, db: AsyncSession, run_id: uuid.UUID) -> Run:
+    async def stop_run(
+        self, db: AsyncSession, run_id: uuid.UUID, user_id: uuid.UUID
+    ) -> Run:
         """Stop a run and shut down the engine."""
         run = await self.get_run(db, run_id)
+        self._assert_member(run, user_id)
         if run.status not in (RunStatus.RUNNING, RunStatus.PAUSED):
             raise HTTPException(status_code=400, detail="Run is not active")
 
@@ -244,7 +305,9 @@ class RunManager:
         logger.info("run_stopped", run_id=str(run_id))
         return await self.get_run(db, run_id)
 
-    async def advance_turn(self, db: AsyncSession, run_id: uuid.UUID) -> dict:
+    async def advance_turn(
+        self, db: AsyncSession, run_id: uuid.UUID, user_id: uuid.UUID
+    ) -> dict:
         """Advance to the next turn."""
         run_lock = self._get_run_lock(run_id)
         if run_lock.locked():
@@ -466,7 +529,7 @@ class RunManager:
             name=run_name,
             seed=seed,
         )
-        run = await self.create_run(db, run_data)
+        run = await self.create_run(db, run_data, owner_id=user_id)
 
         # Join human as blue_commander
         await self.join_run(
@@ -491,7 +554,7 @@ class RunManager:
         )
 
         # Start the run
-        run = await self.start_run(db, run.id)
+        run = await self.start_run(db, run.id, user_id=user_id)
 
         logger.info(
             "quick_start_created",
@@ -501,9 +564,12 @@ class RunManager:
         )
         return run
 
-    async def get_metrics(self, db: AsyncSession, run_id: uuid.UUID) -> dict:
+    async def get_metrics(
+        self, db: AsyncSession, run_id: uuid.UUID, user_id: uuid.UUID
+    ) -> dict:
         """Get simulation metrics."""
         run = await self.get_run(db, run_id)
+        self._assert_member(run, user_id)
         if run.status != RunStatus.RUNNING:
             return {"run_id": str(run.id), "turn": run.current_turn, "metrics": {}}
 
