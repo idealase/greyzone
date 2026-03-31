@@ -1,6 +1,7 @@
 import apiClient from "./client";
 import { WorldState, TurnEvent } from "../types/run";
 import { EventRead } from "../types/event";
+import { Phase } from "../types/phase";
 
 export interface ReplayTurn {
   turn: number;
@@ -38,7 +39,7 @@ type ReplayApiResponse = Partial<ReplayData> & {
 
 const emptyWorldState = (turn: number): WorldState => ({
   turn,
-  phase: "CompetitiveNormality",
+  phase: Phase.CompetitiveNormality,
   order_parameter: 0,
   layers: {} as WorldState["layers"],
   coupling_matrix: {},
