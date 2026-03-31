@@ -118,7 +118,7 @@ pub fn compute_order_parameter(layers: &HashMap<DomainLayer, LayerState>) -> f64
 /// Returns (enter_threshold, exit_threshold) for each phase.
 fn phase_thresholds(phase: Phase) -> (f64, f64) {
     match phase {
-        Phase::CompetitiveNormality => (0.0, 0.0),   // always possible to be here
+        Phase::CompetitiveNormality => (0.0, 0.0), // always possible to be here
         Phase::HybridCoercion => (0.15, 0.12),
         Phase::AcutePolycrisis => (0.30, 0.27),
         Phase::WarTransition => (0.50, 0.47),
@@ -195,7 +195,11 @@ mod tests {
             layers.insert(d, LayerState::new(0.9, 0.2, 0.1, 0.8));
         }
         let psi = compute_order_parameter(&layers);
-        assert!(psi > 0.5, "Psi should be high with high stress, got {}", psi);
+        assert!(
+            psi > 0.5,
+            "Psi should be high with high stress, got {}",
+            psi
+        );
     }
 
     #[test]
@@ -222,6 +226,10 @@ mod tests {
     fn test_default_weights_sum_to_one() {
         let w = default_domain_weights();
         let sum: f64 = w.values().sum();
-        assert!((sum - 1.0).abs() < 1e-10, "Weights should sum to 1.0, got {}", sum);
+        assert!(
+            (sum - 1.0).abs() < 1e-10,
+            "Weights should sum to 1.0, got {}",
+            sum
+        );
     }
 }

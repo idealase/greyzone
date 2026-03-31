@@ -5,29 +5,16 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "command", content = "data")]
 pub enum EngineCommand {
-    NewGame {
-        scenario_id: String,
-        seed: u64,
-    },
+    NewGame { scenario_id: String, seed: u64 },
     GetState,
-    GetRoleState {
-        role_id: String,
-    },
-    GetLegalActions {
-        role_id: String,
-    },
-    ValidateAction {
-        action: Action,
-    },
-    SubmitAction {
-        action: Action,
-    },
+    GetRoleState { role_id: String },
+    GetLegalActions { role_id: String },
+    ValidateAction { action: Action },
+    SubmitAction { action: Action },
     AdvanceTurn,
     TakeSnapshot,
     GetEventLog,
-    ReplayToTurn {
-        turn: u32,
-    },
+    ReplayToTurn { turn: u32 },
     GetMetrics,
     Shutdown,
 }
@@ -109,7 +96,12 @@ mod tests {
 
         for json in commands {
             let result: Result<EngineCommand, _> = serde_json::from_str(json);
-            assert!(result.is_ok(), "Failed to deserialize: {} -- error: {:?}", json, result.err());
+            assert!(
+                result.is_ok(),
+                "Failed to deserialize: {} -- error: {:?}",
+                json,
+                result.err()
+            );
         }
     }
 }
