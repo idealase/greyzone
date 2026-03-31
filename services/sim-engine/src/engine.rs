@@ -187,9 +187,15 @@ impl SimulationEngine {
                 }
 
                 let mut param_ranges = HashMap::new();
-                param_ranges.insert("intensity".into(), (0.1, actor.capability(
-                    available_layers.first().unwrap_or(&DomainLayer::Kinetic),
-                ).max(0.1)));
+                param_ranges.insert(
+                    "intensity".into(),
+                    (
+                        0.1,
+                        actor
+                            .capability(available_layers.first().unwrap_or(&DomainLayer::Kinetic))
+                            .max(0.1),
+                    ),
+                );
 
                 let description = format!(
                     "{:?} by {} on {:?}",
@@ -274,7 +280,7 @@ impl SimulationEngine {
 
         // Intensity validation
         let intensity = action.intensity();
-        if intensity < 0.0 || intensity > 1.0 {
+        if !(0.0..=1.0).contains(&intensity) {
             return Err(ActionError::InvalidParameter(
                 "intensity must be between 0.0 and 1.0".into(),
             ));
@@ -291,7 +297,12 @@ impl SimulationEngine {
 
         // Deduct resources
         let cost = action.action_type.resource_cost();
-        if let Some(actor) = self.state.actors.iter_mut().find(|a| a.id == action.actor_id) {
+        if let Some(actor) = self
+            .state
+            .actors
+            .iter_mut()
+            .find(|a| a.id == action.actor_id)
+        {
             actor.resources -= cost;
         }
 
@@ -428,7 +439,10 @@ impl SimulationEngine {
                         layer: DomainLayer::Cyber,
                         field: "stress".into(),
                         delta: stress_delta,
-                        description: format!("Cyber attack increased stress by {:.4}", stress_delta),
+                        description: format!(
+                            "Cyber attack increased stress by {:.4}",
+                            stress_delta
+                        ),
                     });
                     effects.push(Effect {
                         layer: DomainLayer::Cyber,
@@ -442,7 +456,11 @@ impl SimulationEngine {
                 }
             }
             ActionType::InformationOp => {
-                if let Some(layer) = self.state.layers.get_mut(&DomainLayer::InformationCognitive) {
+                if let Some(layer) = self
+                    .state
+                    .layers
+                    .get_mut(&DomainLayer::InformationCognitive)
+                {
                     let stress_delta = intensity * 0.09;
                     layer.stress = (layer.stress + stress_delta).clamp(0.0, 1.0);
                     layer.friction = (layer.friction + intensity * 0.05).clamp(0.0, 1.0);
@@ -457,8 +475,10 @@ impl SimulationEngine {
                     });
                 }
                 // Also affect domestic political domain
-                if let Some(layer) =
-                    self.state.layers.get_mut(&DomainLayer::DomesticPoliticalFiscal)
+                if let Some(layer) = self
+                    .state
+                    .layers
+                    .get_mut(&DomainLayer::DomesticPoliticalFiscal)
                 {
                     let delta = intensity * 0.04;
                     layer.stress = (layer.stress + delta).clamp(0.0, 1.0);
@@ -466,16 +486,15 @@ impl SimulationEngine {
                         layer: DomainLayer::DomesticPoliticalFiscal,
                         field: "stress".into(),
                         delta,
-                        description: format!(
-                            "Info op spillover: domestic stress +{:.4}",
-                            delta
-                        ),
+                        description: format!("Info op spillover: domestic stress +{:.4}", delta),
                     });
                 }
             }
             ActionType::SanctionImpose => {
-                if let Some(layer) =
-                    self.state.layers.get_mut(&DomainLayer::GeoeconomicIndustrial)
+                if let Some(layer) = self
+                    .state
+                    .layers
+                    .get_mut(&DomainLayer::GeoeconomicIndustrial)
                 {
                     let stress_delta = intensity * 0.10;
                     layer.stress = (layer.stress + stress_delta).clamp(0.0, 1.0);
@@ -490,8 +509,10 @@ impl SimulationEngine {
                     });
                 }
                 // Sanctions also hurt own economy slightly
-                if let Some(layer) =
-                    self.state.layers.get_mut(&DomainLayer::DomesticPoliticalFiscal)
+                if let Some(layer) = self
+                    .state
+                    .layers
+                    .get_mut(&DomainLayer::DomesticPoliticalFiscal)
                 {
                     let delta = intensity * 0.02;
                     layer.stress = (layer.stress + delta).clamp(0.0, 1.0);
@@ -499,16 +520,15 @@ impl SimulationEngine {
                         layer: DomainLayer::DomesticPoliticalFiscal,
                         field: "stress".into(),
                         delta,
-                        description: format!(
-                            "Sanctions blowback: domestic stress +{:.4}",
-                            delta
-                        ),
+                        description: format!("Sanctions blowback: domestic stress +{:.4}", delta),
                     });
                 }
             }
             ActionType::SanctionRelief => {
-                if let Some(layer) =
-                    self.state.layers.get_mut(&DomainLayer::GeoeconomicIndustrial)
+                if let Some(layer) = self
+                    .state
+                    .layers
+                    .get_mut(&DomainLayer::GeoeconomicIndustrial)
                 {
                     let delta = intensity * 0.08;
                     layer.stress = (layer.stress - delta).clamp(0.0, 1.0);
@@ -580,7 +600,8 @@ impl SimulationEngine {
                 if let Some(layer) = self.state.layers.get_mut(&DomainLayer::SpacePnt) {
                     let stress_delta = intensity * 0.08;
                     layer.stress = (layer.stress + stress_delta).clamp(0.0, 1.0);
-                    layer.activity_level = (layer.activity_level + intensity * 0.15).clamp(0.0, 1.0);
+                    layer.activity_level =
+                        (layer.activity_level + intensity * 0.15).clamp(0.0, 1.0);
                     // But also increases own resilience in space
                     let res_delta = intensity * 0.04;
                     layer.resilience = (layer.resilience + res_delta).clamp(0.0, 1.0);
@@ -588,10 +609,7 @@ impl SimulationEngine {
                         layer: DomainLayer::SpacePnt,
                         field: "stress".into(),
                         delta: stress_delta,
-                        description: format!(
-                            "Space asset deployment: stress +{:.4}",
-                            stress_delta
-                        ),
+                        description: format!("Space asset deployment: stress +{:.4}", stress_delta),
                     });
                     effects.push(Effect {
                         layer: DomainLayer::SpacePnt,
@@ -605,15 +623,13 @@ impl SimulationEngine {
                 }
             }
             ActionType::DomesticPolicyShift => {
-                if let Some(layer) =
-                    self.state.layers.get_mut(&DomainLayer::DomesticPoliticalFiscal)
+                if let Some(layer) = self
+                    .state
+                    .layers
+                    .get_mut(&DomainLayer::DomesticPoliticalFiscal)
                 {
                     // Can either increase or decrease stress depending on direction
-                    let direction = action
-                        .parameters
-                        .get("direction")
-                        .copied()
-                        .unwrap_or(1.0); // positive = hawkish, negative = dovish
+                    let direction = action.parameters.get("direction").copied().unwrap_or(1.0); // positive = hawkish, negative = dovish
                     let delta = intensity * direction.signum() * 0.06;
                     layer.stress = (layer.stress + delta).clamp(0.0, 1.0);
                     let res_delta = intensity * 0.04;
@@ -631,10 +647,7 @@ impl SimulationEngine {
                         layer: DomainLayer::DomesticPoliticalFiscal,
                         field: "resilience".into(),
                         delta: res_delta,
-                        description: format!(
-                            "Policy shift: domestic resilience +{:.4}",
-                            res_delta
-                        ),
+                        description: format!("Policy shift: domestic resilience +{:.4}", res_delta),
                     });
                 }
             }
@@ -689,7 +702,8 @@ impl SimulationEngine {
         }
 
         // 2. Propagate stress through coupling matrix
-        self.coupling_matrix.propagate_stress(&mut self.state.layers);
+        self.coupling_matrix
+            .propagate_stress(&mut self.state.layers);
 
         // 3. Apply friction decay (stress naturally decays a bit each turn)
         for layer in self.state.layers.values_mut() {
@@ -875,7 +889,12 @@ impl SimulationEngine {
 
         let domain_stresses: Vec<(DomainLayer, f64)> = DomainLayer::ALL
             .iter()
-            .map(|d| (*d, self.state.layers.get(d).map(|l| l.stress).unwrap_or(0.0)))
+            .map(|d| {
+                (
+                    *d,
+                    self.state.layers.get(d).map(|l| l.stress).unwrap_or(0.0),
+                )
+            })
             .collect();
 
         let domain_resiliences: Vec<(DomainLayer, f64)> = DomainLayer::ALL
@@ -883,7 +902,11 @@ impl SimulationEngine {
             .map(|d| {
                 (
                     *d,
-                    self.state.layers.get(d).map(|l| l.resilience).unwrap_or(0.0),
+                    self.state
+                        .layers
+                        .get(d)
+                        .map(|l| l.resilience)
+                        .unwrap_or(0.0),
                 )
             })
             .collect();

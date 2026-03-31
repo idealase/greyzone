@@ -26,7 +26,11 @@ impl Serialize for CouplingMatrix {
             .couplings
             .iter()
             .filter(|((a, b), _)| *a <= *b) // only one direction to avoid duplicates
-            .map(|((a, b), &s)| CouplingEntry { a: *a, b: *b, strength: s })
+            .map(|((a, b), &s)| CouplingEntry {
+                a: *a,
+                b: *b,
+                strength: s,
+            })
             .collect();
         let mut state = serializer.serialize_struct("CouplingMatrix", 2)?;
         state.serialize_field("couplings", &entries)?;
@@ -154,7 +158,10 @@ mod tests {
         let m = default_coupling_matrix();
         // DomesticPolitical <-> SpacePnt is not explicitly set, should be 0.2
         assert_eq!(
-            m.get(&DomainLayer::DomesticPoliticalFiscal, &DomainLayer::SpacePnt),
+            m.get(
+                &DomainLayer::DomesticPoliticalFiscal,
+                &DomainLayer::SpacePnt
+            ),
             0.2
         );
     }
@@ -170,7 +177,9 @@ mod tests {
             LayerState::new(0.1, 0.5, 0.1, 0.2),
         );
         for d in DomainLayer::ALL {
-            layers.entry(d).or_insert_with(|| LayerState::new(0.0, 0.5, 0.1, 0.1));
+            layers
+                .entry(d)
+                .or_insert_with(|| LayerState::new(0.0, 0.5, 0.1, 0.1));
         }
 
         let initial_maritime = layers[&DomainLayer::MaritimeLogistics].stress;
@@ -193,10 +202,8 @@ mod tests {
             layers.insert(d, LayerState::new(0.2, 0.5, 0.1, 0.1));
         }
 
-        let initial: HashMap<DomainLayer, f64> = layers
-            .iter()
-            .map(|(d, l)| (*d, l.stress))
-            .collect();
+        let initial: HashMap<DomainLayer, f64> =
+            layers.iter().map(|(d, l)| (*d, l.stress)).collect();
         m.propagate_stress(&mut layers);
 
         for d in DomainLayer::ALL {
@@ -212,9 +219,6 @@ mod tests {
         let m = default_coupling_matrix();
         let json = serde_json::to_string(&m).unwrap();
         let deser: CouplingMatrix = serde_json::from_str(&json).unwrap();
-        assert_eq!(
-            deser.get(&DomainLayer::Kinetic, &DomainLayer::Energy),
-            0.5
-        );
+        assert_eq!(deser.get(&DomainLayer::Kinetic, &DomainLayer::Energy), 0.5);
     }
 }

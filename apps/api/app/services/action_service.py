@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import uuid
+from typing import Any
 
 import structlog
 from fastapi import HTTPException
@@ -88,7 +89,7 @@ class ActionService:
 
         # Build action_payload from individual fields if payload is empty
         if not data.action_payload:
-            payload = {}
+            payload: dict[str, Any] = {}
             if data.target_domain is not None:
                 payload["target_domain"] = data.target_domain
             if data.target_actor is not None:

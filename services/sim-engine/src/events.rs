@@ -281,15 +281,27 @@ mod tests {
     #[test]
     fn test_default_events_count() {
         let events = default_stochastic_events();
-        assert!(events.len() >= 15, "Should have at least 15 events, got {}", events.len());
-        assert!(events.len() <= 25, "Should have at most 25 events, got {}", events.len());
+        assert!(
+            events.len() >= 15,
+            "Should have at least 15 events, got {}",
+            events.len()
+        );
+        assert!(
+            events.len() <= 25,
+            "Should have at most 25 events, got {}",
+            events.len()
+        );
     }
 
     #[test]
     fn test_events_have_valid_probabilities() {
         for ev in default_stochastic_events() {
-            assert!(ev.probability > 0.0 && ev.probability <= 1.0,
-                "Event '{}' has invalid probability: {}", ev.name, ev.probability);
+            assert!(
+                ev.probability > 0.0 && ev.probability <= 1.0,
+                "Event '{}' has invalid probability: {}",
+                ev.name,
+                ev.probability
+            );
         }
     }
 
