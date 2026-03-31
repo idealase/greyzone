@@ -1,8 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ALL_DOMAINS,
   DOMAIN_COLORS,
-  DOMAIN_LABELS,
   DomainLayer,
 } from "../../types/domain";
 import { WorldState } from "../../types/run";
@@ -45,24 +44,33 @@ export default function BattlespaceCanvas({
   worldState,
   previousWorldState,
 }: BattlespaceCanvasProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [containerWidth, setContainerWidth] = useState(0);
+
+  // Track container width via ResizeObserver so we re-render on layout
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width ?? 0;
+      if (w > 0) setContainerWidth(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || containerWidth === 0) return;
 
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    const parent = canvas.parentElement;
-    if (!parent) return;
-
     // DPR-aware sizing
     const dpr = window.devicePixelRatio || 1;
-    const displayWidth = parent.clientWidth;
+    const displayWidth = containerWidth;
     const displayHeight = Math.floor(displayWidth / 2); // 2:1 aspect ratio
-    canvas.style.width = `${displayWidth}px`;
-    canvas.style.height = `${displayHeight}px`;
     canvas.width = displayWidth * dpr;
     canvas.height = displayHeight * dpr;
     ctx.scale(dpr, dpr);
@@ -228,16 +236,21 @@ export default function BattlespaceCanvas({
       ctx.fillStyle = "rgba(204,204,204,0.7)";
       ctx.fillText(SHORT_LABELS[domain], x, y);
     });
-  }, [worldState, previousWorldState]);
+  }, [worldState, previousWorldState, containerWidth]);
 
   return (
-    <canvas
-      ref={canvasRef}
-      style={{
-        display: "block",
-        imageRendering: "pixelated",
-        width: "100%",
-      }}
-    />
+    <div ref={containerRef} style={{ width: "100%" }}>
+      {containerWidth > 0 && (
+        <canvas
+          ref={canvasRef}
+          style={{
+            display: "block",
+            imageRendering: "pixelated",
+            width: containerWidth,
+            height: Math.floor(containerWidth / 2),
+          }}
+        />
+      )}
+    </div>
   );
 }
