@@ -39,6 +39,7 @@ class MockWebSocket {
   }
 }
 
+// @ts-expect-error – Node global in vitest
 const realWebSocket = global.WebSocket;
 
 describe("GameWebSocket reconnect logic", () => {

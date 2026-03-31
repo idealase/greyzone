@@ -6,7 +6,7 @@ import { RunParticipant } from "../../types/run";
 const participant: RunParticipant = {
   user_id: "user-1",
   username: "Commander",
-  role: "commander",
+  role: "blue_commander",
   is_human: true,
   is_online: true,
   joined_at: new Date().toISOString(),
