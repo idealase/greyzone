@@ -5,7 +5,7 @@ export const config = {
   apiBaseUrl: process.env.API_BASE_URL || "http://localhost:8000/api/v1",
   copilotApiKey: process.env.COPILOT_API_KEY || "",
   copilotModel: process.env.COPILOT_MODEL || "gpt-4",
-  useMockAi: process.env.USE_MOCK_AI !== "false",
+  useMockAi: process.env.USE_MOCK_AI === "true",
   logLevel: process.env.LOG_LEVEL || "info",
   guardrails: {
     maxToolCalls: 10,

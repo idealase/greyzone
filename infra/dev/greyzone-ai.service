@@ -8,7 +8,6 @@ User=brodie
 WorkingDirectory=/home/brodie/Desktop/Repos/greyzone/apps/ai-agent
 Environment=AI_AGENT_PORT=3100
 Environment=API_BASE_URL=http://localhost:8010/api/v1
-Environment=USE_MOCK_AI=true
 ExecStart=/usr/bin/node --import tsx/esm src/index.ts
 Restart=on-failure
 RestartSec=5
