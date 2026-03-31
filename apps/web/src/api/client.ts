@@ -16,6 +16,17 @@ const apiClient = axios.create({
 let isRefreshing = false;
 let refreshPromise: Promise<string | null> | null = null;
 
+function isAuthEndpoint(url?: string): boolean {
+  if (!url) return false;
+  const parsed = new URL(url, window.location.origin);
+  const path = parsed.pathname;
+  return (
+    path === "/api/auth/login" ||
+    path === "/api/auth/register" ||
+    path === "/api/auth/refresh"
+  );
+}
+
 async function getRefreshedAccessToken(): Promise<string | null> {
   if (isRefreshing && refreshPromise) {
     return refreshPromise;
@@ -61,9 +72,7 @@ apiClient.interceptors.response.use(
     if (
       error.response?.status === 401 &&
       !originalRequest?._retry &&
-      !originalRequest?.url?.includes("/api/auth/login") &&
-      !originalRequest?.url?.includes("/api/auth/register") &&
-      !originalRequest?.url?.includes("/api/auth/refresh")
+      !isAuthEndpoint(originalRequest?.url)
     ) {
       originalRequest._retry = true;
       const token = await getRefreshedAccessToken();

@@ -16,6 +16,7 @@ from app.services.user_service import UserService
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 _user_service = UserService()
+_DUMMY_PASSWORD_HASH = "$2b$12$OEmvP5MyoQx14xgf20vWweVwSqXn42zsA4af8GkVkV2AlW4Bx5zue"
 
 
 def _create_token(subject: str, token_type: str, expires_minutes: int) -> str:
@@ -69,9 +70,9 @@ async def login(
     data: LoginRequest, db: AsyncSession = Depends(get_session)
 ) -> AuthResponse:
     user = await _user_service.get_user_by_username(db, data.username)
-    if user is None or not user.is_active:
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-    if not _user_service.verify_password(data.password, user.password_hash):
+    password_hash = user.password_hash if user is not None else _DUMMY_PASSWORD_HASH
+    valid_password = _user_service.verify_password(data.password, password_hash)
+    if user is None or not valid_password or not user.is_active:
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     access_token = _create_token(

@@ -149,7 +149,7 @@ INSERT INTO scenarios (id, name, description, config) VALUES (
     }'
 ) ON CONFLICT (name) DO NOTHING;
 
--- Create a default AI user
+-- Create a default AI user (password hash corresponds to a non-shared seed-only credential)
 INSERT INTO users (id, username, display_name, email, password_hash, is_active, is_ai) VALUES (
     '00000000-0000-0000-0002-000000000001',
     'ai_opponent',
