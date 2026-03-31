@@ -6,6 +6,7 @@ import { useRunStore } from "../../stores/runStore";
 import { useLocaleAction } from "../../hooks/useScenarioLocale";
 import ActionEffectPreview from "./ActionEffectPreview";
 import ActionEscalationBadge from "./ActionEscalationBadge";
+import InfoTooltip from "../common/InfoTooltip";
 
 interface ActionCardProps {
   action: LegalAction;
@@ -137,8 +138,19 @@ export default function ActionCard({
 
       <div className="action-card__slider">
         <div className="action-card__intensity-header">
-          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>
+          <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", display: "inline-flex", alignItems: "center", gap: "0.35rem" }}>
             Intensity
+            <InfoTooltip
+              label="How intensity tiers work"
+              content={
+                <div>
+                  <div><strong>Probe</strong> – light pressure to sense responses.</div>
+                  <div><strong>Assert</strong> – firmer push with contained risk.</div>
+                  <div><strong>Coerce</strong> – compels behavior; raises spillover risk.</div>
+                  <div><strong>Maximum Pressure</strong> – near-total effort; can trigger escalation.</div>
+                </div>
+              }
+            />
           </span>
           <span className={`action-card__intensity-tier action-card__intensity-tier--${tier.cls}`}>
             {tier.label}
@@ -195,6 +207,12 @@ export default function ActionCard({
           {spilloverDomain && (
             <div className="action-card__spillover">
               ⚠ Spillover: affects {domainLabel(spilloverDomain)} domain
+              {" "}
+              <InfoTooltip
+                label="Why spillover happens"
+                content="This action is coupled to another domain. High intensity increases cross-domain stress, which can accelerate phase shifts if resilience is low."
+                className="action-card__help"
+              />
             </div>
           )}
         </div>

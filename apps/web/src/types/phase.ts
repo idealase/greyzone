@@ -33,3 +33,12 @@ export const PHASE_ORDER: Phase[] = [
   Phase.OvertInterstateWar,
   Phase.GeneralizedBlocWar,
 ];
+
+/** Thresholds: the Ψ value at which the phase transitions to the next. */
+export const PHASE_THRESHOLDS: Partial<Record<Phase, number>> = {
+  [Phase.CompetitiveNormality]: 0.15,
+  [Phase.HybridCoercion]: 0.30,
+  [Phase.AcutePolycrisis]: 0.50,
+  [Phase.WarTransition]: 0.70,
+  [Phase.OvertInterstateWar]: 0.85,
+};

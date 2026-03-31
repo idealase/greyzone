@@ -9,6 +9,7 @@ import LobbyPage from "./pages/LobbyPage";
 import SimulationPage from "./pages/SimulationPage";
 import ReplayPage from "./pages/ReplayPage";
 import { useAuthStore } from "./stores/authStore";
+import HelpPage from "./pages/HelpPage";
 
 const TutorialPage = lazy(() => import("./pages/TutorialPage"));
 
@@ -41,6 +42,7 @@ export default function App() {
         <Route path="/runs/:runId/lobby" element={<LobbyPage />} />
         <Route path="/runs/:runId" element={<SimulationPage />} />
         <Route path="/runs/:runId/replay" element={<ReplayPage />} />
+        <Route path="/help" element={<HelpPage />} />
         <Route
           path="/tutorial"
           element={

@@ -1,4 +1,10 @@
-import { Phase, PHASE_COLORS, PHASE_LABELS, PHASE_ORDER } from "../../types/phase";
+import {
+  Phase,
+  PHASE_COLORS,
+  PHASE_LABELS,
+  PHASE_ORDER,
+  PHASE_THRESHOLDS,
+} from "../../types/phase";
 import { WorldState } from "../../types/run";
 import { ALL_DOMAINS } from "../../types/domain";
 import { useScenarioLocale } from "../../hooks/useScenarioLocale";
@@ -21,15 +27,6 @@ interface AfterActionReportProps {
   phaseChanged: boolean;
   onDismiss: () => void;
 }
-
-/** Thresholds: the Ψ value at which the phase transitions to the next. */
-const PHASE_THRESHOLDS: Partial<Record<Phase, number>> = {
-  [Phase.CompetitiveNormality]: 0.15,
-  [Phase.HybridCoercion]: 0.30,
-  [Phase.AcutePolycrisis]: 0.50,
-  [Phase.WarTransition]: 0.70,
-  [Phase.OvertInterstateWar]: 0.85,
-};
 
 function getNextPhase(phase: Phase): Phase | null {
   const idx = PHASE_ORDER.indexOf(phase);
@@ -73,6 +70,7 @@ export default function AfterActionReport({
     threshold !== undefined &&
     nextPhase !== null &&
     orderParameter >= threshold - 0.05;
+  const docsBase = "https://github.com/idealase/greyzone/blob/main/docs";
 
   return (
     <div className="aar-overlay">
@@ -122,6 +120,17 @@ export default function AfterActionReport({
             )}
           </div>
         )}
+        <div className="aar-help">
+          <a href="/tutorial">↩ Return to tutorial</a>
+          <a
+            href={`${docsBase}/simulation-spec.md#escalation`}
+            target="_blank"
+            rel="noreferrer"
+          >
+            What does this mean?
+          </a>
+          <a href="/help">Help & docs</a>
+        </div>
 
         {/* Footer */}
         <div className="aar-footer">

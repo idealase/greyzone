@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
 import { useRunStore } from "../../stores/runStore";
 import { useActions } from "../../hooks/useActions";
 import { ALL_DOMAINS } from "../../types/domain";
@@ -13,6 +14,7 @@ import ActionPanel from "./ActionPanel";
 import AiMovePanel from "../../components/ai/AiMovePanel";
 import DomainStressChart from "./DomainStressChart";
 import AfterActionReport, { DomainDelta, computeDomainDeltas } from "./AfterActionReport";
+import Dialog from "../common/Dialog";
 
 interface AarData {
   completedTurn: number;
@@ -69,6 +71,7 @@ export default function SimulationDashboard({
   const [showAAR, setShowAAR] = useState(false);
   const [aarData, setAarData] = useState<AarData | null>(null);
   const [advanceErrorMessage, setAdvanceErrorMessage] = useState<string | null>(null);
+  const [showShortcuts, setShowShortcuts] = useState(false);
   const prevWorldStateRef = useRef<WorldState | null>(null);
   const isMountedRef = useRef(true);
   const [activeMobileTab, setActiveMobileTab] =
@@ -144,19 +147,58 @@ export default function SimulationDashboard({
     .filter(Boolean)
     .join(" ");
 
+  useEffect(() => {
+    const handleKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      const isFormElement =
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.tagName === "SELECT" ||
+          target.isContentEditable);
+
+      if (!isFormElement && (e.key === "?" || (e.key === "/" && e.shiftKey))) {
+        e.preventDefault();
+        setShowShortcuts(true);
+      }
+      if (e.key === "Escape") {
+        setShowShortcuts(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, []);
+
   return (
     <div className={layoutClasses}>
       <div className="sim-layout__top">
-        <PhaseIndicator
-          phase={currentPhase}
-          orderParameter={orderParameter}
-        />
-        <TurnControls
-          turn={currentTurn}
-          isAdvancing={isAdvancing || isAdvancingTurn}
-          onAdvanceTurn={handleAdvanceTurn}
-          isObserver={myRole === "observer"}
-        />
+        <div className="sim-top__left">
+          <PhaseIndicator
+            phase={currentPhase}
+            orderParameter={orderParameter}
+          />
+          <div className="sim-top__links">
+            <Link to="/tutorial">↩ Return to tutorial</Link>
+            <Link to="/help">Help & docs</Link>
+            <button
+              className="btn btn--sm"
+              type="button"
+              onClick={() => setShowShortcuts(true)}
+              aria-keyshortcuts="?"
+            >
+              ? Shortcuts
+            </button>
+          </div>
+        </div>
+        <div className="sim-top__right">
+          <TurnControls
+            turn={currentTurn}
+            isAdvancing={isAdvancing || isAdvancingTurn}
+            onAdvanceTurn={handleAdvanceTurn}
+            isObserver={myRole === "observer"}
+          />
+        </div>
         {advanceErrorMessage && (
           <div className="error-container">
             <div className="error-container__title">Advance failed</div>
@@ -164,8 +206,6 @@ export default function SimulationDashboard({
               {advanceErrorMessage}
             </div>
           </div>
-        )}
-      </div>
 
       {isMobile ? (
         <>
@@ -285,6 +325,43 @@ export default function SimulationDashboard({
           onDismiss={() => setShowAAR(false)}
         />
       )}
+
+      <Dialog
+        open={showShortcuts}
+        onClose={() => setShowShortcuts(false)}
+        title="Keyboard Shortcuts"
+        actions={
+          <button className="btn btn--primary btn--sm" onClick={() => setShowShortcuts(false)}>
+            Close
+          </button>
+        }
+      >
+        <p style={{ color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
+          Quick references for navigating the simulation.
+        </p>
+        <ul className="shortcut-list">
+          <li className="shortcut-list__item">
+            <span>Open this panel</span>
+            <span className="shortcut-key">?</span>
+          </li>
+          <li className="shortcut-list__item">
+            <span>Close modals/panels</span>
+            <span className="shortcut-key">Esc</span>
+          </li>
+          <li className="shortcut-list__item">
+            <span>Move focus between controls</span>
+            <span className="shortcut-key">Tab</span>
+          </li>
+          <li className="shortcut-list__item">
+            <span>Advance turn (when button focused)</span>
+            <span className="shortcut-key">Enter</span>
+          </li>
+          <li className="shortcut-list__item">
+            <span>Navigate tutorial steps</span>
+            <span className="shortcut-key">↑ ↓</span>
+          </li>
+        </ul>
+      </Dialog>
     </div>
   );
 }
