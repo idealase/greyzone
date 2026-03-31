@@ -102,8 +102,9 @@ async def advance_turn_legacy(
     run_id: uuid.UUID,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
+    current_user: User = Depends(get_current_user),
 ) -> dict:
-    return await mgr.advance_turn(db, run_id)
+    return await mgr.advance_turn(db, run_id, user_id=current_user.id)
 
 
 @router.get("/actions", response_model=list[ActionResult])
