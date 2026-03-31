@@ -253,7 +253,7 @@ class RunManager:
                     )
                 )
                 prev_snapshot = prev_snapshot_result.scalar_one_or_none()
-                prev_state = prev_snapshot.state if prev_snapshot is not None else {}
+                prev_state = prev_snapshot.state if prev_snapshot is not None else state
                 domain_states = state.get("layers", {})
                 prev_domain_states = prev_state.get("layers", {})
                 order_parameter = float(state.get("order_parameter", 0.0))
@@ -297,7 +297,7 @@ class RunManager:
                     )
                 )
         except Exception as e:
-            logger.warning(
+            logger.exception(
                 "turn_narrative_generation_failed",
                 run_id=str(run_id),
                 turn=new_turn,
