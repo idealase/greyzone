@@ -468,6 +468,7 @@ input, select, textarea, button {
 
 .event-item {
   display: flex;
+  align-items: center;
   gap: 0.5rem;
   padding: 0.4rem 0.65rem;
   border-radius: 4px;
@@ -854,6 +855,10 @@ input[type="range"] {
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+.sim-layout__top > .error-container {
+  flex-basis: 100%;
 }
 
 .sim-top__links {

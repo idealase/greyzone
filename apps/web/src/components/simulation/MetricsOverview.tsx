@@ -10,6 +10,22 @@ interface MetricsOverviewProps {
   turn: number;
   eventCount: number;
   worldState: WorldState | null;
+  side?: "blue" | "red";
+}
+
+function findPlayerResources(
+  worldState: WorldState | null,
+  side?: "blue" | "red"
+): number | null {
+  if (!worldState?.actors || !worldState?.roles || !side) return null;
+
+  const roleId = side === "blue" ? "blue_commander" : "red_commander";
+  const role = worldState.roles.find((r) => r.id === roleId);
+  if (!role || role.controlled_actor_ids.length === 0) return null;
+
+  const controlledId = role.controlled_actor_ids[0];
+  const actor = worldState.actors.find((a) => a.id === controlledId);
+  return actor?.resources ?? null;
 }
 
 export default function MetricsOverview({
@@ -18,6 +34,7 @@ export default function MetricsOverview({
   turn,
   eventCount,
   worldState,
+  side,
 }: MetricsOverviewProps) {
   let dominantDomain: DomainLayer | null = null;
   let maxStress = 0;
@@ -39,6 +56,8 @@ export default function MetricsOverview({
     }
     avgResilience = count > 0 ? resilienceSum / count : 0;
   }
+
+  const resources = findPlayerResources(worldState, side);
 
   return (
     <div className="metrics-grid">
@@ -74,6 +93,18 @@ export default function MetricsOverview({
         <div className="metric-card__label">Events</div>
         <div className="metric-card__value">{eventCount}</div>
       </div>
+      {resources !== null && (
+        <div className="metric-card">
+          <div className="metric-card__label">
+            Resources
+            <InfoTooltip
+              label="What are resources?"
+              content="Resource points (RP) are spent when executing actions. Each action has a cost. Resources recover slowly each turn (+2 RP). Running out limits your options."
+            />
+          </div>
+          <div className="metric-card__value">{Math.round(resources)} RP</div>
+        </div>
+      )}
       <div className="metric-card">
         <div className="metric-card__label">Dominant Domain</div>
         <div className="metric-card__value" style={{ fontSize: "0.78rem" }}>

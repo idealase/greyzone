@@ -236,6 +236,7 @@ export default function SimulationDashboard({
                   turn={currentTurn}
                   eventCount={events.length}
                   worldState={worldState}
+                  side={side}
                 />
                 <DomainStressChart stressHistory={stressHistory} />
               </>
@@ -299,6 +300,7 @@ export default function SimulationDashboard({
               turn={currentTurn}
               eventCount={events.length}
               worldState={worldState}
+              side={side}
             />
             <DomainStressChart stressHistory={stressHistory} />
             <EventFeed events={events} />

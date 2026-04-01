@@ -5,7 +5,6 @@ import {
   PHASE_ORDER,
   PHASE_THRESHOLDS,
 } from "../../types/phase";
-import { PHASE_TRANSITION_THRESHOLD } from "../../utils/constants";
 import { formatOrderParameter } from "../../utils/formatters";
 import InfoTooltip from "../common/InfoTooltip";
 
@@ -20,7 +19,9 @@ export default function PhaseIndicator({
 }: PhaseIndicatorProps) {
   const color = PHASE_COLORS[phase];
   const phaseIndex = PHASE_ORDER.indexOf(phase);
-  const isNearTransition = orderParameter >= PHASE_TRANSITION_THRESHOLD;
+  const currentThreshold = PHASE_THRESHOLDS[phase];
+  const isNearTransition =
+    currentThreshold !== undefined && orderParameter >= currentThreshold - 0.05;
   const phaseLadder = PHASE_ORDER.map((p) => {
     const threshold = PHASE_THRESHOLDS[p];
     const next = PHASE_ORDER[PHASE_ORDER.indexOf(p) + 1];

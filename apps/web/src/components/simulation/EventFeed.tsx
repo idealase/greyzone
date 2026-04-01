@@ -62,7 +62,7 @@ export default function EventFeed({ events }: EventFeedProps) {
             return (
               <div
                 key={event.id}
-                className={`event-item ${getEventClass(event.type)}${isNew ? " event-item--new" : ""}${event.type === "action" && event.description.startsWith("You executed") ? " event-item--user-action" : ""}`}
+                className={`event-item ${getEventClass(event.type)}${isNew ? " event-item--new" : ""}${event.type === "action" && event.description.startsWith("Executed") ? " event-item--user-action" : ""}`}
               >
                 <span className="event-item__turn">T{event.turn}</span>
                 <span className={`event-item__type-badge ${badge.className}`}>

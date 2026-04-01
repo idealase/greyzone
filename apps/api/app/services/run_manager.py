@@ -154,6 +154,19 @@ class RunManager:
             raise HTTPException(status_code=503, detail=str(e))
 
         run.status = RunStatus.RUNNING
+
+        # Fetch and persist initial world state from engine
+        try:
+            state = await self.engine.get_state(run_id)
+            if state and isinstance(state, dict):
+                run.world_state = state
+        except EngineError as e:
+            logger.warning(
+                "start_run_world_state_fetch_failed",
+                run_id=str(run_id),
+                error=str(e),
+            )
+
         await db.flush()
         logger.info("run_started", run_id=str(run_id))
         return await self.get_run(db, run_id)
@@ -349,6 +362,7 @@ class RunManager:
             # Update run in database
             run.current_turn = new_turn
             run.current_phase = current_phase
+            run.world_state = state
 
             # Persist events from this turn
             for evt in events:
@@ -553,7 +567,7 @@ class RunManager:
             ),
         )
 
-        # Start the run
+        # Start the run (also fetches and persists initial world state)
         run = await self.start_run(db, run.id, user_id=user_id)
 
         logger.info(

@@ -1,3 +1,4 @@
+import { useEffect, useCallback } from "react";
 import {
   Phase,
   PHASE_COLORS,
@@ -41,6 +42,9 @@ export function computeDomainDeltas(
   return ALL_DOMAINS.map((domain) => {
     const p = prev.layers[domain];
     const c = current.layers[domain];
+    if (!p || !c) {
+      return { domain, stressDelta: 0, resilienceDelta: 0, activityDelta: 0 };
+    }
     return {
       domain,
       stressDelta: c.stress - p.stress,
@@ -60,6 +64,18 @@ export default function AfterActionReport({
   onDismiss,
 }: AfterActionReportProps) {
   const locale = useScenarioLocale();
+
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape") onDismiss();
+    },
+    [onDismiss]
+  );
+
+  useEffect(() => {
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [handleEscape]);
   const phaseColor = PHASE_COLORS[currentPhase];
   const phaseLabel = PHASE_LABELS[currentPhase];
 
@@ -73,8 +89,8 @@ export default function AfterActionReport({
   const docsBase = "https://github.com/idealase/greyzone/blob/main/docs";
 
   return (
-    <div className="aar-overlay">
-      <div className="aar-modal" role="dialog" aria-modal="true">
+    <div className="aar-overlay" onClick={(e) => { if (e.target === e.currentTarget) onDismiss(); }}>
+      <div className="aar-modal" role="dialog" aria-modal="true" aria-label={`Turn ${completedTurn} After Action Report`}>
         {/* Header */}
         <div className="aar-header">
           <span className="aar-header__title">

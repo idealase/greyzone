@@ -89,7 +89,7 @@ class RunRead(BaseModel):
             for field in (
                 "id", "scenario_id", "name", "seed",
                 "owner_id", "current_turn", "current_phase", "config",
-                "created_at", "updated_at", "participants",
+                "created_at", "updated_at", "participants", "world_state",
             ):
                 d[field] = getattr(obj, field, None)
             # Map DB "running" to frontend "in_progress"

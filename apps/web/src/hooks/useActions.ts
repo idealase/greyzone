@@ -3,8 +3,8 @@ import { useEffect, useRef } from "react";
 import { submitAction } from "../api/actions";
 import { advanceTurn } from "../api/runs";
 import { useRunStore } from "../stores/runStore";
-import { ActionSubmit } from "../types/action";
-import { DomainLayer, LayerState } from "../types/domain";
+import { ActionSubmit, ACTION_TYPE_LABELS } from "../types/action";
+import { DomainLayer, DOMAIN_LABELS, LayerState } from "../types/domain";
 import { TurnEvent } from "../types/run";
 
 function generateId(): string {
@@ -28,7 +28,7 @@ export function useActions(runId: string | undefined) {
       const syntheticEvent: TurnEvent = {
         id: generateId(),
         type: "action",
-        description: `You executed ${variables.action_type} on ${variables.target_domain} (intensity: ${variables.intensity.toFixed(1)})`,
+        description: `Executed ${ACTION_TYPE_LABELS[variables.action_type] ?? variables.action_type} on ${DOMAIN_LABELS[variables.target_domain as DomainLayer] ?? variables.target_domain} (intensity: ${variables.intensity.toFixed(1)})`,
         domain: (variables.target_domain as DomainLayer) || null,
         actor: null,
         turn: store().currentTurn,

@@ -52,6 +52,7 @@ class Run(Base):
     current_turn: Mapped[int] = mapped_column(default=0)
     current_phase: Mapped[str] = mapped_column(String(50), default="CompetitiveNormality")
     config: Mapped[dict] = mapped_column(JSONB, default=dict)
+    world_state: Mapped[dict | None] = mapped_column(JSONB, nullable=True, default=None)
     created_at: Mapped[datetime] = mapped_column(default=func.now())
     updated_at: Mapped[datetime] = mapped_column(default=func.now(), onupdate=func.now())
 

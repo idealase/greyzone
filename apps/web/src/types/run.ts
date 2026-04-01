@@ -52,12 +52,31 @@ export interface RunParticipant {
   joined_at: string;
 }
 
+export interface WorldStateActor {
+  id: string;
+  name: string;
+  kind: string;
+  capabilities: Record<string, number>;
+  resources: number;
+  morale: number;
+  visibility: string | { RoleScoped: string[] };
+}
+
+export interface WorldStateRole {
+  id: string;
+  name: string;
+  controlled_actor_ids: string[];
+  allied_actor_ids: string[];
+}
+
 export interface WorldState {
   layers: Record<DomainLayer, LayerState>;
   phase: Phase;
   order_parameter: number;
   turn: number;
   coupling_matrix: Record<string, Record<string, number>>;
+  actors?: WorldStateActor[];
+  roles?: WorldStateRole[];
 }
 
 export interface JoinRunRequest {

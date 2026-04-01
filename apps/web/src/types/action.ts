@@ -1,5 +1,22 @@
 import { DomainLayer } from "./domain";
 
+export const ACTION_TYPE_LABELS: Record<string, string> = {
+  Escalate: "Escalate",
+  DeEscalate: "De-escalate",
+  Reinforce: "Reinforce",
+  Disrupt: "Disrupt",
+  Mobilize: "Mobilize",
+  Negotiate: "Negotiate",
+  CyberAttack: "Cyber Attack",
+  InformationOp: "Information Operation",
+  SanctionImpose: "Sanction Imposition",
+  SanctionRelief: "Sanction Relief",
+  MilitaryDeploy: "Military Deployment",
+  NavalBlockade: "Naval Blockade",
+  SpaceAssetDeploy: "Space Asset Deployment",
+  DomesticPolicyShift: "Domestic Policy Shift",
+};
+
 export interface ActionSubmit {
   run_id: string;
   user_id: string;

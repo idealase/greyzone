@@ -1,4 +1,4 @@
-import { ReactNode, useEffect, useRef } from "react";
+import { ReactNode, useEffect, useId, useRef } from "react";
 
 interface DialogProps {
   open: boolean;
@@ -16,6 +16,7 @@ export default function Dialog({
   actions,
 }: DialogProps) {
   const overlayRef = useRef<HTMLDivElement>(null);
+  const titleId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -37,8 +38,8 @@ export default function Dialog({
         if (e.target === overlayRef.current) onClose();
       }}
     >
-      <div className="dialog" role="dialog" aria-modal="true">
-        <div className="dialog__title">{title}</div>
+      <div className="dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
+        <div className="dialog__title" id={titleId}>{title}</div>
         <div>{children}</div>
         {actions && <div className="dialog__actions">{actions}</div>}
       </div>
