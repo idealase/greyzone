@@ -13,24 +13,28 @@ function generateId(): string {
 
 export function useActions(runId: string | undefined) {
   const queryClient = useQueryClient();
-  const { setWorldState, addEvents, addStressSnapshot, setIsAdvancingTurn, currentTurn } =
-    useRunStore();
   const advanceAbortController = useRef<AbortController | null>(null);
+
+  // Use getState() inside callbacks to avoid subscribing to every store change
+  const storeRef = useRef(useRunStore.getState());
+  useEffect(() => {
+    storeRef.current = useRunStore.getState();
+  });
+  const store = () => storeRef.current;
 
   const submitActionMutation = useMutation({
     mutationFn: (data: ActionSubmit) => submitAction(data),
     onSuccess: (_result, variables) => {
-      // Add a synthetic event for instant feedback
       const syntheticEvent: TurnEvent = {
         id: generateId(),
         type: "action",
         description: `You executed ${variables.action_type} on ${variables.target_domain} (intensity: ${variables.intensity.toFixed(1)})`,
         domain: (variables.target_domain as DomainLayer) || null,
         actor: null,
-        turn: currentTurn,
+        turn: store().currentTurn,
         visibility: "all",
       };
-      addEvents([syntheticEvent]);
+      store().addEvents([syntheticEvent]);
 
       if (runId) {
         queryClient.invalidateQueries({ queryKey: ["actions", runId] });
@@ -43,14 +47,14 @@ export function useActions(runId: string | undefined) {
       if (!runId) throw new Error("No run ID");
       advanceAbortController.current?.abort();
       advanceAbortController.current = new AbortController();
-      setIsAdvancingTurn(true);
+      store().setIsAdvancingTurn(true);
       return advanceTurn(runId, advanceAbortController.current.signal);
     },
     onSuccess: (result) => {
-      setWorldState(result.world_state);
-      addEvents(result.events);
+      store().setWorldState(result.world_state);
+      store().addEvents(result.events);
       if (result.world_state?.layers) {
-        addStressSnapshot(
+        store().addStressSnapshot(
           result.turn,
           result.world_state.layers as Record<DomainLayer, LayerState>
         );
@@ -61,26 +65,26 @@ export function useActions(runId: string | undefined) {
       }
     },
     onError: (error) => {
-      setIsAdvancingTurn(false);
+      store().setIsAdvancingTurn(false);
       if ((error as Error)?.name === "CanceledError") {
         return;
       }
       const description =
         error instanceof Error ? error.message : "Failed to advance turn";
-      addEvents([
+      store().addEvents([
         {
           id: generateId(),
           type: "stochastic",
           description: `Advance turn failed: ${description}`,
           domain: null,
           actor: null,
-          turn: currentTurn,
+          turn: store().currentTurn,
           visibility: "all",
         },
       ]);
     },
     onSettled: () => {
-      setIsAdvancingTurn(false);
+      store().setIsAdvancingTurn(false);
       advanceAbortController.current = null;
     },
   });

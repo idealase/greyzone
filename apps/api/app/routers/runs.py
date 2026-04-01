@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies.auth import get_current_user
+from app.middleware.auth import decode_access_token, get_current_user
 from app.db.session import get_session
 from app.models.user import User
 from app.schemas.metrics import MetricsResponse
@@ -24,6 +24,7 @@ from app.services.run_manager import RunManager
 from app.services.streaming import ConnectionManager
 
 router = APIRouter(prefix="/api/v1/runs", tags=["runs"])
+ws_router = APIRouter(prefix="/api/v1/runs", tags=["runs-ws"])
 
 # These will be overridden by the app lifespan via dependency injection
 _engine_bridge: EngineBridge | None = None
@@ -171,26 +172,40 @@ async def get_run_metrics(
     return await mgr.get_metrics(db, run_id, user_id=current_user.id)
 
 
-@router.websocket("/{run_id}/ws")
+@ws_router.websocket("/{run_id}/ws")
 async def websocket_endpoint(
     websocket: WebSocket,
     run_id: uuid.UUID,
+    token: str | None = Query(None),
     db: AsyncSession = Depends(get_session),
-    current_user: User = Depends(get_current_user),
 ) -> None:
+    # WebSocket cannot use HTTPBearer, so authenticate via query param token
+    if not token:
+        await websocket.close(code=1008)
+        return
     try:
-        await ensure_run_member(db, run_id, current_user.id)
+        payload = decode_access_token(token)
+        user_id_val = uuid.UUID(payload["sub"])
+    except (HTTPException, ValueError):
+        await websocket.close(code=1008)
+        return
+
+    user = await db.get(User, user_id_val)
+    if user is None or not user.is_active:
+        await websocket.close(code=1008)
+        return
+
+    try:
+        await ensure_run_member(db, run_id, user.id)
     except HTTPException:
         await websocket.close(code=1008)
         return
 
     ws_mgr = get_ws_manager()
-    user_id = str(current_user.id)
-    await ws_mgr.connect(run_id, user_id, websocket)
+    await ws_mgr.connect(run_id, str(user.id), websocket)
     try:
         while True:
             data = await websocket.receive_text()
-            # Echo or handle client messages if needed
             _ = data
     except WebSocketDisconnect:
-        await ws_mgr.disconnect(run_id, user_id)
+        await ws_mgr.disconnect(run_id, str(user.id))

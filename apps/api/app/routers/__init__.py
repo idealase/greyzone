@@ -3,7 +3,7 @@
 from app.routers.health import metrics_router, router as health_router
 from app.routers.auth import router as auth_router
 from app.routers.scenarios import router as scenarios_router
-from app.routers.runs import router as runs_router
+from app.routers.runs import router as runs_router, ws_router as runs_ws_router
 from app.routers.actions import router as actions_router
 from app.routers.users import router as users_router
 from app.routers.replay import router as replay_router
@@ -16,6 +16,7 @@ __all__ = [
     "metrics_router",
     "scenarios_router",
     "runs_router",
+    "runs_ws_router",
     "actions_router",
     "users_router",
     "replay_router",

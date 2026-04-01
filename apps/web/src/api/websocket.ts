@@ -11,6 +11,7 @@ export class GameWebSocket {
   private reconnectTimer: number | null = null;
   private runId: string | null = null;
   private userId: string | null = null;
+  private token: string | null = null;
   private intentionalClose = false;
 
   get isConnected(): boolean {
@@ -21,7 +22,7 @@ export class GameWebSocket {
     return this.ws?.readyState ?? WebSocket.CLOSED;
   }
 
-  connect(runId: string, userId: string): void {
+  connect(runId: string, userId: string, token?: string): void {
     if (this.ws && this.runId === runId && this.userId === userId && this.isConnected) {
       return;
     }
@@ -38,6 +39,7 @@ export class GameWebSocket {
 
     this.runId = runId;
     this.userId = userId;
+    this.token = token ?? null;
     this.intentionalClose = false;
     this.reconnectAttempts = 0;
     this.clearReconnectTimer();
@@ -50,7 +52,9 @@ export class GameWebSocket {
 
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const host = import.meta.env.VITE_WS_URL || `${protocol}//${window.location.host}`;
-    const url = `${host}/api/v1/runs/${this.runId}/ws?user_id=${this.userId}`;
+    const params = new URLSearchParams({ user_id: this.userId });
+    if (this.token) params.set("token", this.token);
+    const url = `${host}/api/v1/runs/${this.runId}/ws?${params}`;
 
     this.ws = new WebSocket(url);
 

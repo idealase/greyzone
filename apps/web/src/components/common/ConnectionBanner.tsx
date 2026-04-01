@@ -1,14 +1,11 @@
 import { useWebSocketStore } from "../../stores/websocketStore";
 
 export default function ConnectionBanner() {
-  const { status, errorMessage, reconnectAttempt, nextRetryMs, hasEverConnected } =
-    useWebSocketStore((s) => ({
-      status: s.status,
-      errorMessage: s.errorMessage,
-      reconnectAttempt: s.reconnectAttempt,
-      nextRetryMs: s.nextRetryMs,
-      hasEverConnected: s.hasEverConnected,
-    }));
+  const status = useWebSocketStore((s) => s.status);
+  const errorMessage = useWebSocketStore((s) => s.errorMessage);
+  const reconnectAttempt = useWebSocketStore((s) => s.reconnectAttempt);
+  const nextRetryMs = useWebSocketStore((s) => s.nextRetryMs);
+  const hasEverConnected = useWebSocketStore((s) => s.hasEverConnected);
 
   const shouldHide =
     status === "connected" ||

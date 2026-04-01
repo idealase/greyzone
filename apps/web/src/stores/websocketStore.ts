@@ -40,11 +40,12 @@ export const useWebSocketStore = create<WebSocketStoreState>()((set) => ({
       nextRetryMs: delayMs,
       status: state.status,
     })),
-  reset: () => ({
-    status: "disconnected",
-    errorMessage: null,
-    hasEverConnected: false,
-    reconnectAttempt: null,
-    nextRetryMs: null,
-  }),
+  reset: () =>
+    set({
+      status: "disconnected",
+      errorMessage: null,
+      hasEverConnected: false,
+      reconnectAttempt: null,
+      nextRetryMs: null,
+    }),
 }));

@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies.auth import get_current_user
+from app.middleware.auth import get_current_user
 from app.db.session import get_session
 from app.models.user import User
 from app.services.access_control import ensure_run_member

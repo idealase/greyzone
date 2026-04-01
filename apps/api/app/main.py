@@ -25,6 +25,7 @@ from app.routers import (
     narrative_router,
     replay_router,
     runs_router,
+    runs_ws_router,
     scenarios_router,
     users_router,
 )
@@ -158,6 +159,7 @@ app.include_router(metrics_router)
 app.include_router(auth_router)
 app.include_router(scenarios_router, dependencies=[Depends(get_current_user)])
 app.include_router(runs_router, dependencies=[Depends(get_current_user)])
+app.include_router(runs_ws_router)
 app.include_router(actions_router, dependencies=[Depends(get_current_user)])
 app.include_router(users_router, dependencies=[Depends(get_current_user)])
 app.include_router(replay_router, dependencies=[Depends(get_current_user)])

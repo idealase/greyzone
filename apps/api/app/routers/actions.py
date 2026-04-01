@@ -5,7 +5,7 @@ import uuid
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.dependencies.auth import get_current_user
+from app.middleware.auth import get_current_user
 from app.db.session import get_session
 from app.models.user import User
 from app.schemas.action import ActionResult, ActionSubmit, LegalActionsResponse
