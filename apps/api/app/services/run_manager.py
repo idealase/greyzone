@@ -410,6 +410,7 @@ class RunManager:
                 )
 
             # Pre-generate and persist narrative for this turn
+            narrative_data: dict | None = None
             try:
                 narrative_result = await db.execute(
                     select(RunNarrative).where(
@@ -418,7 +419,15 @@ class RunManager:
                     )
                 )
                 existing_narrative = narrative_result.scalar_one_or_none()
-                if existing_narrative is None:
+                if existing_narrative is not None:
+                    narrative_data = {
+                        "headline": existing_narrative.headline,
+                        "body": existing_narrative.body,
+                        "domain_highlights": existing_narrative.domain_highlights or [],
+                        "threat_assessment": existing_narrative.threat_assessment,
+                        "intelligence_note": existing_narrative.intelligence_note,
+                    }
+                else:
                     prev_snapshot_result = await db.execute(
                         select(RunSnapshot).where(
                             RunSnapshot.run_id == run_id,
@@ -469,6 +478,22 @@ class RunManager:
                             intelligence_note=narrative.intelligence_note,
                         )
                     )
+                    narrative_data = {
+                        "headline": narrative.headline,
+                        "body": narrative.body,
+                        "domain_highlights": [
+                            {
+                                "domain": h.domain,
+                                "label": h.label,
+                                "direction": h.direction,
+                                "delta": h.delta,
+                                "note": h.note,
+                            }
+                            for h in narrative.domain_highlights
+                        ],
+                        "threat_assessment": narrative.threat_assessment,
+                        "intelligence_note": narrative.intelligence_note,
+                    }
             except Exception as e:
                 logger.exception(
                     "turn_narrative_generation_failed",
@@ -511,6 +536,7 @@ class RunManager:
                 await db.flush()
 
             # Step 6: AI auto-play after human turn
+            ai_action_events: list[dict] = []
             try:
                 ai_result = await db.execute(
                     select(RunParticipant).where(
@@ -530,7 +556,7 @@ class RunManager:
                         for ai_p in ai_participants:
                             ai_start = _time.monotonic()
                             try:
-                                await client.post(
+                                resp = await client.post(
                                     f"{settings.ai_agent_url}/ai/take-turn",
                                     json={
                                         "runId": str(run_id),
@@ -540,6 +566,34 @@ class RunManager:
                                 ai_agent_request_duration_seconds.labels(
                                     endpoint="/ai/take-turn"
                                 ).observe(_time.monotonic() - ai_start)
+
+                                # Create player-visible events from AI actions
+                                if resp.status_code == 200:
+                                    ai_data = resp.json()
+                                    action = ai_data.get("action")
+                                    if action and ai_data.get("success"):
+                                        action_type = action.get("actionType", "Unknown")
+                                        target_domain = action.get("targetDomain", "Unknown")
+                                        intensity = action.get("intensity", 0)
+                                        ai_event_payload = {
+                                            "type": "ai_action",
+                                            "description": (
+                                                f"{ai_p.role_id} executed {action_type} "
+                                                f"on {target_domain} (intensity: {intensity:.1f})"
+                                            ),
+                                            "layer": target_domain,
+                                            "role_id": ai_p.role_id,
+                                            "action_type": action_type,
+                                            "intensity": intensity,
+                                        }
+                                        db.add(RunEvent(
+                                            run_id=run_id,
+                                            turn=new_turn,
+                                            event_type="ai_action",
+                                            payload=ai_event_payload,
+                                        ))
+                                        ai_action_events.append(ai_event_payload)
+
                             except Exception as ai_err:
                                 ai_agent_request_duration_seconds.labels(
                                     endpoint="/ai/take-turn"
@@ -554,6 +608,26 @@ class RunManager:
             except Exception as e:
                 logger.warning("ai_auto_play_query_failed", error=str(e))
 
+            if ai_action_events:
+                await db.flush()
+                # Re-fetch state after AI actions to reflect their effects
+                try:
+                    state = await self.engine.get_state(run_id)
+                    run.world_state = state
+                    await db.flush()
+                except EngineError:
+                    pass  # keep previous state if re-fetch fails
+
+                # Broadcast AI actions and updated state to all clients
+                await self._broadcast(run_id, {
+                    "type": "ai_move",
+                    "data": {
+                        "turn": new_turn,
+                        "events": ai_action_events,
+                        "world_state": state,
+                    },
+                })
+
             # Return TurnResult shape expected by frontend
             return {
                 "turn": new_turn,
@@ -564,6 +638,8 @@ class RunManager:
                 "phase_changed": old_phase != current_phase,
                 "previous_phase": old_phase,
                 "snapshot_taken": snapshot_taken,
+                "narrative": narrative_data,
+                "ai_actions": ai_action_events,
             }
 
     async def quick_start(
