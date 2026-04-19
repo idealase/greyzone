@@ -25,6 +25,7 @@ from app.observability.metrics import (
     record_engine_error,
     turns_advanced_total,
 )
+from app.config import settings
 
 logger = structlog.get_logger()
 
@@ -484,7 +485,7 @@ class RunManager:
                         for ai_p in ai_participants:
                             try:
                                 await client.post(
-                                    "http://localhost:3100/ai/take-turn",
+                                    f"{settings.ai_agent_url}/ai/take-turn",
                                     json={
                                         "runId": str(run_id),
                                         "roleId": ai_p.role_id,
