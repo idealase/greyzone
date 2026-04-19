@@ -15,6 +15,14 @@ function getEventClass(type: TurnEvent["type"]): string {
       return "event-item--phase_transition";
     case "coupling_effect":
       return "event-item--coupling_effect";
+    case "ai_action":
+      return "event-item--ai_action";
+    case "narrative":
+      return "event-item--narrative";
+    case "intel":
+      return "event-item--intel";
+    case "threat":
+      return "event-item--threat";
     default:
       return "event-item--turn";
   }
@@ -30,6 +38,14 @@ function getTypeBadge(type: TurnEvent["type"]): { label: string; className: stri
       return { label: "PHASE", className: "badge badge--red" };
     case "coupling_effect":
       return { label: "EFFECT", className: "badge badge--purple" };
+    case "ai_action":
+      return { label: "OPPONENT", className: "badge badge--orange" };
+    case "narrative":
+      return { label: "SITREP", className: "badge badge--teal" };
+    case "intel":
+      return { label: "INTEL", className: "badge badge--green" };
+    case "threat":
+      return { label: "THREAT", className: "badge badge--red" };
     default:
       return { label: "INFO", className: "badge badge--gray" };
   }
