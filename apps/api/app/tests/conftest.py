@@ -117,6 +117,7 @@ async def client(
 
     run_manager = RunManager(mock_engine_bridge)
     ws_manager = ConnectionManager()
+    run_manager.set_ws_manager(ws_manager)
 
     runs_mod.set_services(mock_engine_bridge, run_manager, ws_manager)
     actions_mod.set_services(mock_engine_bridge, run_manager)
@@ -157,6 +158,7 @@ async def unauth_client(
 
     run_manager = RunManager(mock_engine_bridge)
     ws_manager = ConnectionManager()
+    run_manager.set_ws_manager(ws_manager)
 
     runs_mod.set_services(mock_engine_bridge, run_manager, ws_manager)
     actions_mod.set_services(mock_engine_bridge, run_manager)
