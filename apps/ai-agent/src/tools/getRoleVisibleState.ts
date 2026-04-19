@@ -1,12 +1,13 @@
 import axios from "axios";
 import { config } from "../config.js";
 import type { GameState } from "../types/state.js";
+import { mapRunStateToGameState } from "../mappers/apiResponse.js";
 
 export async function getRoleVisibleState(
   runId: string,
   roleId: string
 ): Promise<GameState> {
-  const response = await axios.get<GameState>(
+  const response = await axios.get(
     `${config.apiBaseUrl}/runs/${runId}/state`,
     {
       params: { role_id: roleId },
@@ -15,5 +16,5 @@ export async function getRoleVisibleState(
     }
   );
 
-  return response.data;
+  return mapRunStateToGameState(response.data);
 }
