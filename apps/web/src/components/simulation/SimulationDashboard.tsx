@@ -15,6 +15,7 @@ import AiMovePanel from "../../components/ai/AiMovePanel";
 import BattlespaceCanvas from "./BattlespaceCanvas";
 import DomainStressChart from "./DomainStressChart";
 import AfterActionReport, { DomainDelta, computeDomainDeltas } from "./AfterActionReport";
+import ScenarioBriefing from "./ScenarioBriefing";
 import Dialog from "../common/Dialog";
 
 interface AarData {
@@ -63,6 +64,7 @@ export default function SimulationDashboard({
   const stressHistory = useRunStore((s) => s.stressHistory);
   const aiMoves = useRunStore((s) => s.aiMoves);
   const isAdvancingTurn = useRunStore((s) => s.isAdvancingTurn);
+  const run = useRunStore((s) => s.run);
 
   const { submitAction, isSubmitting, advanceTurn, isAdvancing, advanceError } =
     useActions(runId);
@@ -190,6 +192,14 @@ export default function SimulationDashboard({
             >
               ? Shortcuts
             </button>
+            {run?.scenario_id && (
+              <ScenarioBriefing
+                scenarioId={run.scenario_id}
+                scenarioName={run.scenario_name ?? run.name}
+                side={side}
+                currentTurn={currentTurn}
+              />
+            )}
           </div>
         </div>
         <div className="sim-top__right">
