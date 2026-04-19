@@ -16,7 +16,7 @@ export async function getTurnBrief(
       {
         params: { role_id: roleId },
         timeout: 10000,
-        headers: { "X-User-Id": config.aiUserId },
+        headers: { "X-Service-Key": config.internalServiceKey, "X-User-Id": config.aiUserId },
       }
     ),
     axios.get<LegalAction[]>(
@@ -24,7 +24,7 @@ export async function getTurnBrief(
       {
         params: { role_id: roleId },
         timeout: 10000,
-        headers: { "X-User-Id": config.aiUserId },
+        headers: { "X-Service-Key": config.internalServiceKey, "X-User-Id": config.aiUserId },
       }
     ),
   ]);

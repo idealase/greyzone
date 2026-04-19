@@ -8,6 +8,7 @@ class Settings:
     database_url_sync: str
     engine_binary: str
     ai_agent_url: str
+    internal_service_key: str
     cors_origins: list[str]
     log_level: str
     jwt_secret_key: str
@@ -30,6 +31,9 @@ class Settings:
         )
         self.ai_agent_url = os.environ.get(
             "GREYZONE_AI_AGENT_URL", "http://localhost:3100"
+        )
+        self.internal_service_key = os.environ.get(
+            "GREYZONE_INTERNAL_SERVICE_KEY", "dev-internal-service-key"
         )
         cors_raw = os.environ.get(
             "GREYZONE_CORS_ORIGINS", "http://localhost:5173"

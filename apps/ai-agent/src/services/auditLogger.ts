@@ -1,6 +1,7 @@
 import axios from "axios";
 import pino from "pino";
 import type { AiAuditEntry } from "../types/index.js";
+import { config } from "../config.js";
 
 const logger = pino({ level: "info" });
 
@@ -26,6 +27,10 @@ export class AuditLogger {
     try {
       await axios.post(`${this.apiBaseUrl}/ai/audit`, entry, {
         timeout: 5000,
+        headers: {
+          "X-Service-Key": config.internalServiceKey,
+          "X-User-Id": config.aiUserId,
+        },
       });
     } catch (err) {
       // Audit log persistence failure is non-fatal

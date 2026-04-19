@@ -5,6 +5,8 @@ export const config = {
   apiBaseUrl: process.env.API_BASE_URL || "http://localhost:8000/api/v1",
   aiUserId:
     process.env.AI_USER_ID || "00000000-0000-0000-0002-000000000001",
+  internalServiceKey:
+    process.env.INTERNAL_SERVICE_KEY || "dev-internal-service-key",
   copilotApiKey: process.env.COPILOT_API_KEY || "",
   copilotModel: process.env.COPILOT_MODEL || "gpt-4",
   useMockAi: process.env.USE_MOCK_AI !== "false",

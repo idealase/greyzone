@@ -26,7 +26,7 @@ export async function submitAction(
     payload,
     {
       timeout: 10000,
-      headers: { "X-User-Id": config.aiUserId },
+      headers: { "X-Service-Key": config.internalServiceKey, "X-User-Id": config.aiUserId },
     }
   );
 
