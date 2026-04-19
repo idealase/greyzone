@@ -37,6 +37,20 @@ class RunManager:
         self.engine = engine
         self.narrative_service = NarrativeService()
         self._advance_locks: dict[uuid.UUID, asyncio.Lock] = {}
+        self._ws_manager: object | None = None
+
+    def set_ws_manager(self, ws_manager: object) -> None:
+        """Inject the ConnectionManager after construction to avoid circular imports."""
+        self._ws_manager = ws_manager
+
+    async def _broadcast(self, run_id: uuid.UUID, message: dict) -> None:
+        """Broadcast a WebSocket message to all clients in a run (best-effort)."""
+        if self._ws_manager is None:
+            return
+        try:
+            await self._ws_manager.broadcast_to_run(run_id, message)  # type: ignore[union-attr]
+        except Exception:
+            logger.warning("ws_broadcast_failed", run_id=str(run_id))
 
     def _get_run_lock(self, run_id: uuid.UUID) -> asyncio.Lock:
         """Return a per-run asyncio lock."""
@@ -465,6 +479,31 @@ class RunManager:
 
             turns_advanced_total.inc()
             await db.flush()
+
+            # Broadcast turn_advanced to all WebSocket clients
+            turn_message = {
+                "type": "turn_advanced",
+                "data": {
+                    "turn": new_turn,
+                    "phase": current_phase,
+                    "order_parameter": state.get("order_parameter", 0.0),
+                    "world_state": state,
+                    "events": events,
+                    "phase_changed": old_phase != current_phase,
+                },
+            }
+            await self._broadcast(run_id, turn_message)
+
+            # Broadcast phase_change if escalation phase shifted
+            if old_phase != current_phase:
+                await self._broadcast(run_id, {
+                    "type": "phase_change",
+                    "data": {
+                        "previous_phase": old_phase,
+                        "new_phase": current_phase,
+                        "turn": new_turn,
+                    },
+                })
 
             # Check for game over
             if result.get("game_over", False):

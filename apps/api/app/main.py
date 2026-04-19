@@ -55,6 +55,7 @@ logger = structlog.get_logger()
 engine_bridge = EngineBridge(settings.engine_binary)
 run_manager = RunManager(engine_bridge)
 ws_manager = ConnectionManager()
+run_manager.set_ws_manager(ws_manager)
 
 
 def _error_body(detail: object, request_id: str) -> dict:
