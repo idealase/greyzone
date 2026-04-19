@@ -531,6 +531,7 @@ class RunManager:
                 username="ai_commander",
                 display_name="AI Commander",
                 is_ai=True,
+                password_hash="!ai-service-account",
             )
             db.add(ai_user)
             await db.flush()
