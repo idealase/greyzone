@@ -1,24 +1,19 @@
-import axios from "axios";
-import { config } from "../config.js";
-
 export interface EndTurnResult {
   success: boolean;
   nextTurn: number;
   message: string;
 }
 
+// No-op: the API controls turn advancement via run_manager.advance_turn().
+// The AI agent must NOT call advance-turn itself because that triggers
+// another AI auto-play cycle, creating an infinite recursive loop.
 export async function endTurn(
-  runId: string,
-  roleId: string
+  _runId: string,
+  _roleId: string
 ): Promise<EndTurnResult> {
-  const response = await axios.post<EndTurnResult>(
-    `${config.apiBaseUrl}/runs/${runId}/advance-turn`,
-    { roleId },
-    {
-      timeout: 10000,
-      headers: { "X-Service-Key": config.internalServiceKey, "X-User-Id": config.aiUserId },
-    }
-  );
-
-  return response.data;
+  return {
+    success: true,
+    nextTurn: -1,
+    message: "Turn signoff acknowledged (API manages advancement)",
+  };
 }
