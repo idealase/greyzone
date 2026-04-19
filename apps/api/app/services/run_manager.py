@@ -481,8 +481,15 @@ class RunManager:
                 )
                 ai_participants = list(ai_result.scalars().all())
                 if ai_participants:
+                    from app.observability.metrics import (
+                        ai_agent_errors_total,
+                        ai_agent_request_duration_seconds,
+                    )
+                    import time as _time
+
                     async with httpx.AsyncClient(timeout=30.0) as client:
                         for ai_p in ai_participants:
+                            ai_start = _time.monotonic()
                             try:
                                 await client.post(
                                     f"{settings.ai_agent_url}/ai/take-turn",
@@ -491,7 +498,14 @@ class RunManager:
                                         "roleId": ai_p.role_id,
                                     },
                                 )
+                                ai_agent_request_duration_seconds.labels(
+                                    endpoint="/ai/take-turn"
+                                ).observe(_time.monotonic() - ai_start)
                             except Exception as ai_err:
+                                ai_agent_request_duration_seconds.labels(
+                                    endpoint="/ai/take-turn"
+                                ).observe(_time.monotonic() - ai_start)
+                                ai_agent_errors_total.inc()
                                 logger.warning(
                                     "ai_auto_play_failed",
                                     run_id=str(run_id),

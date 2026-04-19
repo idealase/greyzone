@@ -27,6 +27,8 @@ class ConnectionManager:
             self.active_connections[run_id] = {}
         self.active_connections[run_id][user_id] = websocket
         logger.info("ws_connected", run_id=str(run_id), user_id=user_id)
+        from app.observability.metrics import websocket_connections_active
+        websocket_connections_active.inc()
 
     async def disconnect(self, run_id: uuid.UUID, user_id: str) -> None:
         """Remove a WebSocket connection."""
@@ -35,6 +37,8 @@ class ConnectionManager:
             if not self.active_connections[run_id]:
                 del self.active_connections[run_id]
         logger.info("ws_disconnected", run_id=str(run_id), user_id=user_id)
+        from app.observability.metrics import websocket_connections_active
+        websocket_connections_active.dec()
 
     async def broadcast_to_run(
         self, run_id: uuid.UUID, message: dict

@@ -63,6 +63,8 @@ class EngineBridge:
             logger.info(
                 "engine_started", run_id=str(run_id), response=init_response
             )
+            from app.observability.metrics import active_games
+            active_games.inc()
         except FileNotFoundError:
             raise EngineError(
                 f"Engine binary not found at {self.binary_path}. "
@@ -176,6 +178,8 @@ class EngineBridge:
             await process.wait()
 
         logger.info("engine_shutdown", run_id=str(run_id))
+        from app.observability.metrics import active_games
+        active_games.dec()
 
     async def shutdown_all(self) -> None:
         """Shut down all engine subprocesses."""
