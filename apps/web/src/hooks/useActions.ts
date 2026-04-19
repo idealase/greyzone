@@ -59,6 +59,81 @@ export function useActions(runId: string | undefined) {
           result.world_state.layers as Record<DomainLayer, LayerState>
         );
       }
+
+      // Create synthetic events from narrative data
+      const syntheticEvents: TurnEvent[] = [];
+
+      if (result.narrative) {
+        syntheticEvents.push({
+          id: generateId(),
+          type: "narrative",
+          description: `📰 ${result.narrative.headline}`,
+          domain: null,
+          actor: null,
+          turn: result.turn,
+          visibility: "all",
+        });
+
+        if (result.narrative.threat_assessment) {
+          syntheticEvents.push({
+            id: generateId(),
+            type: "threat",
+            description: `⚠️ ${result.narrative.threat_assessment}`,
+            domain: null,
+            actor: null,
+            turn: result.turn,
+            visibility: "all",
+          });
+        }
+
+        if (result.narrative.intelligence_note) {
+          syntheticEvents.push({
+            id: generateId(),
+            type: "intel",
+            description: `🔍 ${result.narrative.intelligence_note}`,
+            domain: null,
+            actor: null,
+            turn: result.turn,
+            visibility: "all",
+          });
+        }
+
+        // Highlight significant domain changes
+        for (const highlight of result.narrative.domain_highlights) {
+          if (Math.abs(highlight.delta) >= 3) {
+            const arrow = highlight.direction === "rising" ? "📈" : highlight.direction === "falling" ? "📉" : "➡️";
+            syntheticEvents.push({
+              id: generateId(),
+              type: "stochastic",
+              description: `${arrow} ${highlight.label}: ${highlight.note}`,
+              domain: (highlight.domain as DomainLayer) || null,
+              actor: null,
+              turn: result.turn,
+              visibility: "all",
+            });
+          }
+        }
+      }
+
+      // Create events for AI actions
+      if (result.ai_actions?.length) {
+        for (const aiAction of result.ai_actions) {
+          syntheticEvents.push({
+            id: generateId(),
+            type: "ai_action",
+            description: `🤖 ${aiAction.description}`,
+            domain: (aiAction.layer as DomainLayer) || null,
+            actor: aiAction.role_id,
+            turn: result.turn,
+            visibility: "all",
+          });
+        }
+      }
+
+      if (syntheticEvents.length > 0) {
+        store().addEvents(syntheticEvents);
+      }
+
       if (runId) {
         queryClient.invalidateQueries({ queryKey: ["run", runId] });
         queryClient.invalidateQueries({ queryKey: ["legalActions", runId] });

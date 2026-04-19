@@ -509,6 +509,23 @@ input, select, textarea, button {
   border-left: 3px solid var(--text-muted);
 }
 
+.event-item--ai_action {
+  border-left: 3px solid #f97316;
+}
+
+.event-item--narrative {
+  border-left: 3px solid #14b8a6;
+}
+
+.event-item--intel {
+  border-left: 3px solid var(--accent-green);
+}
+
+.event-item--threat {
+  border-left: 3px solid var(--accent-red);
+  background: rgba(239, 68, 68, 0.05);
+}
+
 /* Action panel */
 .action-card {
   background: var(--bg-tertiary);
@@ -641,6 +658,16 @@ input[type="range"] {
 .badge--gray {
   background: rgba(161, 161, 170, 0.15);
   color: var(--text-secondary);
+}
+
+.badge--orange {
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+}
+
+.badge--teal {
+  background: rgba(20, 184, 166, 0.15);
+  color: #14b8a6;
 }
 
 /* Player list */

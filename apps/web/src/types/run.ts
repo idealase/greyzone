@@ -100,6 +100,29 @@ export interface LegalAction {
   side?: "blue" | "red";
 }
 
+export interface NarrativeData {
+  headline: string;
+  body: string;
+  domain_highlights: Array<{
+    domain: string;
+    label: string;
+    direction: "rising" | "falling" | "stable";
+    delta: number;
+    note: string;
+  }>;
+  threat_assessment: string;
+  intelligence_note: string | null;
+}
+
+export interface AiActionEvent {
+  type: string;
+  description: string;
+  layer: string;
+  role_id: string;
+  action_type: string;
+  intensity: number;
+}
+
 export interface TurnResult {
   turn: number;
   phase: Phase;
@@ -108,11 +131,13 @@ export interface TurnResult {
   events: TurnEvent[];
   phase_changed: boolean;
   previous_phase: Phase | null;
+  narrative: NarrativeData | null;
+  ai_actions: AiActionEvent[];
 }
 
 export interface TurnEvent {
   id: string;
-  type: "action" | "stochastic" | "phase_transition" | "coupling_effect";
+  type: "action" | "stochastic" | "phase_transition" | "coupling_effect" | "ai_action" | "narrative" | "intel" | "threat";
   description: string;
   domain: DomainLayer | null;
   actor: string | null;

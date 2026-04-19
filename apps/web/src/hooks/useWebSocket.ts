@@ -3,7 +3,7 @@ import { gameWebSocket } from "../api/websocket";
 import { useRunStore } from "../stores/runStore";
 import { useWebSocketStore } from "../stores/websocketStore";
 import { useAuthStore } from "../stores/authStore";
-import { TurnAdvancedMessage, PlayerJoinedMessage, AiMoveMessage } from "../types/websocket";
+import { TurnAdvancedMessage, PlayerJoinedMessage } from "../types/websocket";
 import { RunParticipant, WorldState, TurnEvent } from "../types/run";
 import { Phase } from "../types/phase";
 import { DomainLayer, LayerState } from "../types/domain";
@@ -136,8 +136,22 @@ export function useWebSocket(runId: string | undefined) {
 
     unsubs.push(
       gameWebSocket.on("ai_move", (data) => {
-        const msg = data as AiMoveMessage["data"];
-        rs().addAiMove(msg);
+        const msg = data as { turn: number; events: Array<{ description: string; layer: string; role_id: string }>; world_state: WorldState };
+        if (msg.world_state) {
+          rs().setWorldState(msg.world_state);
+        }
+        if (msg.events?.length) {
+          const aiEvents: TurnEvent[] = msg.events.map((evt, i) => ({
+            id: `ai-ws-${msg.turn}-${i}`,
+            type: "ai_action" as const,
+            description: `🤖 ${evt.description}`,
+            domain: (evt.layer as DomainLayer) || null,
+            actor: evt.role_id || null,
+            turn: msg.turn,
+            visibility: "all" as const,
+          }));
+          rs().addEvents(aiEvents);
+        }
       })
     );
 
