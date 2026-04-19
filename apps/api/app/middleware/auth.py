@@ -2,6 +2,7 @@
 
 import uuid
 
+import structlog
 from fastapi import Depends, HTTPException, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from jose import JWTError, jwt
@@ -49,6 +50,7 @@ async def get_current_user(
         if user is None or not user.is_active:
             raise HTTPException(status_code=401, detail="User not found")
         request.state.user = user
+        structlog.contextvars.bind_contextvars(user_id=str(user.id))
         return user
 
     # Standard JWT Bearer auth
@@ -63,4 +65,5 @@ async def get_current_user(
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="Invalid token")
     request.state.user = user
+    structlog.contextvars.bind_contextvars(user_id=str(user.id))
     return user

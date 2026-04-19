@@ -27,6 +27,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
         except Exception as exc:  # Log unexpected errors with request context
             duration_ms = (time.monotonic() - start_time) * 1000
+            user_id = self._get_user_id(request)
             logger.exception(
                 "http_request_error",
                 method=request.method,
@@ -34,12 +35,14 @@ class LoggingMiddleware(BaseHTTPMiddleware):
                 status_code=500,
                 duration_ms=round(duration_ms, 2),
                 correlation_id=correlation_id,
+                user_id=user_id,
                 error=str(exc),
             )
-            structlog.contextvars.unbind_contextvars("request_path", "request_method")
+            self._unbind()
             raise
 
         duration_ms = (time.monotonic() - start_time) * 1000
+        user_id = self._get_user_id(request)
         logger.info(
             "http_request",
             method=request.method,
@@ -47,6 +50,20 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             status_code=response.status_code,
             duration_ms=round(duration_ms, 2),
             correlation_id=correlation_id,
+            user_id=user_id,
         )
-        structlog.contextvars.unbind_contextvars("request_path", "request_method")
+        self._unbind()
         return response
+
+    @staticmethod
+    def _get_user_id(request: Request) -> str | None:
+        user = getattr(request.state, "user", None)
+        if user is not None:
+            return str(user.id)
+        return None
+
+    @staticmethod
+    def _unbind() -> None:
+        structlog.contextvars.unbind_contextvars(
+            "request_path", "request_method", "user_id"
+        )
