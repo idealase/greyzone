@@ -13,12 +13,15 @@ export async function submitAction(
   action: Record<string, unknown>
 ): Promise<SubmitActionResult> {
   const payload = {
-    roleId,
-    actionType: action.actionType,
-    targetDomain: action.targetDomain,
-    targetActorId: action.targetActorId,
+    user_id: config.aiUserId,
+    role_id: roleId,
+    action_type: action.actionType,
+    target_domain: action.targetDomain,
+    target_actor: action.targetActorId,
     intensity: action.intensity,
-    rationale: action.rationale,
+    action_payload: {
+      rationale: action.rationale,
+    },
   };
 
   const response = await axios.post<SubmitActionResult>(
