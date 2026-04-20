@@ -1,6 +1,7 @@
 # Greyzone Product Specification
 
-Version: 1.0
+Version: 1.1
+Last Updated: April 2026
 Status: Governing
 
 ## 1. Overview
@@ -41,6 +42,7 @@ An AI agent can fill any player role. The AI operates through a bounded tool int
 - **Create Run**: Instantiate a run from a scenario with specified participants and configuration (deterministic seed, tick rate, phase thresholds).
 - **Join Run**: Players join an active run and are assigned (or choose) a role.
 - **Start Run**: Run transitions from lobby to active when all required roles are filled.
+- **Tutorial Mode**: New players receive an interactive 8-step tutorial overlay guiding them through UI elements and core mechanics on their first run.
 - **Pause/Resume**: Any admin or by consensus of active players.
 - **Terminate**: Explicit end or triggered by terminal phase condition.
 
@@ -60,10 +62,12 @@ Each simulation tick proceeds through a fixed pipeline:
 Moves are typed actions scoped to a specific layer and actor. Each move type has:
 
 - **Preconditions**: State predicates that must be true for the move to be legal.
-- **Cost**: Resource expenditure (political capital, military readiness, economic reserves, etc.).
-- **Effects**: Deterministic state mutations applied by the engine.
+- **Cost**: Resource expenditure (political capital, military readiness, economic reserves, etc.) deducted from a per-turn move budget.
+- **Effects**: Deterministic state mutations applied by the engine, with effect previews shown to the player before submission.
 - **Stochastic Modifiers**: Optional probability distributions applied to effect magnitudes (seeded for determinism).
-- **Cross-Layer Couplings**: Secondary effects propagated to other layers.
+- **Cross-Layer Couplings**: Secondary effects propagated to other layers, visualized in the coupling graph.
+
+Players compose moves via the action panel, which shows available actions filtered by role and phase. An effect preview displays estimated stress deltas before submission. A turn confirmation dialog allows reviewing all queued actions before committing.
 
 ### 3.5 Fog of War
 
@@ -96,6 +100,29 @@ The simulation models six phases of escalation. Transitions are driven by a comp
 - Queryable by tick, actor, layer, event type.
 - Exportable for external analysis.
 
+### 3.9 Dashboard and Visualization
+
+The operator console provides real-time situational awareness through several integrated panels:
+
+- **Phase Indicator & Escalation Timeline**: Shows current escalation phase, Ψ (composite order parameter) value, distance to next threshold, and a visual timeline of all phase transitions with Ψ cursor.
+- **Domain Stress Panels**: Eight domain panels (military, cyber, economic, diplomatic, information, space, social, infrastructure) showing stress/resilience bars, delta indicators, and click-to-expand detail popovers with variable breakdowns, coupled domains, and recent events.
+- **Battlespace Canvas**: 2D strategic visualization of actors, domain stress rings, and coupling lines. Hover tooltips show actor details; click to inspect. Toggle-able legend and coupling line highlights.
+- **Coupling Graph**: Node-link diagram showing how the 8 domains influence each other, with edge weights representing coupling strength.
+- **Event Feed**: Chronological feed of simulation events with type filtering (action/phase/stochastic/system), domain dropdown, turn range selector, text search, and click-to-expand detail view.
+- **Action Panel**: Move composition UI with legal action list, effect previews showing estimated stress deltas, and a turn confirmation dialog.
+- **AI Intelligence Report**: When playing against AI, shows the opponent's reasoning, move history with domain targeting heatmap, expandable rationale, tool call timeline, and confidence indicators.
+- **Domain Stress Chart**: Time-series chart of all domain stress levels with Ψ trend line and phase threshold reference lines.
+- **After-Action Review (AAR)**: Post-game summary with performance metrics, event timeline, and outcome analysis.
+
+### 3.10 Scenarios
+
+Two built-in scenarios ship with the platform:
+
+- **Baltic Flashpoint**: NATO vs Russia confrontation in the Baltic region with 6 actors (NATO forces, Baltic states, Russia, EU, CSTO, civilian infrastructure). Tests conventional deterrence, cyber operations, and alliance dynamics.
+- **Hormuz Flashpoint**: Strait of Hormuz maritime escalation with regional power competition, energy security dynamics, and naval operations. Tests economic warfare, maritime domain, and multilateral diplomacy.
+
+Additional scenarios can be authored using the JSON scenario format (see [Scenario Authoring Guide](scenario-authoring-guide.md)).
+
 ## 4. User Stories
 
 ### 4.1 Scenario Author
@@ -109,8 +136,13 @@ The simulation models six phases of escalation. Transitions are driven by a comp
 - As a player, I want to browse available runs and join one with an open role so that I can participate in a simulation.
 - As a player, I want to see only the state my role should see so that fog of war is meaningful.
 - As a player, I want to submit moves and see their effects reflected in the next tick so that my decisions matter.
+- As a player, I want to preview action effects before committing so that I can make informed decisions.
+- As a player, I want to confirm my turn before submission so that I don't accidentally commit incomplete plans.
 - As a player, I want to see phase transitions announced with context so that I understand the escalation trajectory.
 - As a player, I want real-time updates when other players' moves affect state I can see so that I can react.
+- As a new player, I want an interactive tutorial that walks me through the UI so that I can learn without reading documentation.
+- As a player, I want to filter and search the event feed so that I can find relevant events quickly.
+- As a player, I want to see AI opponent reasoning and move history so that I can adapt my strategy.
 
 ### 4.3 AI Opponent
 
