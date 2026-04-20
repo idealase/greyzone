@@ -14,7 +14,7 @@ interface EffectResult {
   spilloverNote: string | null;
 }
 
-function computeEffects(
+export function computeEffects(
   actionType: string,
   intensity: number,
   resilience: number
