@@ -119,11 +119,11 @@ pub fn compute_order_parameter(layers: &HashMap<DomainLayer, LayerState>) -> f64
 fn phase_thresholds(phase: Phase) -> (f64, f64) {
     match phase {
         Phase::CompetitiveNormality => (0.0, 0.0), // always possible to be here
-        Phase::HybridCoercion => (0.15, 0.12),
-        Phase::AcutePolycrisis => (0.30, 0.27),
-        Phase::WarTransition => (0.50, 0.47),
-        Phase::OvertInterstateWar => (0.70, 0.67),
-        Phase::GeneralizedBlocWar => (0.85, 0.82),
+        Phase::HybridCoercion => (0.15, 0.09),
+        Phase::AcutePolycrisis => (0.30, 0.24),
+        Phase::WarTransition => (0.50, 0.44),
+        Phase::OvertInterstateWar => (0.70, 0.64),
+        Phase::GeneralizedBlocWar => (0.85, 0.79),
     }
 }
 
@@ -210,15 +210,15 @@ mod tests {
 
     #[test]
     fn test_phase_hysteresis_holds() {
-        // At 0.28, should stay in AcutePolycrisis (exit is 0.27)
-        let phase = determine_phase(0.28, Phase::AcutePolycrisis);
+        // At 0.26, should stay in AcutePolycrisis (exit is 0.24)
+        let phase = determine_phase(0.26, Phase::AcutePolycrisis);
         assert_eq!(phase, Phase::AcutePolycrisis);
     }
 
     #[test]
     fn test_phase_hysteresis_drops() {
-        // At 0.26, should drop below AcutePolycrisis (exit is 0.27)
-        let phase = determine_phase(0.26, Phase::AcutePolycrisis);
+        // At 0.23, should drop below AcutePolycrisis (exit is 0.24)
+        let phase = determine_phase(0.23, Phase::AcutePolycrisis);
         assert_eq!(phase, Phase::HybridCoercion);
     }
 

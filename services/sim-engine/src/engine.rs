@@ -671,11 +671,11 @@ impl SimulationEngine {
         // 1. Generate and apply stochastic events
         let phase_multiplier = match self.state.phase {
             Phase::CompetitiveNormality => 1.0,
-            Phase::HybridCoercion => 1.3,
-            Phase::AcutePolycrisis => 1.6,
-            Phase::WarTransition => 2.0,
-            Phase::OvertInterstateWar => 2.5,
-            Phase::GeneralizedBlocWar => 3.0,
+            Phase::HybridCoercion => 1.1,
+            Phase::AcutePolycrisis => 1.2,
+            Phase::WarTransition => 1.3,
+            Phase::OvertInterstateWar => 1.4,
+            Phase::GeneralizedBlocWar => 1.5,
         };
 
         for event_template in self.stochastic_events.clone() {
