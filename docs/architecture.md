@@ -1,6 +1,7 @@
 # Greyzone Architecture Overview
 
-Version: 1.0
+Version: 1.1
+Last Updated: April 2026
 Status: Governing
 
 ## 1. System Context
@@ -8,43 +9,53 @@ Status: Governing
 Greyzone is composed of four primary services, a shared database, and a message-passing layer. Each service has a single responsibility and communicates through well-defined interfaces.
 
 ```
-                         ┌─────────────┐
-                         │   Browser    │
-                         │  (React UI)  │
-                         └──────┬───────┘
-                                │ HTTPS / WSS
-                                ▼
-                         ┌─────────────┐
-                         │   FastAPI    │
-                         │ Control Plane│
-                         └──┬───┬───┬──┘
-                            │   │   │
-               ┌────────────┘   │   └────────────┐
-               ▼                ▼                 ▼
-        ┌─────────────┐  ┌──────────┐   ┌──────────────┐
-        │ Rust Engine  │  │ PostgreSQL│   │  AI Agent    │
-        │ (Simulation) │  │          │   │  Service     │
-        └─────────────┘  └──────────┘   │ (Node.js)    │
-                                         └──────────────┘
+                                  ┌──────────────────┐
+                                  │     Browser      │
+                                  │  (React 19 UI)   │
+                                  └────────┬─────────┘
+                                           │ HTTPS / WSS
+                                           ▼
+                               ┌──────────────────────┐
+                               │   Nginx (port 8020)  │
+                               │   Reverse Proxy      │
+                               └────┬────────────┬────┘
+                                    │            │
+                        ┌───────────┘            └──────────┐
+                        ▼                                   ▼
+                 ┌─────────────┐                    ┌──────────────┐
+                 │   FastAPI   │                    │ Static Files │
+                 │ Control Plane│                    │  (dist/)     │
+                 │ (port 8010) │                    └──────────────┘
+                 └──┬───┬───┬──┘
+                    │   │   │
+       ┌────────────┘   │   └────────────┐
+       ▼                ▼                 ▼
+┌─────────────┐  ┌──────────┐   ┌──────────────┐
+│ Rust Engine  │  │ PostgreSQL│   │  AI Agent    │
+│ (subprocess) │  │   (5432) │   │  Service     │
+└─────────────┘  └──────────┘   │ (port 3100)  │
+                                 └──────────────┘
 ```
 
 ## 2. Service Responsibilities
 
-### 2.1 Frontend (React + TypeScript + Vite)
+### 2.1 Frontend (React 19 + TypeScript 5.6 + Vite 6)
 
 **Role**: Operator console and visualization layer.
 
 **Responsibilities**:
 - Render role-scoped world state received from the control plane.
-- Provide move composition UI with client-side pre-validation.
-- Display phase transition notifications and event timeline.
+- Provide move composition UI with client-side pre-validation and effect previews.
+- Display phase transition notifications, escalation timeline, and event feed with filtering.
 - Support replay controls (scrub, perspective switching).
-- Manage WebSocket connection lifecycle.
+- Manage WebSocket connection lifecycle with auto-reconnect and exponential backoff.
+- Provide interactive domain panels, battlespace canvas, coupling graph, and AI intelligence report.
+- Interactive tutorial system (8-step walkthrough for new players).
 - Never derive or compute game state; always trust server-provided state.
 
-**Technology**: React 18+, TypeScript, Vite, Zustand (state management), D3 or deck.gl (visualization), native WebSocket API.
+**Technology**: React 19, TypeScript 5.6, Vite 6, Zustand (state management), TanStack Query (server state), Recharts (charts), vanilla CSS with BEM naming.
 
-**Build artifact**: Static bundle served by the control plane or a CDN in production.
+**Build artifact**: Static bundle in `apps/web/dist/`, served by Nginx in production.
 
 ### 2.2 Simulation Engine (Rust)
 
@@ -63,7 +74,7 @@ Greyzone is composed of four primary services, a shared database, and a message-
 
 **Technology**: Rust (stable), serde for serialization, no async runtime (pure computation).
 
-**Integration mode**: Compiled as a shared library with PyO3 Python bindings. FastAPI loads the engine in-process for lowest latency. A fallback subprocess mode (JSON over stdin/stdout) is supported for development and debugging.
+**Integration mode**: Compiled as a standalone binary. FastAPI invokes the engine as a subprocess, passing JSON over stdin/stdout. The API serializes the world state and move set as JSON, invokes the binary, and deserializes the result.
 
 ### 2.3 Control Plane (FastAPI / Python)
 
@@ -94,7 +105,7 @@ Greyzone is composed of four primary services, a shared database, and a message-
 - Enforce tool call budget (max calls per tick) and timeout.
 - Never read or write simulation state directly.
 
-**Technology**: Node.js 20+, TypeScript, GitHub Copilot SDK (`@anthropic-ai/sdk` or `@github/copilot-sdk`), Express (HTTP API for control plane to invoke).
+**Technology**: Node.js 20+, TypeScript, Express 4, Pino (structured logging). Two AI modes: heuristic (deterministic scoring with phase-aware strategy) and LLM (GitHub Copilot SDK with graceful fallback to heuristic).
 
 ### 2.5 PostgreSQL
 
@@ -150,9 +161,10 @@ Analyst → GET /api/runs/{run_id}/replay?from_tick=0&to_tick=N&perspective=blue
 
 | From | To | Protocol | Format | Pattern |
 |---|---|---|---|---|
-| Browser | FastAPI | HTTPS, WSS | JSON | Request-response, server push |
-| FastAPI | Rust Engine | In-process (PyO3) | Rust structs / serde | Synchronous function call |
-| FastAPI | PostgreSQL | TCP | SQL (SQLAlchemy) | Async query |
+| Browser | Nginx | HTTPS, WSS | JSON | Request-response, server push |
+| Nginx | FastAPI | HTTP, WS | JSON | Reverse proxy |
+| FastAPI | Rust Engine | Subprocess | JSON (stdin/stdout) | Synchronous invocation |
+| FastAPI | PostgreSQL | TCP | SQL (SQLAlchemy async) | Async query |
 | FastAPI | AI Agent | HTTP | JSON | Request-response |
 | AI Agent | FastAPI | HTTP | JSON | Request-response (move submission) |
 
@@ -163,24 +175,38 @@ Analyst → GET /api/runs/{run_id}/replay?from_tick=0&to_tick=N&perspective=blue
 All services run on a single machine:
 
 ```
-Terminal 1: cd engine && cargo build --release
-Terminal 2: cd backend && uvicorn app.main:app --reload
-Terminal 3: cd ai-agent && npm run dev
-Terminal 4: cd frontend && npm run dev
+Terminal 1: cd services/sim-engine && cargo build --release
+Terminal 2: cd apps/api && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000
+Terminal 3: cd apps/ai-agent && npm run dev
+Terminal 4: cd apps/web && npm run dev
 PostgreSQL: localhost:5432
 ```
 
-A `docker-compose.yml` is provided for convenience but is not required. The non-Docker path is the primary development mode.
+Or use the Makefile: `make setup` to install all dependencies, then `make dev` for start instructions.
 
-### 5.2 Single-Server Deployment
+### 5.2 Single-Server Deployment (Current)
 
-For small-group use (2-10 players), all services run on one server:
+All services run on one server at **greyzone.sandford.systems**:
 
-- Nginx reverse proxy on port 443 with TLS.
-- FastAPI behind Uvicorn with multiple workers.
-- Rust engine loaded in-process via PyO3.
-- AI agent service on a separate port, proxied by Nginx.
-- PostgreSQL on localhost.
+- **Nginx** reverse proxy on port 8020 with TLS via Cloudflare Tunnel.
+  - Serves frontend static files from `apps/web/dist/` with SPA fallback.
+  - Proxies `/api/` to the API service on `127.0.0.1:8010`.
+  - WebSocket upgrade support for `/api/v1/ws/`.
+  - Sets `X-Real-IP` and `X-Forwarded-For` headers.
+- **FastAPI** runs as a systemd service (`greyzone-api.service`) via uvicorn on port 8010.
+- **AI Agent** runs as a systemd service (`greyzone-ai.service`) on port 3100.
+- **Rust engine** invoked as a subprocess by the API; binary at `services/sim-engine/target/release/greyzone-engine`.
+- **PostgreSQL** on localhost:5432 (`greyzone` database).
+- **Cloudflare Tunnel** provides HTTPS access at `greyzone.sandford.systems`.
+- **CI/CD**: GitHub Actions on a self-hosted runner. Push to `main` triggers build, test, and deploy.
+
+Deployment is managed by `infra/dev/deploy.sh`, which copies nginx and systemd configs and restarts services. **Note**: The deploy script does NOT build the frontend or engine — these must be built manually before deploying:
+
+```bash
+cd apps/web && npm run build        # Build frontend → dist/
+cd services/sim-engine && cargo build --release  # Build engine binary
+bash infra/dev/deploy.sh            # Deploy configs and restart services
+```
 
 ### 5.3 Future: Distributed
 
@@ -235,29 +261,51 @@ If PostgreSQL is unreachable, the tick pipeline halts. The run pauses automatica
 
 ```
 greyzone/
-├── frontend/          # React + TypeScript + Vite
-│   ├── src/
-│   ├── public/
-│   ├── package.json
-│   └── vite.config.ts
-├── engine/            # Rust simulation engine
-│   ├── src/
-│   ├── Cargo.toml
-│   └── tests/
-├── backend/           # FastAPI control plane
-│   ├── app/
-│   ├── migrations/
-│   ├── pyproject.toml
-│   └── tests/
-├── ai-agent/          # Node.js AI agent service
-│   ├── src/
-│   ├── package.json
-│   └── tsconfig.json
-├── docs/              # Specifications and ADRs
-│   ├── bootstrap/
-│   ├── adr/
-│   └── *.md
-├── scenarios/         # Scenario definition files (JSON)
-├── docker-compose.yml
+├── apps/
+│   ├── web/                # React 19 + TypeScript + Vite frontend
+│   │   ├── src/
+│   │   │   ├── components/ # UI components (Map, Dashboard, Controls)
+│   │   │   ├── hooks/      # Custom React hooks
+│   │   │   ├── pages/      # Route-level pages
+│   │   │   ├── services/   # API client
+│   │   │   ├── stores/     # Zustand state stores
+│   │   │   └── types/      # TypeScript interfaces
+│   │   ├── dist/           # Production build output
+│   │   └── package.json
+│   ├── api/                # FastAPI control plane
+│   │   ├── app/
+│   │   │   ├── routers/    # API route modules
+│   │   │   ├── models/     # SQLAlchemy ORM models
+│   │   │   ├── schemas/    # Pydantic schemas
+│   │   │   ├── services/   # Business logic
+│   │   │   └── main.py     # App entry
+│   │   ├── alembic/        # Database migrations
+│   │   └── pyproject.toml
+│   └── ai-agent/           # Node.js AI opponent
+│       ├── src/
+│       └── package.json
+├── services/
+│   └── sim-engine/         # Rust simulation engine
+│       ├── src/
+│       │   ├── lib.rs
+│       │   ├── engine.rs   # Core simulation loop
+│       │   ├── domains/    # 8 domain modules
+│       │   ├── events.rs   # Event sourcing types
+│       │   └── types.rs
+│       └── Cargo.toml
+├── packages/
+│   └── schemas/            # @greyzone/schemas (Zod)
+├── infra/
+│   ├── dev/
+│   │   ├── deploy.sh       # Deployment script
+│   │   ├── greyzone-api.service
+│   │   ├── greyzone-ai.service
+│   │   └── nginx-greyzone  # Nginx config
+│   └── db/
+│       ├── migrations/     # SQL migrations
+│       └── seed/           # Scenario seed data
+├── docs/                   # Specs, guides, ADRs
+├── tests/                  # Contract + E2E tests
+├── Makefile                # Top-level orchestration
 └── README.md
 ```
