@@ -6,20 +6,30 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  ReferenceLine,
 } from "recharts";
 import { DomainLayer, DOMAIN_LABELS, DOMAIN_COLORS, ALL_DOMAINS } from "../../types/domain";
+import { Phase, PHASE_THRESHOLDS, PHASE_LABELS, PHASE_ORDER } from "../../types/phase";
 
 interface StressHistoryEntry {
   turn: number;
   values: Record<DomainLayer, number>;
 }
 
+interface PsiHistoryEntry {
+  turn: number;
+  psi: number;
+  phase: Phase;
+}
+
 interface DomainStressChartProps {
   stressHistory: StressHistoryEntry[];
+  psiHistory?: PsiHistoryEntry[];
 }
 
 export default function DomainStressChart({
   stressHistory,
+  psiHistory,
 }: DomainStressChartProps) {
   if (stressHistory.length === 0) {
     return (
@@ -32,14 +42,23 @@ export default function DomainStressChart({
     );
   }
 
+  // Merge stress and Ψ data by turn
+  const psiByTurn = new Map<number, number>();
+  if (psiHistory) {
+    for (const entry of psiHistory) {
+      psiByTurn.set(entry.turn, entry.psi);
+    }
+  }
+
   const chartData = stressHistory.map((entry) => ({
     turn: entry.turn,
     ...entry.values,
+    psi: psiByTurn.get(entry.turn) ?? null,
   }));
 
   return (
     <div className="card">
-      <div className="card__title">Domain Stress Over Time</div>
+      <div className="card__title">Domain Stress &amp; Ψ Over Time</div>
       <div style={{ width: "100%", height: 220 }}>
         <ResponsiveContainer>
           <LineChart
@@ -67,11 +86,28 @@ export default function DomainStressChart({
                 fontSize: "0.78rem",
               }}
               labelFormatter={(label) => `Turn ${label}`}
-              formatter={(value: number, name: string) => [
-                `${(value * 100).toFixed(1)}%`,
-                DOMAIN_LABELS[name as DomainLayer] ?? name,
-              ]}
+              formatter={(value: number, name: string) => {
+                if (name === "psi") return [`Ψ ${value.toFixed(3)}`, "Order Parameter"];
+                return [
+                  `${(value * 100).toFixed(1)}%`,
+                  DOMAIN_LABELS[name as DomainLayer] ?? name,
+                ];
+              }}
             />
+            {/* Phase threshold reference lines */}
+            {PHASE_ORDER.slice(0, -1).map((p) => {
+              const threshold = PHASE_THRESHOLDS[p];
+              if (threshold === undefined) return null;
+              return (
+                <ReferenceLine
+                  key={p}
+                  y={threshold}
+                  stroke={`${PHASE_LABELS[p].includes("0") ? "#22c55e" : "#ef4444"}33`}
+                  strokeDasharray="2 4"
+                  label={false}
+                />
+              );
+            })}
             {ALL_DOMAINS.map((domain) => (
               <Line
                 key={domain}
@@ -83,6 +119,17 @@ export default function DomainStressChart({
                 name={domain}
               />
             ))}
+            {/* Ψ line */}
+            <Line
+              type="monotone"
+              dataKey="psi"
+              stroke="#a855f7"
+              strokeWidth={2.5}
+              strokeDasharray="6 3"
+              dot={{ r: 3, fill: "#a855f7" }}
+              name="psi"
+              connectNulls
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>

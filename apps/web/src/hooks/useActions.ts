@@ -59,6 +59,11 @@ export function useActions(runId: string | undefined) {
           result.world_state.layers as Record<DomainLayer, LayerState>
         );
       }
+      store().addPsiSnapshot(
+        result.turn,
+        result.world_state?.order_parameter ?? store().orderParameter,
+        result.world_state?.phase ?? store().currentPhase,
+      );
 
       // Create synthetic events from narrative data
       const syntheticEvents: TurnEvent[] = [];

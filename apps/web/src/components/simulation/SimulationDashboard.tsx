@@ -66,12 +66,24 @@ export default function SimulationDashboard({
   const events = useRunStore((s) => s.events);
   const legalActions = useRunStore((s) => s.legalActions);
   const stressHistory = useRunStore((s) => s.stressHistory);
+  const psiHistory = useRunStore((s) => s.psiHistory);
   const aiMoves = useRunStore((s) => s.aiMoves);
   const isAdvancingTurn = useRunStore((s) => s.isAdvancingTurn);
   const run = useRunStore((s) => s.run);
 
   const { submitAction, isSubmitting, advanceTurn, isAdvancing, advanceError } =
     useActions(runId);
+
+  // Derive phase transitions from Ψ history
+  const phaseTransitions = useMemo(() => {
+    const transitions: { turn: number; phase: Phase }[] = [];
+    for (let i = 1; i < psiHistory.length; i++) {
+      if (psiHistory[i].phase !== psiHistory[i - 1].phase) {
+        transitions.push({ turn: psiHistory[i].turn, phase: psiHistory[i].phase });
+      }
+    }
+    return transitions;
+  }, [psiHistory]);
 
   // Compute player resources for turn confirmation dialog
   const playerResources = (() => {
@@ -237,6 +249,7 @@ export default function SimulationDashboard({
           <PhaseIndicator
             phase={currentPhase}
             orderParameter={orderParameter}
+            phaseHistory={phaseTransitions}
           />
           <div className="sim-top__links">
             <Link to="/tutorial">↩ Return to tutorial</Link>
@@ -309,7 +322,7 @@ export default function SimulationDashboard({
                   previousOrderParameter={previousOrderParameter}
                   previousWorldState={previousWorldState}
                 />
-                <DomainStressChart stressHistory={stressHistory} />
+                <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
               </>
             )}
 
@@ -383,7 +396,7 @@ export default function SimulationDashboard({
               previousOrderParameter={previousOrderParameter}
               previousWorldState={previousWorldState}
             />
-            <DomainStressChart stressHistory={stressHistory} />
+            <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
             <div style={{ textAlign: "center", margin: "0.3rem 0", display: "flex", gap: "0.5rem", justifyContent: "center" }}>
               <button
                 className="btn btn--sm btn--ghost"
