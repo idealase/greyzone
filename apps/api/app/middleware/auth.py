@@ -50,6 +50,7 @@ async def get_current_user(
         if user is None or not user.is_active:
             raise HTTPException(status_code=401, detail="User not found")
         request.state.user = user
+        request.state.user_id = str(user.id)
         structlog.contextvars.bind_contextvars(user_id=str(user.id))
         return user
 
@@ -65,5 +66,6 @@ async def get_current_user(
     if user is None or not user.is_active:
         raise HTTPException(status_code=401, detail="Invalid token")
     request.state.user = user
+    request.state.user_id = str(user.id)
     structlog.contextvars.bind_contextvars(user_id=str(user.id))
     return user

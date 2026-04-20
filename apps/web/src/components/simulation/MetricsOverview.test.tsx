@@ -107,8 +107,25 @@ describe("MetricsOverview", () => {
       order_parameter: 0.42,
       coupling_matrix: {},
       layers: {} as WorldState["layers"],
-      actors: [{ id: "blue_state", resources: 75.3 }],
-      roles: [{ id: "blue_commander", controlled_actor_ids: ["blue_state"] }],
+      actors: [
+        {
+          id: "blue_state",
+          name: "Blue State",
+          kind: "state",
+          capabilities: {},
+          resources: 75.3,
+          morale: 0.8,
+          visibility: "all",
+        },
+      ],
+      roles: [
+        {
+          id: "blue_commander",
+          name: "Blue Commander",
+          controlled_actor_ids: ["blue_state"],
+          allied_actor_ids: [],
+        },
+      ],
     };
     render(
       <MetricsOverview {...baseProps} worldState={worldState} side="blue" />

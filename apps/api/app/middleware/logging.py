@@ -98,9 +98,17 @@ class LoggingMiddleware(BaseHTTPMiddleware):
 
     @staticmethod
     def _get_user_id(request: Request) -> str | None:
+        # Prefer the plain string stashed by auth middleware to avoid
+        # touching a potentially detached SQLAlchemy User instance.
+        uid = getattr(request.state, "user_id", None)
+        if uid is not None:
+            return str(uid)
         user = getattr(request.state, "user", None)
         if user is not None:
-            return str(user.id)
+            try:
+                return str(user.id)
+            except Exception:
+                return None
         return None
 
     @staticmethod
