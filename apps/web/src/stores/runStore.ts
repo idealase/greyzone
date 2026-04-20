@@ -12,8 +12,10 @@ interface StressHistoryEntry {
 interface RunState {
   run: RunRead | null;
   worldState: WorldState | null;
+  previousWorldState: WorldState | null;
   currentPhase: Phase;
   orderParameter: number;
+  previousOrderParameter: number;
   currentTurn: number;
   events: TurnEvent[];
   legalActions: LegalAction[];
@@ -43,8 +45,10 @@ interface RunState {
 const initialState = {
   run: null,
   worldState: null,
+  previousWorldState: null as WorldState | null,
   currentPhase: Phase.CompetitiveNormality,
   orderParameter: 0,
+  previousOrderParameter: 0,
   currentTurn: 0,
   events: [] as TurnEvent[],
   legalActions: [] as LegalAction[],
@@ -81,6 +85,8 @@ export const useRunStore = create<RunState>()((set) => ({
         typeof worldState.turn === "number" ? worldState.turn : state.currentTurn;
 
       return {
+        previousWorldState: state.worldState,
+        previousOrderParameter: state.orderParameter,
         worldState,
         currentPhase: worldState.phase ?? state.currentPhase,
         orderParameter: nextOrderParameter,
