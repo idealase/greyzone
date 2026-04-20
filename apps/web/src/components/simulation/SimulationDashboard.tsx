@@ -329,7 +329,7 @@ export default function SimulationDashboard({
                   />
                 )}
                 <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
-                {aiMoves.length > 0 && <AiMovePanel latestMove={aiMoves[0]} />}
+                {aiMoves.length > 0 && <AiMovePanel moves={aiMoves} />}
               </>
             )}
 
@@ -417,7 +417,7 @@ export default function SimulationDashboard({
                 side={side}
               />
             )}
-            {aiMoves.length > 0 && <AiMovePanel latestMove={aiMoves[0]} />}
+            {aiMoves.length > 0 && <AiMovePanel moves={aiMoves} />}
           </div>
         </>
       )}
