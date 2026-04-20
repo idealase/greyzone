@@ -91,6 +91,7 @@ async def quick_start(
         scenario_id=data.scenario_id,
         name=data.name,
         seed=data.seed,
+        player_side=data.player_side,
     )
 
 

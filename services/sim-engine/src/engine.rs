@@ -27,6 +27,9 @@ pub struct WorldState {
     pub rng_seed: u64,
     pub phase_history: Vec<(u32, Phase)>,
     pub max_turns: u32,
+    /// Coupling matrix as a nested map: domain name → domain name → coupling weight.
+    /// Matches the format expected by the frontend CouplingGraph component.
+    pub coupling_matrix: HashMap<String, HashMap<String, f64>>,
 }
 
 /// A filtered view of the world state visible to a specific role.
@@ -63,6 +66,8 @@ impl SimulationEngine {
 
         let stochastic_events = scenario.stochastic_events.clone();
 
+        let coupling_matrix_nested = coupling_matrix.to_nested_map();
+
         let state = WorldState {
             turn: 0,
             phase: Phase::CompetitiveNormality,
@@ -75,6 +80,7 @@ impl SimulationEngine {
             rng_seed: seed,
             phase_history: vec![(0, Phase::CompetitiveNormality)],
             max_turns: scenario.max_turns,
+            coupling_matrix: coupling_matrix_nested,
         };
 
         let mut engine = Self {
@@ -705,9 +711,30 @@ impl SimulationEngine {
             }
         }
 
-        // 2. Propagate stress through coupling matrix
+        // 2. Propagate stress through coupling matrix and emit coupling effect events
+        //    Compute per-(source, target) effects before applying so we can log them.
+        let propagation_effects = self
+            .coupling_matrix
+            .compute_propagation_effects(&self.state.layers);
+
         self.coupling_matrix
             .propagate_stress(&mut self.state.layers);
+
+        // Emit a CouplingEffect event for each meaningful propagation (delta > 0.001)
+        for (source, target, coupling_weight, delta) in propagation_effects {
+            if delta > 0.001 {
+                let coupling_event = Event::CouplingEffect {
+                    turn,
+                    source_domain: source,
+                    target_domain: target,
+                    coupling_weight,
+                    stress_delta: delta,
+                    visibility: crate::actor::Visibility::Public,
+                };
+                self.state.events.push(coupling_event.clone());
+                self.event_log.push(coupling_event);
+            }
+        }
 
         // 3. Apply friction decay (stress naturally decays a bit each turn)
         for layer in self.state.layers.values_mut() {
@@ -823,6 +850,7 @@ impl SimulationEngine {
                     rng_seed: self.seed,
                     phase_history: vec![(0, Phase::CompetitiveNormality)],
                     max_turns: self.state.max_turns,
+                    coupling_matrix: self.state.coupling_matrix.clone(),
                 };
                 (0, initial)
             }

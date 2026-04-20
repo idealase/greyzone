@@ -674,8 +674,9 @@ class RunManager:
         scenario_id: uuid.UUID,
         name: str | None = None,
         seed: int | None = None,
+        player_side: str = "blue",
     ) -> Run:
-        """Create a single-player run with human as blue and AI as red, then start."""
+        """Create a single-player run with the human on the chosen side, then start."""
         # Ensure AI user exists
         result = await db.execute(
             select(User).where(User.username == "ai_commander")
@@ -701,24 +702,31 @@ class RunManager:
         )
         run = await self.create_run(db, run_data, owner_id=user_id)
 
-        # Join human as blue_commander
+        if player_side == "red":
+            human_role = "red_commander"
+            ai_role = "blue_commander"
+        else:
+            human_role = "blue_commander"
+            ai_role = "red_commander"
+
+        # Join human with their chosen role
         await self.join_run(
             db,
             run.id,
             RunParticipantCreate(
                 user_id=user_id,
-                role_id="blue_commander",
+                role_id=human_role,
                 is_ai=False,
             ),
         )
 
-        # Join AI as red_commander
+        # Join AI with the opposite role
         await self.join_run(
             db,
             run.id,
             RunParticipantCreate(
                 user_id=ai_user.id,
-                role_id="red_commander",
+                role_id=ai_role,
                 is_ai=True,
             ),
         )

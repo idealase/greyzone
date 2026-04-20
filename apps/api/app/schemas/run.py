@@ -127,6 +127,7 @@ class QuickStartRequest(BaseModel):
     scenario_id: uuid.UUID
     name: str | None = None
     seed: int | None = None
+    player_side: str = "blue"  # "blue" or "red"
 
 
 class RunStateResponse(BaseModel):

@@ -15,6 +15,7 @@ export default function RunSetupPage() {
   const [scenarioId, setScenarioId] = useState(preselectedScenario);
   const [name, setName] = useState("");
   const [seed, setSeed] = useState("");
+  const [playerSide, setPlayerSide] = useState<"blue" | "red">("blue");
 
   const {
     data: scenarios,
@@ -47,6 +48,7 @@ export default function RunSetupPage() {
       user_id: user.id,
       name: name.trim() || "Quick Game",
       seed: seed ? parseInt(seed, 10) : undefined,
+      player_side: playerSide,
     });
   };
 
@@ -153,6 +155,31 @@ export default function RunSetupPage() {
             </div>
           )}
 
+          <div className="form-group">
+            <label className="form-label">Play As</label>
+            <div style={{ display: "flex", gap: "0.5rem" }}>
+              <button
+                type="button"
+                className={`btn btn--md flex-1${playerSide === "blue" ? " btn--primary" : " btn--ghost"}`}
+                onClick={() => setPlayerSide("blue")}
+              >
+                🔵 BLUFOR — Defend (avoid war)
+              </button>
+              <button
+                type="button"
+                className={`btn btn--md flex-1${playerSide === "red" ? " btn--danger" : " btn--ghost"}`}
+                onClick={() => setPlayerSide("red")}
+              >
+                🔴 OPFOR — Attack (create war)
+              </button>
+            </div>
+            <p style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.35rem" }}>
+              {playerSide === "blue"
+                ? "Hold Ψ below Phase 3 (0.50) for 20 turns. AI plays Red."
+                : "Drive Ψ to Phase 4 (0.70) and hold for 5 turns. AI plays Blue."}
+            </p>
+          </div>
+
           <button
             type="button"
             className="btn btn--primary btn--lg w-full"
@@ -162,7 +189,7 @@ export default function RunSetupPage() {
             onClick={handleQuickStart}
             style={{ marginBottom: "0.75rem" }}
           >
-            {quickStartMutation.isPending ? "Starting..." : "Quick Start vs AI"}
+            {quickStartMutation.isPending ? "Starting..." : `Quick Start — Play as ${playerSide === "blue" ? "BLUFOR" : "OPFOR"}`}
           </button>
 
           <button

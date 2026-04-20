@@ -7,6 +7,7 @@ import { TurnAdvancedMessage, PlayerJoinedMessage } from "../types/websocket";
 import { RunParticipant, WorldState, TurnEvent } from "../types/run";
 import { Phase } from "../types/phase";
 import { DomainLayer, LayerState } from "../types/domain";
+import { AiMoveResult } from "../types/action";
 
 export function useWebSocket(runId: string | undefined) {
   const user = useAuthStore((s) => s.user);
@@ -142,7 +143,7 @@ export function useWebSocket(runId: string | undefined) {
 
     unsubs.push(
       gameWebSocket.on("ai_move", (data) => {
-        const msg = data as { turn: number; events: Array<{ description: string; layer: string; role_id: string }>; world_state: WorldState };
+        const msg = data as { turn: number; events: Array<{ description: string; layer: string; role_id: string; action_type?: string; intensity?: number }>; world_state: WorldState };
         if (msg.world_state) {
           rs().setWorldState(msg.world_state);
         }
@@ -157,6 +158,28 @@ export function useWebSocket(runId: string | undefined) {
             visibility: "all" as const,
           }));
           rs().addEvents(aiEvents);
+
+          for (const evt of msg.events) {
+            const aiMove: AiMoveResult = {
+              action: {
+                id: `ai-ws-${msg.turn}-${Math.random().toString(36).slice(2, 11)}`,
+                run_id: "",
+                user_id: "",
+                username: evt.role_id ?? "AI",
+                action_type: evt.action_type ?? evt.description,
+                target_domain: (evt.layer as DomainLayer) ?? DomainLayer.Kinetic,
+                target_actor: null,
+                intensity: evt.intensity ?? 0.5,
+                turn: msg.turn,
+                side: "red",
+                submitted_at: new Date().toISOString(),
+              },
+              rationale: `${evt.role_id} selected ${evt.action_type ?? "action"} targeting ${evt.layer}`,
+              tool_calls: [],
+              validation: { is_valid: true, message: "Executed successfully" },
+            };
+            rs().addAiMove(aiMove);
+          }
         }
       })
     );

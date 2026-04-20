@@ -42,6 +42,14 @@ pub enum Event {
     SnapshotTaken {
         turn: u32,
     },
+    CouplingEffect {
+        turn: u32,
+        source_domain: DomainLayer,
+        target_domain: DomainLayer,
+        coupling_weight: f64,
+        stress_delta: f64,
+        visibility: Visibility,
+    },
 }
 
 /// Result of advancing a turn.

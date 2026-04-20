@@ -1,0 +1,13 @@
+# Greyzone API scrape job — append this block to /etc/prometheus/prometheus.yml
+# under the scrape_configs section.
+#
+# Apply with:  sudo ./infra/monitoring/apply.sh
+
+  - job_name: 'greyzone-api'
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    static_configs:
+      - targets: ['localhost:8010']
+        labels:
+          app: 'greyzone'
+          component: 'api'

@@ -2,8 +2,9 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { submitAction } from "../api/actions";
 import { advanceTurn } from "../api/runs";
+import { useAuthStore } from "../stores/authStore";
 import { useRunStore } from "../stores/runStore";
-import { ActionSubmit, ACTION_TYPE_LABELS } from "../types/action";
+import { ActionSubmit, ACTION_TYPE_LABELS, AiMoveResult } from "../types/action";
 import { DomainLayer, DOMAIN_LABELS, LayerState } from "../types/domain";
 import { TurnEvent } from "../types/run";
 
@@ -13,6 +14,7 @@ function generateId(): string {
 
 export function useActions(runId: string | undefined) {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const advanceAbortController = useRef<AbortController | null>(null);
 
   // Use getState() inside callbacks to avoid subscribing to every store change
@@ -23,7 +25,7 @@ export function useActions(runId: string | undefined) {
   const store = () => storeRef.current;
 
   const submitActionMutation = useMutation({
-    mutationFn: (data: ActionSubmit) => submitAction(data),
+    mutationFn: (data: ActionSubmit) => submitAction({ ...data, user_id: user?.id ?? "" }),
     onSuccess: (_result, variables) => {
       const syntheticEvent: TurnEvent = {
         id: generateId(),
@@ -38,6 +40,7 @@ export function useActions(runId: string | undefined) {
 
       if (runId) {
         queryClient.invalidateQueries({ queryKey: ["actions", runId] });
+        queryClient.invalidateQueries({ queryKey: ["run", runId] });
       }
     },
   });
@@ -132,6 +135,26 @@ export function useActions(runId: string | undefined) {
             turn: result.turn,
             visibility: "all",
           });
+
+          const aiMove: AiMoveResult = {
+            action: {
+              id: generateId(),
+              run_id: runId ?? "",
+              user_id: "",
+              username: aiAction.role_id ?? "AI",
+              action_type: aiAction.action_type ?? aiAction.description,
+              target_domain: (aiAction.layer as DomainLayer) ?? DomainLayer.Kinetic,
+              target_actor: null,
+              intensity: aiAction.intensity ?? 0.5,
+              turn: result.turn,
+              side: "red",
+              submitted_at: new Date().toISOString(),
+            },
+            rationale: `${aiAction.role_id} selected ${aiAction.action_type ?? "action"} targeting ${aiAction.layer}`,
+            tool_calls: [],
+            validation: { is_valid: true, message: "Executed successfully" },
+          };
+          store().addAiMove(aiMove);
         }
       }
 

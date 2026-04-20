@@ -1,6 +1,8 @@
+import { useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { useRunState } from "../hooks/useRunState";
 import { useWebSocket } from "../hooks/useWebSocket";
+import { useRunStore } from "../stores/runStore";
 import SimulationDashboard from "../components/simulation/SimulationDashboard";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import ConnectionBanner from "../components/common/ConnectionBanner";
@@ -10,6 +12,12 @@ export default function SimulationPage() {
   const { runId } = useParams<{ runId: string }>();
   const { runQuery, myRole, side } = useRunState(runId);
   useWebSocket(runId);
+
+  const reset = useRunStore((s) => s.reset);
+  useEffect(() => {
+    reset();
+    return () => reset(); // also reset on unmount
+  }, [runId, reset]);
 
   if (runQuery.isLoading) {
     return (
