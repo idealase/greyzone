@@ -6,6 +6,7 @@ import {
   PHASE_THRESHOLDS,
 } from "../../types/phase";
 import { formatOrderParameter } from "../../utils/formatters";
+import { PHASE_DESCRIPTIONS } from "../../data/glossary";
 import InfoTooltip from "../common/InfoTooltip";
 
 interface PhaseIndicatorProps {
@@ -46,6 +47,12 @@ export default function PhaseIndicator({
               label="Phase thresholds"
               content={
                 <div>
+                  {PHASE_DESCRIPTIONS[phase] && (
+                    <div style={{ marginBottom: "0.4rem" }}>
+                      <div>{PHASE_DESCRIPTIONS[phase].description}</div>
+                      <div style={{ marginTop: "0.2rem", color: "#22c55e" }}>🔓 {PHASE_DESCRIPTIONS[phase].unlocks}</div>
+                    </div>
+                  )}
                   <strong>Phase ladder</strong>
                   <div style={{ marginTop: "0.35rem" }}>
                     {phaseLadder.map((line) => (

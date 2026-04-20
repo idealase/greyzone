@@ -147,7 +147,13 @@ export default function MetricsOverview({
             Resources
             <InfoTooltip
               label="What are resources?"
-              content="Resource points (RP) are spent when executing actions. Each action has a cost. Resources recover slowly each turn (+2 RP). Running out limits your options."
+              content={
+                <div>
+                  <div>Resource points (RP) are spent when executing actions. Each action has a cost.</div>
+                  <div style={{ marginTop: "0.3rem", fontWeight: 600, color: "#22c55e" }}>♻️ Regeneration: +2 RP per turn</div>
+                  <div style={{ marginTop: "0.2rem" }}>Running out of RP limits your available actions. Plan resource expenditure carefully.</div>
+                </div>
+              }
             />
           </div>
           <div className="metric-card__value">

@@ -1,6 +1,8 @@
 import { DomainLayer, DOMAIN_LABELS, DOMAIN_COLORS, LayerState } from "../../types/domain";
 import { formatPercent } from "../../utils/formatters";
 import { STRESS_THRESHOLDS } from "../../utils/constants";
+import { DOMAIN_DESCRIPTIONS } from "../../data/glossary";
+import InfoTooltip from "../common/InfoTooltip";
 
 interface DomainPanelProps {
   domain: DomainLayer;
@@ -63,6 +65,16 @@ export default function DomainPanel({
             style={{ backgroundColor: color }}
           />
           {label}
+          <InfoTooltip
+            label={`About ${label}`}
+            content={
+              <div>
+                <div>{DOMAIN_DESCRIPTIONS[domain].summary}</div>
+                <div style={{ marginTop: "0.3rem" }}>📈 {DOMAIN_DESCRIPTIONS[domain].highStress}</div>
+                <div style={{ marginTop: "0.2rem" }}>🛡️ {DOMAIN_DESCRIPTIONS[domain].resilience}</div>
+              </div>
+            }
+          />
           {isMostChanged && <span className="domain-panel__volatile" title="Most changed this turn">⚡</span>}
         </div>
         <div className="domain-panel__value">
