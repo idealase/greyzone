@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { submitAction } from "../api/actions";
 import { advanceTurn } from "../api/runs";
+import { useAuthStore } from "../stores/authStore";
 import { useRunStore } from "../stores/runStore";
 import { ActionSubmit, ACTION_TYPE_LABELS } from "../types/action";
 import { DomainLayer, DOMAIN_LABELS, LayerState } from "../types/domain";
@@ -13,6 +14,7 @@ function generateId(): string {
 
 export function useActions(runId: string | undefined) {
   const queryClient = useQueryClient();
+  const user = useAuthStore((s) => s.user);
   const advanceAbortController = useRef<AbortController | null>(null);
 
   // Use getState() inside callbacks to avoid subscribing to every store change
@@ -23,7 +25,7 @@ export function useActions(runId: string | undefined) {
   const store = () => storeRef.current;
 
   const submitActionMutation = useMutation({
-    mutationFn: (data: ActionSubmit) => submitAction(data),
+    mutationFn: (data: ActionSubmit) => submitAction({ ...data, user_id: user?.id ?? "" }),
     onSuccess: (_result, variables) => {
       const syntheticEvent: TurnEvent = {
         id: generateId(),

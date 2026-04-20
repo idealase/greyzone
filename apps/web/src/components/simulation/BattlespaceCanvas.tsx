@@ -76,6 +76,7 @@ export default function BattlespaceCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [containerHeight, setContainerHeight] = useState(0);
   const [showLegend, setShowLegend] = useState(false);
   const [tooltip, setTooltip] = useState<TooltipData | null>(null);
   const [hoveredDomain, setHoveredDomain] = useState<DomainLayer | null>(null);
@@ -86,8 +87,10 @@ export default function BattlespaceCanvas({
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver((entries) => {
-      const w = entries[0]?.contentRect.width ?? 0;
-      if (w > 0) setContainerWidth(w);
+      for (const entry of entries) {
+        setContainerWidth(Math.round(entry.contentRect.width));
+        setContainerHeight(Math.round(entry.contentRect.height));
+      }
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -141,7 +144,9 @@ export default function BattlespaceCanvas({
     // DPR-aware sizing
     const dpr = window.devicePixelRatio || 1;
     const displayWidth = containerWidth;
-    const displayHeight = Math.floor(displayWidth / 2); // 2:1 aspect ratio
+    const displayHeight = containerHeight > 0
+      ? containerHeight
+      : Math.floor(displayWidth / 2);
     canvas.width = displayWidth * dpr;
     canvas.height = displayHeight * dpr;
     ctx.scale(dpr, dpr);
@@ -322,13 +327,47 @@ export default function BattlespaceCanvas({
       ctx.fillStyle = "rgba(180,180,180,0.5)";
       ctx.fillText(DOMAIN_FULL_LABELS[domain], zx + 4, zy + 16);
 
-      // Stress value readout bottom-right
-      const stressPct = (layer.stress * 100).toFixed(0);
+      // Stress color based on severity
+      const stress = layer.stress;
+      const resilience = layer.resilience;
+      let stressColor: string;
+      if (stress < 0.3) {
+        stressColor = "rgba(34,197,94,0.85)";   // green
+      } else if (stress < 0.6) {
+        stressColor = "rgba(234,179,8,0.85)";   // yellow
+      } else if (stress < 0.8) {
+        stressColor = "rgba(249,115,22,0.85)";  // orange
+      } else {
+        stressColor = "rgba(239,68,68,0.85)";   // red
+      }
+
+      // Stress value - bottom left (capped at 15px)
+      const stressText = `${Math.round(stress * 100)}%`;
+      const stressFontPx = Math.min(Math.round(cellH * 0.14), 15);
+      ctx.font = `bold ${stressFontPx}px monospace`;
+      ctx.textAlign = "left";
+      ctx.textBaseline = "bottom";
+      ctx.fillStyle = stressColor;
+      ctx.fillText(stressText, zx + ZONE_PAD + 4, zy + zh - ZONE_PAD - 4);
+
+      // Resilience value - bottom right (capped at 12px)
+      const resText = `R ${Math.round(resilience * 100)}%`;
+      const resFontPx = Math.min(Math.round(cellH * 0.12), 12);
+      ctx.font = `${resFontPx}px monospace`;
       ctx.textAlign = "right";
       ctx.textBaseline = "bottom";
-      ctx.font = "9px monospace";
-      ctx.fillStyle = `rgba(${dr},${dg},${db},0.7)`;
-      ctx.fillText(`${stressPct}%`, zx + zw - 4, zy + zh - 4);
+      ctx.fillStyle = "rgba(100,160,255,0.85)";
+      ctx.fillText(resText, zx + zw - ZONE_PAD - 4, zy + zh - ZONE_PAD - 4);
+
+      // Thin horizontal stress bar at very bottom of zone
+      const barTotalW = zw - ZONE_PAD * 2 - 4;
+      const barFillW = barTotalW * stress;
+      const barY = zy + zh - 3;
+      const barX = zx + ZONE_PAD + 2;
+      ctx.fillStyle = "rgba(40,40,40,0.5)";
+      ctx.fillRect(barX, barY, barTotalW, 2);
+      ctx.fillStyle = stressColor;
+      ctx.fillRect(barX, barY, barFillW, 2);
     });
 
     zoneRectsRef.current = newZoneRects;
@@ -362,7 +401,7 @@ export default function BattlespaceCanvas({
         }
       }
     }
-  }, [worldState, previousWorldState, containerWidth, hoveredDomain]);
+  }, [worldState, previousWorldState, containerWidth, containerHeight, hoveredDomain]);
 
   const fmtPct = (v: number) => `${(v * 100).toFixed(0)}%`;
   const layer = tooltip && worldState ? worldState.layers[tooltip.domain] : null;
@@ -374,26 +413,28 @@ export default function BattlespaceCanvas({
     return d > 0 ? "↑" : "↓";
   };
 
-  const displayH = containerWidth > 0 ? Math.floor(containerWidth / 2) : 0;
+  const displayW = containerWidth;
+  const displayH = containerHeight > 0
+    ? containerHeight
+    : Math.floor(displayW / 2);
 
   return (
     <div
       ref={containerRef}
       style={{
         width: "100%",
+        height: "100%",
         position: "relative",
-        height: displayH > 0 ? displayH : undefined,
-        minHeight: 200,
       }}
     >
-      {containerWidth > 0 && (
+      {displayW > 0 && (
         <canvas
           ref={canvasRef}
           style={{
             display: "block",
             imageRendering: "pixelated",
-            width: containerWidth,
-            height: Math.floor(containerWidth / 2),
+            width: displayW,
+            height: displayH,
             cursor: hoveredDomain ? "pointer" : "default",
           }}
           onMouseMove={handleMouseMove}
@@ -407,7 +448,7 @@ export default function BattlespaceCanvas({
         <div
           className="bc-tooltip"
           style={{
-            left: Math.min(tooltip.x + 12, containerWidth - 180),
+            left: Math.min(tooltip.x + 12, displayW - 180),
             top: tooltip.y + 12,
           }}
         >

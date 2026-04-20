@@ -360,22 +360,9 @@ export default function SimulationDashboard({
           </div>
         </>
       ) : (
-        <>
-          <div className="sim-layout__left">
-            {ALL_DOMAINS.map((domain) => (
-              <DomainPanel
-                key={domain}
-                domain={domain}
-                layerState={worldState?.layers[domain] ?? null}
-                previousLayerState={previousWorldState?.layers[domain] ?? null}
-                isMostChanged={domain === mostChangedDomain}
-                couplingMatrix={worldState?.coupling_matrix}
-                recentEvents={events}
-              />
-            ))}
-          </div>
-
-          <div className="sim-layout__center">
+        <div className="sim-panel-container">
+          {/* LEFT: Canvas + Domain Action Bar */}
+          <div className="sim-panel--canvas">
             <div className="battlespace-canvas">
               <BattlespaceCanvas
                 worldState={worldState}
@@ -383,14 +370,16 @@ export default function SimulationDashboard({
                 onDomainClick={myRole !== "observer" ? (domain) => setActionModalDomain(domain) : undefined}
               />
             </div>
-
             {myRole !== "observer" && (
               <DomainActionBar
                 legalActions={legalActions}
                 onDomainClick={(domain) => setActionModalDomain(domain)}
               />
             )}
+          </div>
 
+          {/* RIGHT: Metrics, Chart, Events */}
+          <div className="sim-panel--info">
             <MetricsOverview
               orderParameter={orderParameter}
               phase={currentPhase}
@@ -401,11 +390,9 @@ export default function SimulationDashboard({
               previousOrderParameter={previousOrderParameter}
               previousWorldState={previousWorldState}
             />
-
             {aiMoves.length > 0 && <AiMovePanel moves={aiMoves} />}
-
             <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
-            <div style={{ textAlign: "center", margin: "0.3rem 0", display: "flex", gap: "0.5rem", justifyContent: "center" }}>
+            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexShrink: 0 }}>
               <button
                 className="btn btn--sm btn--ghost"
                 onClick={() => setShowCouplingGraph(true)}
@@ -423,7 +410,7 @@ export default function SimulationDashboard({
             </div>
             <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
           </div>
-        </>
+        </div>
       )}
 
       {actionModalDomain !== null && myRole !== "observer" && (
@@ -465,12 +452,16 @@ export default function SimulationDashboard({
           </button>
         }
       >
-        {worldState?.coupling_matrix && (
+        {worldState?.coupling_matrix ? (
           <CouplingGraph
             couplingMatrix={worldState.coupling_matrix}
-            layers={worldState.layers}
-            activeCouplings={activeCouplings}
+            layers={worldState.layers as any}
+            activeCouplings={[]}
           />
+        ) : (
+          <div style={{ textAlign: "center", padding: "2rem", color: "var(--text-muted)" }}>
+            No coupling data available yet. Advance a turn to see domain interactions.
+          </div>
         )}
       </Dialog>
 
