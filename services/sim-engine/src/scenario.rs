@@ -262,14 +262,14 @@ pub fn hormuz_flashpoint() -> Scenario {
     let mut initial_layers = HashMap::new();
     initial_layers.insert(
         DomainLayer::Kinetic,
-        LayerState::new(0.25, 0.72, 0.25, 0.30)
+        LayerState::new(0.15, 0.78, 0.25, 0.30)
             .with_variable("force_posture", 0.30)
             .with_variable("readiness", 0.72)
             .with_variable("theater_control", 0.45),
     );
     initial_layers.insert(
         DomainLayer::MaritimeLogistics,
-        LayerState::new(0.38, 0.58, 0.35, 0.45)
+        LayerState::new(0.25, 0.68, 0.35, 0.45)
             .with_variable("sloc_throughput", 0.62)
             .with_variable("naval_presence", 0.50)
             .with_variable("mine_density", 0.25)
@@ -277,7 +277,7 @@ pub fn hormuz_flashpoint() -> Scenario {
     );
     initial_layers.insert(
         DomainLayer::Energy,
-        LayerState::new(0.40, 0.55, 0.30, 0.50)
+        LayerState::new(0.28, 0.68, 0.30, 0.50)
             .with_variable("production_level", 0.75)
             .with_variable("price_index", 1.45)
             .with_variable("infrastructure_integrity", 0.68)
@@ -285,7 +285,7 @@ pub fn hormuz_flashpoint() -> Scenario {
     );
     initial_layers.insert(
         DomainLayer::GeoeconomicIndustrial,
-        LayerState::new(0.30, 0.62, 0.25, 0.35)
+        LayerState::new(0.20, 0.72, 0.25, 0.35)
             .with_variable("trade_flow", 0.68)
             .with_variable("sanctions_pressure", 0.32)
             .with_variable("industrial_output", 0.72)
@@ -293,28 +293,28 @@ pub fn hormuz_flashpoint() -> Scenario {
     );
     initial_layers.insert(
         DomainLayer::Cyber,
-        LayerState::new(0.20, 0.65, 0.20, 0.28)
+        LayerState::new(0.12, 0.75, 0.20, 0.28)
             .with_variable("cyber_posture", 0.62)
             .with_variable("vulnerability_index", 0.35)
             .with_variable("attack_capacity", 0.70),
     );
     initial_layers.insert(
         DomainLayer::SpacePnt,
-        LayerState::new(0.12, 0.75, 0.15, 0.22)
+        LayerState::new(0.08, 0.82, 0.15, 0.22)
             .with_variable("satellite_health", 0.82)
             .with_variable("pnt_accuracy", 0.88)
             .with_variable("asat_readiness", 0.25),
     );
     initial_layers.insert(
         DomainLayer::InformationCognitive,
-        LayerState::new(0.28, 0.60, 0.28, 0.38)
+        LayerState::new(0.18, 0.70, 0.28, 0.38)
             .with_variable("narrative_control", 0.45)
             .with_variable("public_opinion", 0.52)
             .with_variable("disinformation_intensity", 0.42),
     );
     initial_layers.insert(
         DomainLayer::DomesticPoliticalFiscal,
-        LayerState::new(0.22, 0.68, 0.20, 0.25)
+        LayerState::new(0.14, 0.76, 0.20, 0.25)
             .with_variable("gov_stability", 0.70)
             .with_variable("fiscal_reserves", 0.75)
             .with_variable("political_will", 0.65)
@@ -350,9 +350,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "IRGC Fast Boat Swarm".into(),
             description: "A swarm of IRGC fast attack craft conducts a high-speed intercept of a US naval vessel in international waters.".into(),
             affected_layer: DomainLayer::Kinetic,
-            stress_delta: 0.08,
-            resilience_delta: -0.02,
-            probability: 0.18,
+            stress_delta: 0.04,
+            resilience_delta: -0.01,
+            probability: 0.10,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -360,9 +360,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Tanker Seizure in Strait".into(),
             description: "IRGC commandos rappel onto a flagged tanker in the Strait, triggering an international maritime incident.".into(),
             affected_layer: DomainLayer::MaritimeLogistics,
-            stress_delta: 0.12,
-            resilience_delta: -0.04,
-            probability: 0.15,
+            stress_delta: 0.06,
+            resilience_delta: -0.02,
+            probability: 0.08,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -370,9 +370,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Drone Strike on Aramco Facility".into(),
             description: "Iranian-linked drones strike a Saudi Aramco processing facility, briefly cutting 5% of global oil supply.".into(),
             affected_layer: DomainLayer::Energy,
-            stress_delta: 0.14,
-            resilience_delta: -0.05,
-            probability: 0.14,
+            stress_delta: 0.07,
+            resilience_delta: -0.02,
+            probability: 0.07,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -380,9 +380,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "US Carrier Strike Group Arrival".into(),
             description: "A US carrier strike group transits the Strait of Hormuz and takes up position in the Gulf of Oman.".into(),
             affected_layer: DomainLayer::Kinetic,
-            stress_delta: 0.06,
+            stress_delta: 0.03,
             resilience_delta: 0.04,
-            probability: 0.13,
+            probability: 0.10,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -390,9 +390,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Houthi Ballistic Missile Launch".into(),
             description: "Houthi forces launch a barrage of ballistic missiles at GCC military installations.".into(),
             affected_layer: DomainLayer::Kinetic,
-            stress_delta: 0.09,
-            resilience_delta: -0.03,
-            probability: 0.17,
+            stress_delta: 0.05,
+            resilience_delta: -0.02,
+            probability: 0.09,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -400,9 +400,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Oil Price Shock".into(),
             description: "Strait tensions trigger a 25% oil price spike, destabilising global financial markets.".into(),
             affected_layer: DomainLayer::GeoeconomicIndustrial,
-            stress_delta: 0.11,
-            resilience_delta: -0.03,
-            probability: 0.20,
+            stress_delta: 0.05,
+            resilience_delta: -0.02,
+            probability: 0.11,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -410,9 +410,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Iranian Mine Deployment".into(),
             description: "Intelligence confirms IRGC mine-laying vessels have seeded portions of the strait with contact mines.".into(),
             affected_layer: DomainLayer::MaritimeLogistics,
-            stress_delta: 0.10,
-            resilience_delta: -0.04,
-            probability: 0.16,
+            stress_delta: 0.05,
+            resilience_delta: -0.02,
+            probability: 0.08,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -420,9 +420,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Strait GPS Jamming".into(),
             description: "Sophisticated GPS jamming blankets the strait, forcing tankers onto manual navigation.".into(),
             affected_layer: DomainLayer::SpacePnt,
-            stress_delta: 0.08,
-            resilience_delta: -0.03,
-            probability: 0.14,
+            stress_delta: 0.04,
+            resilience_delta: -0.02,
+            probability: 0.08,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -430,9 +430,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Gulf Disinformation Surge".into(),
             description: "A coordinated disinformation campaign floods regional media with fabricated footage.".into(),
             affected_layer: DomainLayer::InformationCognitive,
-            stress_delta: 0.08,
-            resilience_delta: -0.02,
-            probability: 0.19,
+            stress_delta: 0.04,
+            resilience_delta: -0.01,
+            probability: 0.10,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -440,9 +440,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "GCC Emergency Summit".into(),
             description: "Gulf leaders convene an emergency summit, producing a joint communiqué that strengthens coalition solidarity.".into(),
             affected_layer: DomainLayer::DomesticPoliticalFiscal,
-            stress_delta: -0.05,
-            resilience_delta: 0.04,
-            probability: 0.13,
+            stress_delta: -0.06,
+            resilience_delta: 0.05,
+            probability: 0.14,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -450,9 +450,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "China Diplomatic Intervention".into(),
             description: "China's foreign minister conducts shuttle diplomacy between Tehran and Riyadh.".into(),
             affected_layer: DomainLayer::GeoeconomicIndustrial,
-            stress_delta: -0.06,
-            resilience_delta: 0.03,
-            probability: 0.12,
+            stress_delta: -0.07,
+            resilience_delta: 0.04,
+            probability: 0.13,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -460,9 +460,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Cyberattack on Abqaiq Facility".into(),
             description: "A sophisticated cyberattack penetrates industrial control systems at the Abqaiq oil processing complex.".into(),
             affected_layer: DomainLayer::Cyber,
-            stress_delta: 0.12,
-            resilience_delta: -0.05,
-            probability: 0.14,
+            stress_delta: 0.06,
+            resilience_delta: -0.02,
+            probability: 0.07,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -470,9 +470,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "US Sanctions Escalation".into(),
             description: "Washington announces sweeping new sanctions targeting Iranian oil exports, banking, and IRGC commanders.".into(),
             affected_layer: DomainLayer::GeoeconomicIndustrial,
-            stress_delta: 0.09,
-            resilience_delta: -0.02,
-            probability: 0.16,
+            stress_delta: 0.05,
+            resilience_delta: -0.01,
+            probability: 0.09,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -480,9 +480,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "IRGC Submarine Activity".into(),
             description: "A US P-8 Poseidon locates an IRGC submarine conducting close surveillance of the carrier strike group.".into(),
             affected_layer: DomainLayer::MaritimeLogistics,
-            stress_delta: 0.07,
-            resilience_delta: -0.02,
-            probability: 0.15,
+            stress_delta: 0.04,
+            resilience_delta: -0.01,
+            probability: 0.08,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -490,9 +490,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Houthi Sea Mine Strike".into(),
             description: "A commercial tanker strikes a Houthi-laid sea mine in the Red Sea.".into(),
             affected_layer: DomainLayer::MaritimeLogistics,
-            stress_delta: 0.11,
-            resilience_delta: -0.04,
-            probability: 0.18,
+            stress_delta: 0.06,
+            resilience_delta: -0.02,
+            probability: 0.09,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -500,9 +500,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Iranian Nuclear Signal".into(),
             description: "Iran announces enrichment to 90% purity at Fordow, crossing a red line that triggers international alarm.".into(),
             affected_layer: DomainLayer::DomesticPoliticalFiscal,
-            stress_delta: 0.10,
-            resilience_delta: -0.03,
-            probability: 0.13,
+            stress_delta: 0.05,
+            resilience_delta: -0.02,
+            probability: 0.07,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -510,9 +510,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Red Sea Shipping Diversion".into(),
             description: "Major shipping companies divert vessels away from the Red Sea and Hormuz.".into(),
             affected_layer: DomainLayer::GeoeconomicIndustrial,
-            stress_delta: 0.08,
-            resilience_delta: -0.02,
-            probability: 0.17,
+            stress_delta: 0.04,
+            resilience_delta: -0.01,
+            probability: 0.10,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -520,9 +520,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "US Embassy Evacuation".into(),
             description: "Washington orders non-essential staff evacuated from Gulf embassies as the threat level reaches CRITICAL.".into(),
             affected_layer: DomainLayer::DomesticPoliticalFiscal,
-            stress_delta: 0.07,
-            resilience_delta: -0.02,
-            probability: 0.14,
+            stress_delta: 0.04,
+            resilience_delta: -0.01,
+            probability: 0.07,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -530,9 +530,9 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "GCC Air Defense Alert".into(),
             description: "GCC air defence systems go to maximum alert following detection of multiple ballistic missile trajectories.".into(),
             affected_layer: DomainLayer::Kinetic,
-            stress_delta: 0.06,
-            resilience_delta: 0.02,
-            probability: 0.15,
+            stress_delta: 0.03,
+            resilience_delta: 0.03,
+            probability: 0.10,
             visibility: Visibility::Public,
         },
         StochasticEvent {
@@ -540,9 +540,70 @@ fn hormuz_stochastic_events() -> Vec<StochasticEvent> {
             name: "Oil Tanker Insurance Collapse".into(),
             description: "Lloyd's of London withdraws coverage for Gulf-transiting tankers, effectively halting commercial shipping.".into(),
             affected_layer: DomainLayer::GeoeconomicIndustrial,
-            stress_delta: 0.09,
-            resilience_delta: -0.04,
-            probability: 0.22,
+            stress_delta: 0.05,
+            resilience_delta: -0.02,
+            probability: 0.10,
+            visibility: Visibility::Public,
+        },
+        // De-escalatory events
+        StochasticEvent {
+            id: Uuid::new_v4(),
+            name: "Oman Back-Channel Talks".into(),
+            description: "Oman hosts secret back-channel talks between US and Iranian officials, creating a viable diplomatic path.".into(),
+            affected_layer: DomainLayer::InformationCognitive,
+            stress_delta: -0.06,
+            resilience_delta: 0.04,
+            probability: 0.12,
+            visibility: Visibility::Public,
+        },
+        StochasticEvent {
+            id: Uuid::new_v4(),
+            name: "UN Security Council Resolution".into(),
+            description: "The UN Security Council passes a unanimous resolution calling for restraint in the Gulf.".into(),
+            affected_layer: DomainLayer::DomesticPoliticalFiscal,
+            stress_delta: -0.05,
+            resilience_delta: 0.05,
+            probability: 0.11,
+            visibility: Visibility::Public,
+        },
+        StochasticEvent {
+            id: Uuid::new_v4(),
+            name: "Gulf Maritime De-confliction Agreement".into(),
+            description: "Naval commanders establish a maritime de-confliction hotline to prevent accidental engagements.".into(),
+            affected_layer: DomainLayer::MaritimeLogistics,
+            stress_delta: -0.05,
+            resilience_delta: 0.06,
+            probability: 0.10,
+            visibility: Visibility::Public,
+        },
+        StochasticEvent {
+            id: Uuid::new_v4(),
+            name: "Iranian Moderates Gain Ground".into(),
+            description: "Iranian reformist factions push for de-escalation, citing economic damage from sanctions.".into(),
+            affected_layer: DomainLayer::GeoeconomicIndustrial,
+            stress_delta: -0.06,
+            resilience_delta: 0.03,
+            probability: 0.10,
+            visibility: Visibility::Public,
+        },
+        StochasticEvent {
+            id: Uuid::new_v4(),
+            name: "Energy Market Stabilisation Fund".into(),
+            description: "IEA members release strategic petroleum reserves, dampening the oil price shock.".into(),
+            affected_layer: DomainLayer::Energy,
+            stress_delta: -0.05,
+            resilience_delta: 0.04,
+            probability: 0.11,
+            visibility: Visibility::Public,
+        },
+        StochasticEvent {
+            id: Uuid::new_v4(),
+            name: "Cyber Ceasefire Signal".into(),
+            description: "Both sides quietly halt offensive cyber operations following back-channel communications.".into(),
+            affected_layer: DomainLayer::Cyber,
+            stress_delta: -0.05,
+            resilience_delta: 0.05,
+            probability: 0.09,
             visibility: Visibility::Public,
         },
     ]
@@ -683,7 +744,7 @@ mod tests {
     #[test]
     fn test_hormuz_stochastic_events() {
         let events = hormuz_stochastic_events();
-        assert_eq!(events.len(), 20);
+        assert_eq!(events.len(), 26);
         for ev in &events {
             assert!(
                 ev.probability > 0.0 && ev.probability <= 1.0,
