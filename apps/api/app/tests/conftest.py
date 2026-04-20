@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import os
 import uuid
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
+
+os.environ["TESTING"] = "true"
 
 import pytest
 import pytest_asyncio

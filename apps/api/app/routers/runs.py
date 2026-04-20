@@ -2,10 +2,11 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Query, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.middleware.auth import decode_access_token, get_current_user
+from app.middleware.rate_limit import create_limit
 from app.db.session import get_session
 from app.models.user import User
 from app.schemas.metrics import MetricsResponse
@@ -52,7 +53,9 @@ def get_ws_manager() -> ConnectionManager:
 
 
 @router.post("", response_model=RunRead, status_code=201)
+@create_limit
 async def create_run(
+    request: Request,
     data: RunCreate,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
@@ -72,7 +75,9 @@ async def list_runs(
 
 
 @router.post("/quick-start", response_model=RunRead, status_code=201)
+@create_limit
 async def quick_start(
+    request: Request,
     data: QuickStartRequest,
     db: AsyncSession = Depends(get_session),
     mgr: RunManager = Depends(get_run_manager),
