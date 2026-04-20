@@ -74,6 +74,7 @@ export function useWebSocket(runId: string | undefined) {
           msg.turn,
           msg.world_state.layers as Record<DomainLayer, LayerState>
         );
+        rs().addPsiSnapshot(msg.turn, msg.order_parameter, msg.phase);
       })
     );
 
@@ -85,6 +86,11 @@ export function useWebSocket(runId: string | undefined) {
         rs().addStressSnapshot(
           msg.turn,
           msg.world_state.layers as Record<DomainLayer, LayerState>
+        );
+        rs().addPsiSnapshot(
+          msg.turn,
+          msg.world_state.order_parameter ?? rs().orderParameter,
+          msg.world_state.phase ?? rs().currentPhase,
         );
       })
     );

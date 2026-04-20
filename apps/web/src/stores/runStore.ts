@@ -9,6 +9,12 @@ interface StressHistoryEntry {
   values: Record<DomainLayer, number>;
 }
 
+interface PsiHistoryEntry {
+  turn: number;
+  psi: number;
+  phase: Phase;
+}
+
 interface RunState {
   run: RunRead | null;
   worldState: WorldState | null;
@@ -21,6 +27,7 @@ interface RunState {
   legalActions: LegalAction[];
   participants: RunParticipant[];
   stressHistory: StressHistoryEntry[];
+  psiHistory: PsiHistoryEntry[];
   aiMoves: AiMoveResult[];
   isAdvancingTurn: boolean;
 
@@ -37,6 +44,7 @@ interface RunState {
   addParticipant: (participant: RunParticipant) => void;
   removeParticipant: (userId: string) => void;
   addStressSnapshot: (turn: number, layers: Record<DomainLayer, LayerState>) => void;
+  addPsiSnapshot: (turn: number, psi: number, phase: Phase) => void;
   addAiMove: (move: AiMoveResult) => void;
   setIsAdvancingTurn: (val: boolean) => void;
   reset: () => void;
@@ -54,6 +62,7 @@ const initialState = {
   legalActions: [] as LegalAction[],
   participants: [] as RunParticipant[],
   stressHistory: [] as StressHistoryEntry[],
+  psiHistory: [] as PsiHistoryEntry[],
   aiMoves: [] as AiMoveResult[],
   isAdvancingTurn: false,
 };
@@ -139,6 +148,11 @@ export const useRunStore = create<RunState>()((set) => ({
         stressHistory: [...state.stressHistory, { turn, values }].slice(-50),
       };
     }),
+
+  addPsiSnapshot: (turn, psi, phase) =>
+    set((state) => ({
+      psiHistory: [...state.psiHistory, { turn, psi, phase }].slice(-50),
+    })),
 
   addAiMove: (move) =>
     set((state) => ({

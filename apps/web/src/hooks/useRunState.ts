@@ -6,7 +6,7 @@ import { useAuthStore } from "../stores/authStore";
 import { DomainLayer, LayerState } from "../types/domain";
 
 export function useRunState(runId: string | undefined) {
-  const { setRun, setLegalActions, addStressSnapshot, run } = useRunStore();
+  const { setRun, setLegalActions, addStressSnapshot, addPsiSnapshot, run } = useRunStore();
   const user = useAuthStore((s) => s.user);
 
   const runQuery = useQuery({
@@ -24,9 +24,14 @@ export function useRunState(runId: string | undefined) {
           runQuery.data.current_turn,
           runQuery.data.world_state.layers as Record<DomainLayer, LayerState>
         );
+        addPsiSnapshot(
+          runQuery.data.current_turn,
+          runQuery.data.order_parameter ?? 0,
+          runQuery.data.current_phase,
+        );
       }
     }
-  }, [runQuery.data, setRun, addStressSnapshot]);
+  }, [runQuery.data, setRun, addStressSnapshot, addPsiSnapshot]);
 
   const myRole = run?.participants.find((p) => p.user_id === user?.id)?.role;
   const side = myRole === "red_commander" ? "red" : "blue";
