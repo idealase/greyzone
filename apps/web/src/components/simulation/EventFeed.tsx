@@ -1,5 +1,7 @@
 import { TurnEvent } from "../../types/run";
 import { DomainLayer, DOMAIN_LABELS } from "../../types/domain";
+import { EVENT_TYPE_DESCRIPTIONS } from "../../data/glossary";
+import InfoTooltip from "../common/InfoTooltip";
 
 interface EventFeedProps {
   events: TurnEvent[];
@@ -114,6 +116,12 @@ export default function EventFeed({ events, couplingMatrix }: EventFeedProps) {
                 <span className="event-item__turn">T{event.turn}</span>
                 <span className={`event-item__type-badge ${badge.className}`}>
                   {badge.label}
+                  {EVENT_TYPE_DESCRIPTIONS[event.type] && (
+                    <InfoTooltip
+                      label={`${badge.label} event type`}
+                      content={EVENT_TYPE_DESCRIPTIONS[event.type]}
+                    />
+                  )}
                 </span>
                 {domainLabel && event.type !== "coupling_effect" && (
                   <span className="event-item__domain">{domainLabel}</span>

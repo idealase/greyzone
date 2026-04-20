@@ -18,6 +18,7 @@ import CouplingGraph from "./CouplingGraph";
 import AfterActionReport, { DomainDelta, computeDomainDeltas } from "./AfterActionReport";
 import ScenarioBriefing from "./ScenarioBriefing";
 import Dialog from "../common/Dialog";
+import Glossary from "../common/Glossary";
 
 interface AarData {
   completedTurn: number;
@@ -108,6 +109,7 @@ export default function SimulationDashboard({
   const [advanceErrorMessage, setAdvanceErrorMessage] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showCouplingGraph, setShowCouplingGraph] = useState(false);
+  const [showGlossary, setShowGlossary] = useState(false);
   const prevWorldStateRef = useRef<WorldState | null>(null);
   const isMountedRef = useRef(true);
   const [activeMobileTab, setActiveMobileTab] =
@@ -214,9 +216,13 @@ export default function SimulationDashboard({
       if (!isFormElement && e.key === "c" && !e.ctrlKey && !e.metaKey) {
         setShowCouplingGraph((v) => !v);
       }
+      if (!isFormElement && e.key === "g" && !e.ctrlKey && !e.metaKey) {
+        setShowGlossary((v) => !v);
+      }
       if (e.key === "Escape") {
         setShowShortcuts(false);
         setShowCouplingGraph(false);
+        setShowGlossary(false);
       }
     };
 
@@ -374,13 +380,20 @@ export default function SimulationDashboard({
               previousWorldState={previousWorldState}
             />
             <DomainStressChart stressHistory={stressHistory} />
-            <div style={{ textAlign: "center", margin: "0.3rem 0" }}>
+            <div style={{ textAlign: "center", margin: "0.3rem 0", display: "flex", gap: "0.5rem", justifyContent: "center" }}>
               <button
                 className="btn btn--sm btn--ghost"
                 onClick={() => setShowCouplingGraph(true)}
                 title="View domain coupling map (C)"
               >
                 🔗 View Couplings
+              </button>
+              <button
+                className="btn btn--sm btn--ghost"
+                onClick={() => setShowGlossary(true)}
+                title="Open game glossary (G)"
+              >
+                📖 Glossary
               </button>
             </div>
             <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
@@ -478,7 +491,24 @@ export default function SimulationDashboard({
             <span>Expand/collapse all action cards</span>
             <span className="shortcut-key">E</span>
           </li>
+          <li className="shortcut-list__item">
+            <span>Toggle glossary</span>
+            <span className="shortcut-key">G</span>
+          </li>
         </ul>
+      </Dialog>
+
+      <Dialog
+        open={showGlossary}
+        onClose={() => setShowGlossary(false)}
+        title="📖 Game Glossary"
+        actions={
+          <button className="btn btn--primary btn--sm" onClick={() => setShowGlossary(false)}>
+            Close
+          </button>
+        }
+      >
+        <Glossary />
       </Dialog>
     </div>
   );

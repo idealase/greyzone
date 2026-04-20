@@ -7,6 +7,7 @@ import { useLocaleAction } from "../../hooks/useScenarioLocale";
 import ActionEffectPreview, { computeEffects } from "./ActionEffectPreview";
 import ActionEscalationBadge, { getBadgeLevel } from "./ActionEscalationBadge";
 import InfoTooltip from "../common/InfoTooltip";
+import { ACTION_TYPE_DESCRIPTIONS } from "../../data/glossary";
 
 interface ActionCardProps {
   action: LegalAction;
@@ -131,6 +132,12 @@ export default function ActionCard({
       <div className="action-card__header">
         <span className="action-card__type">
           {localeAction?.label ?? action.action_type}
+          {ACTION_TYPE_DESCRIPTIONS[action.action_type] && (
+            <InfoTooltip
+              label={`About ${action.action_type}`}
+              content={ACTION_TYPE_DESCRIPTIONS[action.action_type]}
+            />
+          )}
         </span>
         <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
           {action.resource_cost != null && (
