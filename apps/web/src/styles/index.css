@@ -2335,3 +2335,73 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
   background: var(--bg-elevated, #1e293b);
   color: var(--text-primary, #f1f5f9);
 }
+
+/* ── Coupling Graph Enhancements ─────────────────────────── */
+.coupling-graph__legend {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  color: var(--text-muted, #94a3b8);
+}
+
+.coupling-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.coupling-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.coupling-dot--pulse {
+  background: #60a5fa;
+  animation: coupling-pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes coupling-pulse {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.4); }
+}
+
+.coupling-edge--active {
+  animation: coupling-edge-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes coupling-edge-pulse {
+  0%, 100% { stroke-opacity: 0.5; }
+  50% { stroke-opacity: 1; }
+}
+
+/* ── Coupling Callout in Event Feed ──────────────────────── */
+.coupling-callout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  margin-right: 0.35rem;
+}
+
+.coupling-callout__source {
+  color: #818cf8;
+}
+
+.coupling-callout__arrow {
+  color: var(--text-muted, #94a3b8);
+}
+
+.coupling-callout__target {
+  color: #f472b6;
+}
+
+.coupling-callout__weight {
+  color: var(--text-muted, #94a3b8);
+  font-weight: 400;
+  font-size: 0.68rem;
+  margin-left: 0.15rem;
+}
