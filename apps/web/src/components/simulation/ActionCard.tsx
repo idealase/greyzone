@@ -1,11 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { LegalAction } from "../../types/run";
 import { DomainLayer, DOMAIN_LABELS } from "../../types/domain";
 import { MIN_INTENSITY, MAX_INTENSITY, INTENSITY_STEP } from "../../utils/constants";
 import { useRunStore } from "../../stores/runStore";
 import { useLocaleAction } from "../../hooks/useScenarioLocale";
-import ActionEffectPreview from "./ActionEffectPreview";
-import ActionEscalationBadge from "./ActionEscalationBadge";
+import ActionEffectPreview, { computeEffects } from "./ActionEffectPreview";
+import ActionEscalationBadge, { getBadgeLevel } from "./ActionEscalationBadge";
 import InfoTooltip from "../common/InfoTooltip";
 
 interface ActionCardProps {
@@ -13,6 +13,7 @@ interface ActionCardProps {
   onSubmit: (intensity: number, selectedDomain: string) => void;
   isSubmitting: boolean;
   side: "blue" | "red";
+  forceExpand?: boolean;
 }
 
 const SPILLOVER_DOMAINS: Record<string, string> = {
@@ -33,6 +34,7 @@ export default function ActionCard({
   onSubmit,
   isSubmitting,
   side,
+  forceExpand,
 }: ActionCardProps) {
   // Derive intensity bounds from parameter_ranges or legacy fields
   const minIntensity =
@@ -55,6 +57,10 @@ export default function ActionCard({
   // Per-card executed state
   const [executed, setExecuted] = useState(false);
   const [showDetail, setShowDetail] = useState(false);
+  const [hoverPreview, setHoverPreview] = useState(false);
+  const hoverTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isExpanded = showDetail || forceExpand;
 
   useEffect(() => {
     if (executed) {
@@ -62,6 +68,17 @@ export default function ActionCard({
       return () => clearTimeout(timer);
     }
   }, [executed]);
+
+  const handleMouseEnter = useCallback(() => {
+    if (!isExpanded) {
+      hoverTimer.current = setTimeout(() => setHoverPreview(true), 300);
+    }
+  }, [isExpanded]);
+
+  const handleMouseLeave = useCallback(() => {
+    if (hoverTimer.current) clearTimeout(hoverTimer.current);
+    setHoverPreview(false);
+  }, []);
 
   // Store state
   const worldState = useRunStore((state) => state.worldState);
@@ -84,8 +101,33 @@ export default function ActionCard({
   const tier = getIntensityTier(intensity);
   const spilloverDomain = SPILLOVER_DOMAINS[action.action_type];
 
+  // Compact preview: compute effects for collapsed summary
+  const effects = computeEffects(action.action_type, intensity, targetDomainState?.resilience ?? 0.5);
+  const escalationLevel = getBadgeLevel(action.action_type, intensity, currentPhase);
+
+  // Cost-efficiency ratio: effect per resource point
+  const costEfficiency = action.resource_cost && action.resource_cost > 0
+    ? Math.abs(effects.primaryStressDelta) / action.resource_cost
+    : null;
+
+  const ESCALATION_ICONS: Record<string, string> = {
+    low: "🟢",
+    medium: "🟡",
+    high: "🟠",
+    critical: "🔴",
+  };
+
+  const formatCompactDelta = (val: number) => {
+    const sign = val >= 0 ? "+" : "−";
+    return `${sign}${Math.abs(val).toFixed(3)}`;
+  };
+
   return (
-    <div className={`action-card${executed ? " action-card--executed" : ""}`}>
+    <div
+      className={`action-card${executed ? " action-card--executed" : ""}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+    >
       <div className="action-card__header">
         <span className="action-card__type">
           {localeAction?.label ?? action.action_type}
@@ -104,10 +146,51 @@ export default function ActionCard({
             onClick={() => setShowDetail((v) => !v)}
             aria-label="Toggle detail panel"
           >
-            {showDetail ? "▲ Details" : "▼ Details"}
+            {isExpanded ? "▲ Details" : "▼ Details"}
           </button>
         </div>
       </div>
+
+      {/* Compact effect indicators — always visible in collapsed state */}
+      {!isExpanded && (
+        <div className="action-card__compact-preview">
+          <span className={`compact-pill compact-pill--stress-${effects.primaryStressDelta >= 0 ? "up" : "down"}`}>
+            stress {formatCompactDelta(effects.primaryStressDelta)}
+          </span>
+          <span className={`compact-pill compact-pill--escalation-${escalationLevel}`}>
+            {ESCALATION_ICONS[escalationLevel]} {escalationLevel}
+          </span>
+          {costEfficiency !== null && (
+            <span className="compact-pill compact-pill--efficiency" title="Effect per resource point">
+              ⚡ {costEfficiency.toFixed(4)}/RP
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Hover preview tooltip — shown after 300ms delay */}
+      {hoverPreview && !isExpanded && (
+        <div className="action-card__hover-preview" role="tooltip">
+          <ActionEffectPreview
+            actionType={action.action_type}
+            targetDomain={selectedDomain}
+            intensity={intensity}
+            domainStress={targetDomainState?.stress ?? 0.5}
+            domainResilience={targetDomainState?.resilience ?? 0.5}
+            side={side}
+          />
+          <ActionEscalationBadge
+            actionType={action.action_type}
+            intensity={intensity}
+            currentPhase={currentPhase}
+          />
+          {spilloverDomain && (
+            <div className="effect-spillover-note">
+              ⚠ Spillover → {domainLabel(spilloverDomain)}
+            </div>
+          )}
+        </div>
+      )}
 
       {localeAction?.flavour && (
         <div className="action-card__flavour">{localeAction.flavour}</div>
@@ -180,7 +263,7 @@ export default function ActionCard({
         </div>
       </div>
 
-      {showDetail && (
+      {isExpanded && (
         <div className="action-card__detail-panel">
           <div className="detail-row">
             <ActionEffectPreview

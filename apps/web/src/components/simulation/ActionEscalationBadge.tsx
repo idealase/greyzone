@@ -8,7 +8,7 @@ interface ActionEscalationBadgeProps {
   currentPhase: string;
 }
 
-type BadgeLevel = "low" | "medium" | "high" | "critical";
+export type BadgeLevel = "low" | "medium" | "high" | "critical";
 
 const LOW_ACTIONS = new Set([
   "DeEscalate",
@@ -37,7 +37,7 @@ function getPhaseIndex(phaseName: string): number {
   return idx === -1 ? 0 : idx;
 }
 
-function getBadgeLevel(
+export function getBadgeLevel(
   actionType: string,
   intensity: number,
   currentPhase: string
