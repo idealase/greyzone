@@ -372,7 +372,32 @@ class RunManager:
 
             new_turn = result.get("turn", state.get("turn", run.current_turn + 1))
             current_phase = result.get("phase", state.get("phase", run.current_phase))
-            events = result.get("events", [])
+
+            # Engine serializes stochastic events as "events_fired"
+            raw_events = result.get("events_fired", [])
+            events: list[dict] = []
+            for raw in raw_events:
+                events.append({
+                    "type": "stochastic",
+                    "description": raw.get("description", ""),
+                    "domain": raw.get("affected_layer", ""),
+                    "name": raw.get("name", ""),
+                    "stress_delta": raw.get("stress_delta", 0),
+                    "resilience_delta": raw.get("resilience_delta", 0),
+                    "visibility": raw.get("visibility", "Public"),
+                })
+
+            # Add phase transition event if phase changed
+            if current_phase != old_phase:
+                events.append({
+                    "type": "phase_transition",
+                    "description": (
+                        f"Escalation phase shifted from {old_phase} to {current_phase}"
+                    ),
+                    "domain": "",
+                    "previous_phase": old_phase,
+                    "new_phase": current_phase,
+                })
 
             # Update run in database
             run.current_turn = new_turn
@@ -449,7 +474,7 @@ class RunManager:
                             {
                                 "event_type": evt.get("type", "unknown"),
                                 "description": evt.get("description", ""),
-                                "layer": evt.get("layer", ""),
+                                "layer": evt.get("domain", ""),
                             }
                             for evt in events
                         ],
