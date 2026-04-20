@@ -10,8 +10,9 @@ import TurnControls from "./TurnControls";
 import DomainPanel from "./DomainPanel";
 import EventFeed from "./EventFeed";
 import MetricsOverview from "./MetricsOverview";
-import ActionPanel from "./ActionPanel";
 import AiMovePanel from "../../components/ai/AiMovePanel";
+import ActionModal from "./ActionModal";
+import DomainActionBar from "./DomainActionBar";
 import BattlespaceCanvas from "./BattlespaceCanvas";
 import DomainStressChart from "./DomainStressChart";
 import CouplingGraph from "./CouplingGraph";
@@ -122,6 +123,7 @@ export default function SimulationDashboard({
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showCouplingGraph, setShowCouplingGraph] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
+  const [actionModalDomain, setActionModalDomain] = useState<DomainLayer | null>(null);
   const prevWorldStateRef = useRef<WorldState | null>(null);
   const isMountedRef = useRef(true);
   const [activeMobileTab, setActiveMobileTab] =
@@ -235,6 +237,7 @@ export default function SimulationDashboard({
         setShowShortcuts(false);
         setShowCouplingGraph(false);
         setShowGlossary(false);
+        setActionModalDomain(null);
       }
     };
 
@@ -329,16 +332,9 @@ export default function SimulationDashboard({
             {activeMobileTab === "actions" && (
               <>
                 {myRole !== "observer" && (
-                  <ActionPanel
+                  <DomainActionBar
                     legalActions={legalActions}
-                    onSubmit={(action) =>
-                      submitAction({
-                        ...action,
-                        run_id: runId,
-                      })
-                    }
-                    isSubmitting={isSubmitting}
-                    side={side}
+                    onDomainClick={(domain) => setActionModalDomain(domain)}
                   />
                 )}
                 <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
@@ -384,8 +380,17 @@ export default function SimulationDashboard({
               <BattlespaceCanvas
                 worldState={worldState}
                 previousWorldState={prevWorldStateRef.current}
+                onDomainClick={myRole !== "observer" ? (domain) => setActionModalDomain(domain) : undefined}
               />
             </div>
+
+            {myRole !== "observer" && (
+              <DomainActionBar
+                legalActions={legalActions}
+                onDomainClick={(domain) => setActionModalDomain(domain)}
+              />
+            )}
+
             <MetricsOverview
               orderParameter={orderParameter}
               phase={currentPhase}
@@ -396,6 +401,9 @@ export default function SimulationDashboard({
               previousOrderParameter={previousOrderParameter}
               previousWorldState={previousWorldState}
             />
+
+            {aiMoves.length > 0 && <AiMovePanel moves={aiMoves} />}
+
             <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
             <div style={{ textAlign: "center", margin: "0.3rem 0", display: "flex", gap: "0.5rem", justifyContent: "center" }}>
               <button
@@ -415,24 +423,24 @@ export default function SimulationDashboard({
             </div>
             <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
           </div>
-
-          <div className="sim-layout__right">
-            {myRole !== "observer" && (
-              <ActionPanel
-                legalActions={legalActions}
-                onSubmit={(action) =>
-                  submitAction({
-                    ...action,
-                    run_id: runId,
-                  })
-                }
-                isSubmitting={isSubmitting}
-                side={side}
-              />
-            )}
-            {aiMoves.length > 0 && <AiMovePanel moves={aiMoves} />}
-          </div>
         </>
+      )}
+
+      {actionModalDomain !== null && myRole !== "observer" && (
+        <ActionModal
+          open={actionModalDomain !== null}
+          onClose={() => setActionModalDomain(null)}
+          domain={actionModalDomain}
+          legalActions={legalActions}
+          onSubmit={(action) =>
+            submitAction({
+              ...action,
+              run_id: runId,
+            })
+          }
+          isSubmitting={isSubmitting}
+          side={side}
+        />
       )}
 
       {showAAR && aarData && (

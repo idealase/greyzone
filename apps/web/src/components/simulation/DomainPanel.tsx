@@ -100,11 +100,18 @@ export default function DomainPanel({
     .filter((e) => e.domain === domain)
     .slice(0, 3);
 
+  const stressColor =
+    stressLevel === "critical" ? "#ef4444"
+    : stressLevel === "high" ? "#f97316"
+    : stressLevel === "medium" ? "#eab308"
+    : "#22c55e";
+
   const panelClass = [
     "domain-panel",
     isMostChanged ? "domain-panel--most-changed" : "",
     isCritical ? "domain-panel--critical" : "",
     expanded ? "domain-panel--expanded" : "",
+    !expanded ? "domain-panel--compact" : "",
   ].filter(Boolean).join(" ");
 
   return (
@@ -145,48 +152,64 @@ export default function DomainPanel({
         </div>
       </div>
 
-      <div className="domain-panel__bars">
-        <div>
-          <div className="domain-panel__bar-label">
-            Stress
-            {previousLayerState && (
-              <DomainDelta current={stress} previous={previousLayerState.stress} />
-            )}
-          </div>
-          <div className="stress-bar">
-            <div
-              className={`stress-bar__fill stress-bar__fill--${stressLevel}`}
-              style={{ width: `${stress * 100}%` }}
-            />
-          </div>
-        </div>
-        <div>
-          <div className="domain-panel__bar-label">
-            Resilience
-            {previousLayerState && (
-              <DomainDelta
-                current={resilience}
-                previous={previousLayerState.resilience}
-                invert
+      {expanded ? (
+        <div className="domain-panel__bars">
+          <div>
+            <div className="domain-panel__bar-label">
+              Stress
+              {previousLayerState && (
+                <DomainDelta current={stress} previous={previousLayerState.stress} />
+              )}
+            </div>
+            <div className="stress-bar">
+              <div
+                className={`stress-bar__fill stress-bar__fill--${stressLevel}`}
+                style={{ width: `${stress * 100}%` }}
               />
-            )}
+            </div>
           </div>
-          <div className="resilience-bar">
+          <div>
+            <div className="domain-panel__bar-label">
+              Resilience
+              {previousLayerState && (
+                <DomainDelta
+                  current={resilience}
+                  previous={previousLayerState.resilience}
+                  invert
+                />
+              )}
+            </div>
+            <div className="resilience-bar">
+              <div
+                className="resilience-bar__fill"
+                style={{ width: `${resilience * 100}%` }}
+              />
+            </div>
+          </div>
+          {activity > 0 && (
             <div
-              className="resilience-bar__fill"
-              style={{ width: `${resilience * 100}%` }}
+              className="domain-panel__bar-label"
+              style={{ color: "var(--accent-yellow)", fontSize: "0.68rem" }}
+            >
+              Activity: {formatPercent(activity)}
+            </div>
+          )}
+        </div>
+      ) : (
+        <div className="domain-panel__summary">
+          <div className="domain-panel__mini-bar-wrap">
+            <div
+              className="domain-panel__mini-bar-fill"
+              style={{ width: `${Math.min(stress * 100, 100)}%`, backgroundColor: stressColor }}
             />
           </div>
+          <span className="domain-panel__summary-vals">
+            <span style={{ color: stressColor }}>{(stress * 100).toFixed(0)}%</span>
+            <span className="domain-panel__summary-sep">·</span>
+            <span style={{ color: "var(--accent-blue)", fontSize: "0.7rem" }}>R {(resilience * 100).toFixed(0)}%</span>
+          </span>
         </div>
-        {activity > 0 && (
-          <div
-            className="domain-panel__bar-label"
-            style={{ color: "var(--accent-yellow)", fontSize: "0.68rem" }}
-          >
-            Activity: {formatPercent(activity)}
-          </div>
-        )}
-      </div>
+      )}
 
       {expanded && (
         <div className="domain-panel__detail" onClick={(e) => e.stopPropagation()}>

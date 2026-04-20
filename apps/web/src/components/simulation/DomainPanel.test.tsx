@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import DomainPanel from "./DomainPanel";
 import { DomainLayer } from "../../types/domain";
 
@@ -27,11 +27,21 @@ describe("DomainPanel", () => {
     expect(screen.getByText("65.0%")).toBeInTheDocument();
   });
 
-  it("renders activity level when > 0", () => {
+  it("shows compact summary when collapsed", () => {
+    const { container } = render(
+      <DomainPanel domain={DomainLayer.Energy} layerState={mockLayerState} />
+    );
+
+    expect(container.querySelector(".domain-panel__summary")).toBeInTheDocument();
+    expect(container.querySelector(".domain-panel__mini-bar-fill")).toBeInTheDocument();
+  });
+
+  it("renders activity level when expanded", () => {
     render(
       <DomainPanel domain={DomainLayer.Energy} layerState={mockLayerState} />
     );
 
+    fireEvent.click(screen.getByText("Energy"));
     expect(screen.getByText(/Activity:/)).toBeInTheDocument();
     expect(screen.getByText(/30\.0%/)).toBeInTheDocument();
   });
@@ -51,6 +61,7 @@ describe("DomainPanel", () => {
       <DomainPanel domain={DomainLayer.Kinetic} layerState={highStress} />
     );
 
+    fireEvent.click(screen.getByText("Kinetic"));
     const fill = container.querySelector(".stress-bar__fill--high");
     expect(fill).toBeInTheDocument();
   });
@@ -61,6 +72,7 @@ describe("DomainPanel", () => {
       <DomainPanel domain={DomainLayer.Kinetic} layerState={criticalStress} />
     );
 
+    fireEvent.click(screen.getByText("Kinetic"));
     const fill = container.querySelector(".stress-bar__fill--critical");
     expect(fill).toBeInTheDocument();
   });

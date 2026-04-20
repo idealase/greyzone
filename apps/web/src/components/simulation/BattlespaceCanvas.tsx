@@ -11,6 +11,7 @@ import { PHASE_COLORS } from "../../types/phase";
 interface BattlespaceCanvasProps {
   worldState: WorldState | null;
   previousWorldState: WorldState | null;
+  onDomainClick?: (domain: DomainLayer) => void;
 }
 
 /** Simple seeded PRNG for stable particle positions. */
@@ -70,6 +71,7 @@ interface TooltipData {
 export default function BattlespaceCanvas({
   worldState,
   previousWorldState,
+  onDomainClick,
 }: BattlespaceCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -122,6 +124,12 @@ export default function BattlespaceCanvas({
     setHoveredDomain(null);
     setTooltip(null);
   }, []);
+
+  const handleClick = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
+    if (!onDomainClick) return;
+    const domain = hitTest(e.clientX, e.clientY);
+    if (domain) onDomainClick(domain);
+  }, [onDomainClick, hitTest]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -366,8 +374,18 @@ export default function BattlespaceCanvas({
     return d > 0 ? "↑" : "↓";
   };
 
+  const displayH = containerWidth > 0 ? Math.floor(containerWidth / 2) : 0;
+
   return (
-    <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
+    <div
+      ref={containerRef}
+      style={{
+        width: "100%",
+        position: "relative",
+        height: displayH > 0 ? displayH : undefined,
+        minHeight: 200,
+      }}
+    >
       {containerWidth > 0 && (
         <canvas
           ref={canvasRef}
@@ -380,6 +398,7 @@ export default function BattlespaceCanvas({
           }}
           onMouseMove={handleMouseMove}
           onMouseLeave={handleMouseLeave}
+          onClick={handleClick}
         />
       )}
 
@@ -405,6 +424,11 @@ export default function BattlespaceCanvas({
           <div className="bc-tooltip__row">
             Friction: <strong>{fmtPct(layer.friction)}</strong>
           </div>
+          {onDomainClick && (
+            <div style={{ fontSize: "0.65rem", color: "var(--text-muted)", marginTop: "0.25rem", textAlign: "center" }}>
+              Click for actions
+            </div>
+          )}
         </div>
       )}
 

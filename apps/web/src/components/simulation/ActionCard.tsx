@@ -15,6 +15,7 @@ interface ActionCardProps {
   isSubmitting: boolean;
   side: "blue" | "red";
   forceExpand?: boolean;
+  initialDomain?: string;
 }
 
 const SPILLOVER_DOMAINS: Record<string, string> = {
@@ -36,6 +37,7 @@ export default function ActionCard({
   isSubmitting,
   side,
   forceExpand,
+  initialDomain,
 }: ActionCardProps) {
   // Derive intensity bounds from parameter_ranges or legacy fields
   const minIntensity =
@@ -52,7 +54,7 @@ export default function ActionCard({
   // Domain picker state: default to first available layer or legacy target_domain
   const layers = action.available_layers ?? [];
   const defaultDomain =
-    layers[0] ?? action.target_domain ?? DomainLayer.Cyber;
+    initialDomain ?? layers[0] ?? action.target_domain ?? DomainLayer.Cyber;
   const [selectedDomain, setSelectedDomain] = useState<string>(defaultDomain);
 
   // Per-card executed state
