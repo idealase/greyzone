@@ -1,0 +1,190 @@
+{
+  "uid": "greyzone-app",
+  "title": "Greyzone — Application Metrics",
+  "tags": ["greyzone", "gameplay", "api"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-3h", "to": "now" },
+  "schemaVersion": 38,
+  "panels": [
+
+    { "id": 1, "title": "Active Games", "type": "gauge",
+      "gridPos": { "h": 5, "w": 4, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "greyzone_active_games", "legendFormat": "active", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "yellow", "value": 5 },
+            { "color": "red", "value": 10 }
+          ]},
+          "min": 0, "max": 20, "unit": "short"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+
+    { "id": 2, "title": "WebSocket Connections", "type": "gauge",
+      "gridPos": { "h": 5, "w": 4, "x": 4, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "greyzone_websocket_connections_active", "legendFormat": "connections", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "yellow", "value": 20 },
+            { "color": "red", "value": 50 }
+          ]},
+          "min": 0, "max": 100, "unit": "short"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+
+    { "id": 3, "title": "Turns Advanced (1h)", "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 8, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "increase(greyzone_turns_advanced_total[1h])", "legendFormat": "", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "blue" }, "unit": "short" } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area" }
+    },
+
+    { "id": 4, "title": "Actions Submitted (1h)", "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "increase(greyzone_actions_submitted_total[1h])", "legendFormat": "", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "purple" }, "unit": "short" } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area" }
+    },
+
+    { "id": 5, "title": "Narratives Generated (1h)", "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 16, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "increase(greyzone_narratives_generated_total[1h])", "legendFormat": "", "refId": "A" }],
+      "fieldConfig": { "defaults": { "color": { "mode": "fixed", "fixedColor": "orange" }, "unit": "short" } },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "graphMode": "area" }
+    },
+
+    { "id": 6, "title": "Engine Errors (1h)", "type": "stat",
+      "gridPos": { "h": 5, "w": 4, "x": 20, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{ "expr": "increase(greyzone_engine_errors_total[1h])", "legendFormat": "", "refId": "A" }],
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "steps": [
+            { "color": "green", "value": 0 },
+            { "color": "red", "value": 1 }
+          ]},
+          "unit": "short"
+        }
+      },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] } }
+    },
+
+    { "id": 10, "title": "HTTP Request Rate (req/min)", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "sum(rate(greyzone_http_requests_total{status_code=~\"2..\"}[2m])) * 60", "legendFormat": "2xx", "refId": "A" },
+        { "expr": "sum(rate(greyzone_http_requests_total{status_code=~\"4..\"}[2m])) * 60", "legendFormat": "4xx", "refId": "B" },
+        { "expr": "sum(rate(greyzone_http_requests_total{status_code=~\"5..\"}[2m])) * 60", "legendFormat": "5xx", "refId": "C" }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "reqpm", "custom": { "lineWidth": 2 } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "2xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "green", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "4xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "orange", "mode": "fixed" } }] },
+          { "matcher": { "id": "byName", "options": "5xx" }, "properties": [{ "id": "color", "value": { "fixedColor": "red", "mode": "fixed" } }] }
+        ]
+      },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+
+    { "id": 11, "title": "API Latency (p50 / p95 / p99)", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 5 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(greyzone_http_request_duration_seconds_bucket[2m])) by (le))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(greyzone_http_request_duration_seconds_bucket[2m])) by (le))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, sum(rate(greyzone_http_request_duration_seconds_bucket[2m])) by (le))", "legendFormat": "p99", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+
+    { "id": 20, "title": "Game Activity — Turns & Actions", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 13 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "rate(greyzone_turns_advanced_total[5m]) * 60", "legendFormat": "Turns/min", "refId": "A" },
+        { "expr": "rate(greyzone_actions_submitted_total[5m]) * 60", "legendFormat": "Actions/min", "refId": "B" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+
+    { "id": 21, "title": "Turn Advance Latency (p50 / p95)", "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 13 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, sum(rate(greyzone_http_request_duration_seconds_bucket{endpoint=~\".*/advance.*\"}[5m])) by (le))", "legendFormat": "p50 advance", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, sum(rate(greyzone_http_request_duration_seconds_bucket{endpoint=~\".*/advance.*\"}[5m])) by (le))", "legendFormat": "p95 advance", "refId": "B" },
+        { "expr": "histogram_quantile(0.95, sum(rate(greyzone_ai_agent_request_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95 AI agent", "refId": "C" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    },
+
+    { "id": 30, "title": "Requests by Endpoint (total)", "type": "table",
+      "gridPos": { "h": 10, "w": 12, "x": 0, "y": 21 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [{
+        "expr": "sort_desc(sum by (endpoint, method, status_code) (greyzone_http_requests_total))",
+        "legendFormat": "",
+        "refId": "A",
+        "instant": true,
+        "format": "table"
+      }],
+      "transformations": [
+        { "id": "filterFieldsByName", "options": { "include": { "names": ["endpoint", "method", "status_code", "Value"] } } },
+        { "id": "sortBy", "options": { "fields": [{ "desc": true, "displayName": "Value" }] } }
+      ],
+      "fieldConfig": {
+        "defaults": { "custom": { "displayMode": "auto" } },
+        "overrides": [
+          { "matcher": { "id": "byName", "options": "Value" }, "properties": [{ "id": "displayName", "value": "Count" }, { "id": "custom.width", "value": 80 }] },
+          { "matcher": { "id": "byName", "options": "status_code" }, "properties": [
+            { "id": "custom.width", "value": 90 },
+            { "id": "custom.displayMode", "value": "color-background" },
+            { "id": "thresholds", "value": { "steps": [
+              { "color": "green", "value": 0 },
+              { "color": "transparent", "value": 200 },
+              { "color": "transparent", "value": 299 },
+              { "color": "orange", "value": 400 },
+              { "color": "red", "value": 500 }
+            ]}}
+          ]}
+        ]
+      },
+      "options": { "sortBy": [{ "desc": true, "displayName": "Count" }] }
+    },
+
+    { "id": 31, "title": "Error Events", "type": "timeseries",
+      "gridPos": { "h": 10, "w": 12, "x": 12, "y": 21 },
+      "datasource": { "type": "prometheus", "uid": "" },
+      "targets": [
+        { "expr": "rate(greyzone_engine_errors_total[5m]) * 60", "legendFormat": "Engine errors/min", "refId": "A" },
+        { "expr": "rate(greyzone_ai_agent_errors_total[5m]) * 60", "legendFormat": "AI agent errors/min", "refId": "B" },
+        { "expr": "sum(rate(greyzone_http_requests_total{status_code=~\"5..\"}[5m])) * 60", "legendFormat": "HTTP 5xx/min", "refId": "C" },
+        { "expr": "sum(rate(greyzone_http_requests_total{status_code=~\"4..\"}[5m])) * 60", "legendFormat": "HTTP 4xx/min", "refId": "D" }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short", "custom": { "lineWidth": 2 } } },
+      "options": { "legend": { "displayMode": "list", "placement": "bottom" } }
+    }
+
+  ]
+}
