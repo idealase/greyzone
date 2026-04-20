@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import {
   ALL_DOMAINS,
   DOMAIN_COLORS,
+  DOMAIN_LABELS,
   DomainLayer,
 } from "../../types/domain";
 import { WorldState } from "../../types/run";
@@ -52,6 +53,20 @@ const DOMAIN_FULL_LABELS: Record<DomainLayer, string> = {
   [DomainLayer.DomesticPoliticalFiscal]: "Domestic",
 };
 
+interface ZoneRect {
+  domain: DomainLayer;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+interface TooltipData {
+  domain: DomainLayer;
+  x: number;
+  y: number;
+}
+
 export default function BattlespaceCanvas({
   worldState,
   previousWorldState,
@@ -59,6 +74,10 @@ export default function BattlespaceCanvas({
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [showLegend, setShowLegend] = useState(false);
+  const [tooltip, setTooltip] = useState<TooltipData | null>(null);
+  const [hoveredDomain, setHoveredDomain] = useState<DomainLayer | null>(null);
+  const zoneRectsRef = useRef<ZoneRect[]>([]);
 
   // Track container width via ResizeObserver so we re-render on layout
   useEffect(() => {
@@ -70,6 +89,38 @@ export default function BattlespaceCanvas({
     });
     ro.observe(el);
     return () => ro.disconnect();
+  }, []);
+
+  const hitTest = useCallback((clientX: number, clientY: number): DomainLayer | null => {
+    const canvas = canvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const mx = clientX - rect.left;
+    const my = clientY - rect.top;
+    for (const zone of zoneRectsRef.current) {
+      if (mx >= zone.x && mx <= zone.x + zone.w && my >= zone.y && my <= zone.y + zone.h) {
+        return zone.domain;
+      }
+    }
+    return null;
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    const domain = hitTest(e.clientX, e.clientY);
+    setHoveredDomain(domain);
+    if (domain) {
+      const containerRect = containerRef.current?.getBoundingClientRect();
+      if (containerRect) {
+        setTooltip({ domain, x: e.clientX - containerRect.left, y: e.clientY - containerRect.top });
+      }
+    } else {
+      setTooltip(null);
+    }
+  }, [hitTest]);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredDomain(null);
+    setTooltip(null);
   }, []);
 
   useEffect(() => {
@@ -89,6 +140,9 @@ export default function BattlespaceCanvas({
 
     const cellW = displayWidth / COLS;
     const cellH = displayHeight / ROWS;
+
+    // Store zone rects for hit-testing (in CSS pixel coords)
+    const newZoneRects: ZoneRect[] = [];
 
     // 1. Background
     ctx.fillStyle = "#0c0c0c";
@@ -138,6 +192,7 @@ export default function BattlespaceCanvas({
         displayWidth / 2,
         displayHeight / 2
       );
+      zoneRectsRef.current = [];
       return;
     }
 
@@ -162,7 +217,11 @@ export default function BattlespaceCanvas({
       const cy = y + cellH / 2;
       zoneCenters[domain] = [cx, cy];
 
+      // Store zone rect for hit-testing
+      newZoneRects.push({ domain, x: zx, y: zy, w: zw, h: zh });
+
       const [dr, dg, db] = hexToRgb(DOMAIN_COLORS[domain]);
+      const isHovered = hoveredDomain === domain;
 
       // Zone fill: domain color with minimum visibility + stress-driven intensity
       const fillAlpha = 0.12 + layer.stress * 0.75;
@@ -177,9 +236,11 @@ export default function BattlespaceCanvas({
       }
 
       // Resilience border — always visible, thickness scales with resilience
-      const borderAlpha = 0.35 + layer.resilience * 0.65;
-      const borderWidth = 1 + layer.resilience * 3;
-      ctx.strokeStyle = `rgba(${dr},${dg},${db},${borderAlpha})`;
+      const borderAlpha = isHovered ? 1 : (0.35 + layer.resilience * 0.65);
+      const borderWidth = isHovered ? (2 + layer.resilience * 3) : (1 + layer.resilience * 3);
+      ctx.strokeStyle = isHovered
+        ? `rgba(255,255,255,0.9)`
+        : `rgba(${dr},${dg},${db},${borderAlpha})`;
       ctx.lineWidth = borderWidth;
       ctx.strokeRect(
         zx + borderWidth / 2,
@@ -187,6 +248,17 @@ export default function BattlespaceCanvas({
         zw - borderWidth,
         zh - borderWidth
       );
+
+      // Hover glow
+      if (isHovered) {
+        ctx.shadowColor = `rgba(${dr},${dg},${db},0.6)`;
+        ctx.shadowBlur = 12;
+        ctx.strokeStyle = `rgba(${dr},${dg},${db},0.4)`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(zx, zy, zw, zh);
+        ctx.shadowBlur = 0;
+        ctx.shadowColor = "transparent";
+      }
 
       // Activity particles — minimum 2 so zones always look "alive"
       const particleCount = Math.max(2, Math.floor(layer.activity_level * 25));
@@ -251,6 +323,8 @@ export default function BattlespaceCanvas({
       ctx.fillText(`${stressPct}%`, zx + zw - 4, zy + zh - 4);
     });
 
+    zoneRectsRef.current = newZoneRects;
+
     // 3. Coupling lines
     if (coupling_matrix) {
       const drawn = new Set<string>();
@@ -268,8 +342,11 @@ export default function BattlespaceCanvas({
           const b = zoneCenters[domB];
           if (!a || !b) continue;
 
-          ctx.strokeStyle = `rgba(100,110,140,${0.15 + weight * 0.4})`;
-          ctx.lineWidth = 0.5 + weight * 2.5;
+          const isHighlighted = hoveredDomain === domA || hoveredDomain === domB;
+          ctx.strokeStyle = isHighlighted
+            ? `rgba(200,210,240,${0.4 + weight * 0.5})`
+            : `rgba(100,110,140,${0.15 + weight * 0.4})`;
+          ctx.lineWidth = isHighlighted ? (1 + weight * 3) : (0.5 + weight * 2.5);
           ctx.beginPath();
           ctx.moveTo(a[0], a[1]);
           ctx.lineTo(b[0], b[1]);
@@ -277,10 +354,20 @@ export default function BattlespaceCanvas({
         }
       }
     }
-  }, [worldState, previousWorldState, containerWidth]);
+  }, [worldState, previousWorldState, containerWidth, hoveredDomain]);
+
+  const fmtPct = (v: number) => `${(v * 100).toFixed(0)}%`;
+  const layer = tooltip && worldState ? worldState.layers[tooltip.domain] : null;
+  const prevLayer = tooltip && previousWorldState ? previousWorldState.layers[tooltip.domain] : null;
+  const trendArrow = (cur: number, prev?: number) => {
+    if (prev == null) return "→";
+    const d = cur - prev;
+    if (Math.abs(d) < 0.005) return "→";
+    return d > 0 ? "↑" : "↓";
+  };
 
   return (
-    <div ref={containerRef} style={{ width: "100%" }}>
+    <div ref={containerRef} style={{ width: "100%", position: "relative" }}>
       {containerWidth > 0 && (
         <canvas
           ref={canvasRef}
@@ -289,8 +376,72 @@ export default function BattlespaceCanvas({
             imageRendering: "pixelated",
             width: containerWidth,
             height: Math.floor(containerWidth / 2),
+            cursor: hoveredDomain ? "pointer" : "default",
           }}
+          onMouseMove={handleMouseMove}
+          onMouseLeave={handleMouseLeave}
         />
+      )}
+
+      {/* Hover tooltip */}
+      {tooltip && layer && (
+        <div
+          className="bc-tooltip"
+          style={{
+            left: Math.min(tooltip.x + 12, containerWidth - 180),
+            top: tooltip.y + 12,
+          }}
+        >
+          <div className="bc-tooltip__title">{DOMAIN_LABELS[tooltip.domain]}</div>
+          <div className="bc-tooltip__row">
+            Stress: <strong>{fmtPct(layer.stress)}</strong> {trendArrow(layer.stress, prevLayer?.stress)}
+          </div>
+          <div className="bc-tooltip__row">
+            Resilience: <strong>{fmtPct(layer.resilience)}</strong> {trendArrow(layer.resilience, prevLayer?.resilience)}
+          </div>
+          <div className="bc-tooltip__row">
+            Activity: <strong>{fmtPct(layer.activity_level)}</strong>
+          </div>
+          <div className="bc-tooltip__row">
+            Friction: <strong>{fmtPct(layer.friction)}</strong>
+          </div>
+        </div>
+      )}
+
+      {/* Legend toggle */}
+      <button
+        className="bc-legend-toggle"
+        onClick={() => setShowLegend((v) => !v)}
+        title="Toggle legend"
+      >
+        {showLegend ? "✕" : "?"}
+      </button>
+
+      {/* Legend overlay */}
+      {showLegend && (
+        <div className="bc-legend">
+          <div className="bc-legend__title">Visual Legend</div>
+          <div className="bc-legend__item">
+            <span className="bc-legend__swatch bc-legend__swatch--fill" />
+            Background intensity = stress level
+          </div>
+          <div className="bc-legend__item">
+            <span className="bc-legend__swatch bc-legend__swatch--particles" />
+            White dots = activity level
+          </div>
+          <div className="bc-legend__item">
+            <span className="bc-legend__swatch bc-legend__swatch--hatch" />
+            Diagonal hatching = friction
+          </div>
+          <div className="bc-legend__item">
+            <span className="bc-legend__swatch bc-legend__swatch--line" />
+            Line thickness = coupling strength
+          </div>
+          <div className="bc-legend__item">
+            <span className="bc-legend__swatch bc-legend__swatch--border" />
+            Border thickness = resilience
+          </div>
+        </div>
       )}
     </div>
   );
