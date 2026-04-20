@@ -11,6 +11,8 @@ interface MetricsOverviewProps {
   eventCount: number;
   worldState: WorldState | null;
   side?: "blue" | "red";
+  previousOrderParameter?: number;
+  previousWorldState?: WorldState | null;
 }
 
 function findPlayerResources(
@@ -28,6 +30,23 @@ function findPlayerResources(
   return actor?.resources ?? null;
 }
 
+function DeltaBadge({ delta, invert = false }: { delta: number; invert?: boolean }) {
+  if (Math.abs(delta) < 0.001) return null;
+  const isPositive = delta > 0;
+  // For stress/Ψ, positive = worsening (red). For resilience/resources, positive = good (green).
+  const isGood = invert ? isPositive : !isPositive;
+  const arrow = isPositive ? "↑" : "↓";
+  const cls = isGood ? "delta-badge--good" : "delta-badge--bad";
+  const formatted = Math.abs(delta) < 1
+    ? Math.abs(delta).toFixed(2)
+    : Math.round(Math.abs(delta)).toString();
+  return (
+    <span className={`delta-badge ${cls}`}>
+      {arrow}{formatted}
+    </span>
+  );
+}
+
 export default function MetricsOverview({
   orderParameter,
   phase,
@@ -35,6 +54,8 @@ export default function MetricsOverview({
   eventCount,
   worldState,
   side,
+  previousOrderParameter,
+  previousWorldState,
 }: MetricsOverviewProps) {
   let dominantDomain: DomainLayer | null = null;
   let maxStress = 0;
@@ -57,7 +78,33 @@ export default function MetricsOverview({
     avgResilience = count > 0 ? resilienceSum / count : 0;
   }
 
+  // Compute previous avg resilience for delta
+  let prevAvgResilience = 0;
+  if (previousWorldState) {
+    let resSum = 0;
+    let cnt = 0;
+    for (const domain of ALL_DOMAINS) {
+      const layer = previousWorldState.layers[domain];
+      if (layer) {
+        resSum += layer.resilience;
+        cnt++;
+      }
+    }
+    prevAvgResilience = cnt > 0 ? resSum / cnt : 0;
+  }
+
   const resources = findPlayerResources(worldState, side);
+  const prevResources = findPlayerResources(previousWorldState ?? null, side);
+
+  const psiDelta = previousOrderParameter !== undefined
+    ? orderParameter - previousOrderParameter
+    : null;
+  const resDelta = resources !== null && prevResources !== null
+    ? resources - prevResources
+    : null;
+  const resilienceDelta = previousWorldState
+    ? avgResilience - prevAvgResilience
+    : null;
 
   return (
     <div className="metrics-grid">
@@ -71,6 +118,7 @@ export default function MetricsOverview({
         </div>
         <div className="metric-card__value">
           {formatOrderParameter(orderParameter)}
+          {psiDelta !== null && <DeltaBadge delta={psiDelta} />}
         </div>
       </div>
       <div className="metric-card">
@@ -102,7 +150,10 @@ export default function MetricsOverview({
               content="Resource points (RP) are spent when executing actions. Each action has a cost. Resources recover slowly each turn (+2 RP). Running out limits your options."
             />
           </div>
-          <div className="metric-card__value">{Math.round(resources)} RP</div>
+          <div className="metric-card__value">
+            {Math.round(resources)} RP
+            {resDelta !== null && <DeltaBadge delta={resDelta} invert />}
+          </div>
         </div>
       )}
       <div className="metric-card">
@@ -119,7 +170,10 @@ export default function MetricsOverview({
             content="Average defensive posture across all domains. Higher resilience dampens stress growth and spillover. Keep it high to absorb shocks."
           />
         </div>
-        <div className="metric-card__value">{formatPercent(avgResilience)}</div>
+        <div className="metric-card__value">
+          {formatPercent(avgResilience)}
+          {resilienceDelta !== null && <DeltaBadge delta={resilienceDelta} invert />}
+        </div>
       </div>
     </div>
   );

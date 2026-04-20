@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useRunStore } from "../../stores/runStore";
 import { useActions } from "../../hooks/useActions";
-import { ALL_DOMAINS } from "../../types/domain";
+import { ALL_DOMAINS, DomainLayer } from "../../types/domain";
 import { Role, TurnResult, WorldState } from "../../types/run";
 import { Phase } from "../../types/phase";
 import PhaseIndicator from "./PhaseIndicator";
@@ -56,8 +56,10 @@ export default function SimulationDashboard({
   side,
 }: SimulationDashboardProps) {
   const worldState = useRunStore((s) => s.worldState);
+  const previousWorldState = useRunStore((s) => s.previousWorldState);
   const currentPhase = useRunStore((s) => s.currentPhase);
   const orderParameter = useRunStore((s) => s.orderParameter);
+  const previousOrderParameter = useRunStore((s) => s.previousOrderParameter);
   const currentTurn = useRunStore((s) => s.currentTurn);
   const events = useRunStore((s) => s.events);
   const legalActions = useRunStore((s) => s.legalActions);
@@ -80,6 +82,23 @@ export default function SimulationDashboard({
     );
     return actor?.resources ?? null;
   })();
+
+  // Find the domain with the largest absolute stress delta
+  const mostChangedDomain = useMemo<DomainLayer | null>(() => {
+    if (!worldState || !previousWorldState) return null;
+    let maxDelta = 0;
+    let result: DomainLayer | null = null;
+    for (const domain of ALL_DOMAINS) {
+      const curr = worldState.layers[domain]?.stress ?? 0;
+      const prev = previousWorldState.layers[domain]?.stress ?? 0;
+      const delta = Math.abs(curr - prev);
+      if (delta > maxDelta) {
+        maxDelta = delta;
+        result = domain;
+      }
+    }
+    return maxDelta > 0.005 ? result : null;
+  }, [worldState, previousWorldState]);
 
   const isTablet = useMediaQuery("(max-width: 1024px)");
   const isMobile = useMediaQuery("(max-width: 768px)");
@@ -261,6 +280,8 @@ export default function SimulationDashboard({
                   eventCount={events.length}
                   worldState={worldState}
                   side={side}
+                  previousOrderParameter={previousOrderParameter}
+                  previousWorldState={previousWorldState}
                 />
                 <DomainStressChart stressHistory={stressHistory} />
               </>
@@ -293,6 +314,8 @@ export default function SimulationDashboard({
                     key={domain}
                     domain={domain}
                     layerState={worldState?.layers[domain] ?? null}
+                    previousLayerState={previousWorldState?.layers[domain] ?? null}
+                    isMostChanged={domain === mostChangedDomain}
                   />
                 ))}
               </div>
@@ -307,6 +330,8 @@ export default function SimulationDashboard({
                 key={domain}
                 domain={domain}
                 layerState={worldState?.layers[domain] ?? null}
+                previousLayerState={previousWorldState?.layers[domain] ?? null}
+                isMostChanged={domain === mostChangedDomain}
               />
             ))}
           </div>
@@ -325,6 +350,8 @@ export default function SimulationDashboard({
               eventCount={events.length}
               worldState={worldState}
               side={side}
+              previousOrderParameter={previousOrderParameter}
+              previousWorldState={previousWorldState}
             />
             <DomainStressChart stressHistory={stressHistory} />
             <EventFeed events={events} />

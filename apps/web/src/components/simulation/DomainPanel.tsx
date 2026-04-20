@@ -5,6 +5,8 @@ import { STRESS_THRESHOLDS } from "../../utils/constants";
 interface DomainPanelProps {
   domain: DomainLayer;
   layerState: LayerState | null;
+  previousLayerState?: LayerState | null;
+  isMostChanged?: boolean;
 }
 
 function getStressLevel(stress: number): string {
@@ -15,7 +17,31 @@ function getStressLevel(stress: number): string {
   return "low";
 }
 
-export default function DomainPanel({ domain, layerState }: DomainPanelProps) {
+function DomainDelta({ current, previous, invert = false }: {
+  current: number;
+  previous: number;
+  invert?: boolean;
+}) {
+  const delta = current - previous;
+  if (Math.abs(delta) < 0.001) return null;
+  const isPositive = delta > 0;
+  const isGood = invert ? isPositive : !isPositive;
+  const arrow = isPositive ? "↑" : "↓";
+  const pctDelta = Math.abs(delta * 100).toFixed(1);
+  const cls = isGood ? "domain-delta--good" : "domain-delta--bad";
+  return (
+    <span className={`domain-delta ${cls}`}>
+      {arrow}{pctDelta}%
+    </span>
+  );
+}
+
+export default function DomainPanel({
+  domain,
+  layerState,
+  previousLayerState,
+  isMostChanged = false,
+}: DomainPanelProps) {
   const label = DOMAIN_LABELS[domain];
   const color = DOMAIN_COLORS[domain];
   const stress = layerState?.stress ?? 0;
@@ -23,8 +49,13 @@ export default function DomainPanel({ domain, layerState }: DomainPanelProps) {
   const activity = layerState?.activity_level ?? 0;
   const stressLevel = getStressLevel(stress);
 
+  const panelClass = [
+    "domain-panel",
+    isMostChanged ? "domain-panel--most-changed" : "",
+  ].filter(Boolean).join(" ");
+
   return (
-    <div className="domain-panel">
+    <div className={panelClass}>
       <div className="domain-panel__header">
         <div className="domain-panel__name">
           <span
@@ -32,13 +63,24 @@ export default function DomainPanel({ domain, layerState }: DomainPanelProps) {
             style={{ backgroundColor: color }}
           />
           {label}
+          {isMostChanged && <span className="domain-panel__volatile" title="Most changed this turn">⚡</span>}
         </div>
-        <div className="domain-panel__value">{formatPercent(stress)}</div>
+        <div className="domain-panel__value">
+          {formatPercent(stress)}
+          {previousLayerState && (
+            <DomainDelta current={stress} previous={previousLayerState.stress} />
+          )}
+        </div>
       </div>
 
       <div className="domain-panel__bars">
         <div>
-          <div className="domain-panel__bar-label">Stress</div>
+          <div className="domain-panel__bar-label">
+            Stress
+            {previousLayerState && (
+              <DomainDelta current={stress} previous={previousLayerState.stress} />
+            )}
+          </div>
           <div className="stress-bar">
             <div
               className={`stress-bar__fill stress-bar__fill--${stressLevel}`}
@@ -47,7 +89,16 @@ export default function DomainPanel({ domain, layerState }: DomainPanelProps) {
           </div>
         </div>
         <div>
-          <div className="domain-panel__bar-label">Resilience</div>
+          <div className="domain-panel__bar-label">
+            Resilience
+            {previousLayerState && (
+              <DomainDelta
+                current={resilience}
+                previous={previousLayerState.resilience}
+                invert
+              />
+            )}
+          </div>
           <div className="resilience-bar">
             <div
               className="resilience-bar__fill"
