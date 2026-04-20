@@ -3,12 +3,13 @@
 import uuid
 from datetime import UTC, datetime, timedelta
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from jose import JWTError, jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.db.session import get_session
+from app.middleware.rate_limit import auth_limit
 from app.schemas.auth import AuthResponse, LoginRequest, RefreshRequest, RegisterRequest
 from app.schemas.user import UserCreate, UserRead
 from app.services.user_service import UserService
@@ -43,8 +44,9 @@ def _decode_token(token: str, expected_type: str) -> dict:
 
 
 @router.post("/register", response_model=AuthResponse, status_code=201)
+@auth_limit
 async def register(
-    data: RegisterRequest, db: AsyncSession = Depends(get_session)
+    request: Request, data: RegisterRequest, db: AsyncSession = Depends(get_session)
 ) -> AuthResponse:
     user = await _user_service.create_user(
         db,
@@ -66,8 +68,9 @@ async def register(
 
 
 @router.post("/login", response_model=AuthResponse)
+@auth_limit
 async def login(
-    data: LoginRequest, db: AsyncSession = Depends(get_session)
+    request: Request, data: LoginRequest, db: AsyncSession = Depends(get_session)
 ) -> AuthResponse:
     user = await _user_service.get_user_by_username(db, data.username)
     password_hash = user.password_hash if user is not None else _DUMMY_PASSWORD_HASH
@@ -85,8 +88,9 @@ async def login(
 
 
 @router.post("/refresh", response_model=AuthResponse)
+@auth_limit
 async def refresh(
-    data: RefreshRequest, db: AsyncSession = Depends(get_session)
+    request: Request, data: RefreshRequest, db: AsyncSession = Depends(get_session)
 ) -> AuthResponse:
     payload = _decode_token(data.refresh_token, "refresh")
     try:
@@ -106,5 +110,6 @@ async def refresh(
 
 
 @router.post("/logout", status_code=204)
-async def logout() -> None:
+@auth_limit
+async def logout(request: Request) -> None:
     return None

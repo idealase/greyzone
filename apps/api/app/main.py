@@ -16,6 +16,9 @@ from app.config import settings
 from app.middleware.auth import get_current_user
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.middleware.logging import LoggingMiddleware
+from app.middleware.rate_limit import limiter, rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from app.routers import (
     actions_router,
     ai_audit_router,
@@ -96,6 +99,7 @@ app = FastAPI(
 app.state.engine_bridge = engine_bridge
 app.state.run_manager = run_manager
 app.state.ws_manager = ws_manager
+app.state.limiter = limiter
 
 # Middleware (order matters: first added = outermost)
 app.add_middleware(
@@ -107,6 +111,9 @@ app.add_middleware(
 )
 app.add_middleware(CorrelationIdMiddleware)
 app.add_middleware(LoggingMiddleware)
+
+app.add_middleware(SlowAPIMiddleware)
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 
 @app.exception_handler(StarletteHTTPException)
