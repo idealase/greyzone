@@ -2087,3 +2087,96 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
   text-align: right;
   font-style: italic;
 }
+
+/* ── Turn Confirmation Dialog ──────────────────────────── */
+.turn-confirm__actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  gap: 1rem;
+}
+
+.turn-confirm__buttons {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.turn-confirm__skip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  user-select: none;
+}
+
+.turn-confirm__skip input[type="checkbox"] {
+  accent-color: var(--primary);
+}
+
+.turn-confirm__warning {
+  background: rgba(234, 179, 8, 0.12);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+  color: #eab308;
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.turn-confirm__section {
+  margin-bottom: 0.75rem;
+}
+
+.turn-confirm__heading {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+}
+
+.turn-confirm__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.turn-confirm__item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: var(--bg-elevated);
+  border-radius: var(--radius);
+  font-size: 0.8rem;
+}
+
+.turn-confirm__action-type {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.turn-confirm__domain {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+.turn-confirm__tier {
+  font-size: 0.68rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 3px;
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+}
+
+.turn-confirm__resources {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  padding-top: 0.5rem;
+  border-top: 1px solid var(--border);
+}
