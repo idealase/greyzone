@@ -342,6 +342,8 @@ export default function SimulationDashboard({
                     layerState={worldState?.layers[domain] ?? null}
                     previousLayerState={previousWorldState?.layers[domain] ?? null}
                     isMostChanged={domain === mostChangedDomain}
+                    couplingMatrix={worldState?.coupling_matrix}
+                    recentEvents={events}
                   />
                 ))}
               </div>
@@ -358,6 +360,8 @@ export default function SimulationDashboard({
                 layerState={worldState?.layers[domain] ?? null}
                 previousLayerState={previousWorldState?.layers[domain] ?? null}
                 isMostChanged={domain === mostChangedDomain}
+                couplingMatrix={worldState?.coupling_matrix}
+                recentEvents={events}
               />
             ))}
           </div>
