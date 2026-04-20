@@ -765,13 +765,14 @@ impl SimulationEngine {
     }
 
     /// Take a snapshot of the current state.
-    pub fn take_snapshot(&mut self) {
+    pub fn take_snapshot(&mut self) -> &WorldState {
         let snapshot_event = Event::SnapshotTaken {
             turn: self.state.turn,
         };
         self.state.events.push(snapshot_event.clone());
         self.event_log.push(snapshot_event);
         self.snapshots.push((self.state.turn, self.state.clone()));
+        &self.state
     }
 
     /// Get the event log.

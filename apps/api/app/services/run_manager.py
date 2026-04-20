@@ -415,13 +415,13 @@ class RunManager:
                 db.add(event)
 
             snapshot_taken = False
-            # Take and persist snapshot
+            # Take engine-side snapshot and persist world state
             try:
-                snapshot_data = await self.engine.take_snapshot(run_id)
+                await self.engine.take_snapshot(run_id)
                 snapshot = RunSnapshot(
                     run_id=run_id,
                     turn=new_turn,
-                    state=snapshot_data,
+                    state=state,  # actual world state dict, not engine ack string
                 )
                 db.add(snapshot)
                 snapshot_taken = True

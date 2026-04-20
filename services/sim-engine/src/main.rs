@@ -92,8 +92,8 @@ fn handle_command(engine: &mut Option<SimulationEngine>, command: EngineCommand)
             EngineResponse::ok(result)
         }),
         EngineCommand::TakeSnapshot => with_engine_mut(engine, |eng| {
-            eng.take_snapshot();
-            EngineResponse::ok("snapshot_taken")
+            let state = eng.take_snapshot();
+            EngineResponse::ok(state)
         }),
         EngineCommand::GetEventLog => {
             with_engine(engine, |eng| EngineResponse::ok(eng.get_event_log()))
