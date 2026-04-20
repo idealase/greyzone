@@ -69,6 +69,18 @@ export default function SimulationDashboard({
   const { submitAction, isSubmitting, advanceTurn, isAdvancing, advanceError } =
     useActions(runId);
 
+  // Compute player resources for turn confirmation dialog
+  const playerResources = (() => {
+    if (!worldState?.actors || !worldState?.roles) return null;
+    const roleId = side === "blue" ? "blue_commander" : "red_commander";
+    const role = worldState.roles.find((r) => r.id === roleId);
+    if (!role || role.controlled_actor_ids.length === 0) return null;
+    const actor = worldState.actors.find(
+      (a) => a.id === role.controlled_actor_ids[0]
+    );
+    return actor?.resources ?? null;
+  })();
+
   const isTablet = useMediaQuery("(max-width: 1024px)");
   const isMobile = useMediaQuery("(max-width: 768px)");
   const [showAAR, setShowAAR] = useState(false);
@@ -208,6 +220,8 @@ export default function SimulationDashboard({
             isAdvancing={isAdvancing || isAdvancingTurn}
             onAdvanceTurn={handleAdvanceTurn}
             isObserver={myRole === "observer"}
+            currentTurnEvents={events}
+            resources={playerResources}
           />
         </div>
         {advanceErrorMessage && (
