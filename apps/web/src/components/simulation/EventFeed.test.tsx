@@ -45,7 +45,7 @@ describe("EventFeed", () => {
     ["action", "ACTION"],
     ["stochastic", "EVENT"],
     ["phase_transition", "PHASE"],
-    ["coupling_effect", "EFFECT"],
+    ["coupling_effect", "COUPLING"],
     ["ai_action", "OPPONENT"],
     ["narrative", "SITREP"],
     ["intel", "INTEL"],

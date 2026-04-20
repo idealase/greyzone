@@ -3,6 +3,7 @@ import { DomainLayer, DOMAIN_LABELS } from "../../types/domain";
 
 interface EventFeedProps {
   events: TurnEvent[];
+  couplingMatrix?: Record<string, Record<string, number>>;
 }
 
 function getEventClass(type: TurnEvent["type"]): string {
@@ -37,7 +38,7 @@ function getTypeBadge(type: TurnEvent["type"]): { label: string; className: stri
     case "phase_transition":
       return { label: "PHASE", className: "badge badge--red" };
     case "coupling_effect":
-      return { label: "EFFECT", className: "badge badge--purple" };
+      return { label: "COUPLING", className: "badge badge--purple" };
     case "ai_action":
       return { label: "OPPONENT", className: "badge badge--orange" };
     case "narrative":
@@ -56,7 +57,33 @@ function getDomainLabel(domain: string | null): string | null {
   return DOMAIN_LABELS[domain as DomainLayer] ?? domain;
 }
 
-export default function EventFeed({ events }: EventFeedProps) {
+function parseCouplingInfo(
+  description: string,
+  domain: DomainLayer | null,
+  couplingMatrix?: Record<string, Record<string, number>>
+): { source: string; target: string; weight: string } | null {
+  // Try to extract source→target from description patterns like:
+  // "Coupling effect from Cyber to Energy" or "Cyber stress spilled over to Energy"
+  const fromTo = description.match(/from\s+(\w+)\s+to\s+(\w+)/i)
+    ?? description.match(/(\w+)\s+(?:stress\s+)?spill(?:ed)?\s+(?:over\s+)?to\s+(\w+)/i)
+    ?? description.match(/(\w+)\s*→\s*(\w+)/);
+
+  if (fromTo) {
+    const source = getDomainLabel(fromTo[1]) ?? fromTo[1];
+    const target = getDomainLabel(fromTo[2]) ?? fromTo[2];
+    const w = couplingMatrix?.[fromTo[1]]?.[fromTo[2]] ?? couplingMatrix?.[fromTo[2]]?.[fromTo[1]];
+    return { source, target, weight: w != null ? w.toFixed(2) : "?" };
+  }
+
+  // Fallback: if domain is set, use it as target
+  if (domain) {
+    const target = getDomainLabel(domain) ?? domain;
+    return { source: "?", target, weight: "?" };
+  }
+  return null;
+}
+
+export default function EventFeed({ events, couplingMatrix }: EventFeedProps) {
   return (
     <div className="card">
       <div className="card__title">Event Feed</div>
@@ -72,8 +99,12 @@ export default function EventFeed({ events }: EventFeedProps) {
           events.map((event, idx) => {
             const badge = getTypeBadge(event.type);
             const domainLabel = getDomainLabel(event.domain);
-            // First few events get "new" animation class
             const isNew = idx < 3;
+
+            // Coupling callout
+            const couplingInfo = event.type === "coupling_effect"
+              ? parseCouplingInfo(event.description, event.domain, couplingMatrix)
+              : null;
 
             return (
               <div
@@ -84,10 +115,22 @@ export default function EventFeed({ events }: EventFeedProps) {
                 <span className={`event-item__type-badge ${badge.className}`}>
                   {badge.label}
                 </span>
-                {domainLabel && (
+                {domainLabel && event.type !== "coupling_effect" && (
                   <span className="event-item__domain">{domainLabel}</span>
                 )}
-                <span className="event-item__text">{event.description}</span>
+                {couplingInfo ? (
+                  <span className="event-item__text">
+                    <span className="coupling-callout">
+                      <span className="coupling-callout__source">{couplingInfo.source}</span>
+                      <span className="coupling-callout__arrow"> → </span>
+                      <span className="coupling-callout__target">{couplingInfo.target}</span>
+                      <span className="coupling-callout__weight">(w: {couplingInfo.weight})</span>
+                    </span>
+                    {" "}{event.description}
+                  </span>
+                ) : (
+                  <span className="event-item__text">{event.description}</span>
+                )}
               </div>
             );
           })

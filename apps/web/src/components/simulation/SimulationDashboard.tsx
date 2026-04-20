@@ -14,6 +14,7 @@ import ActionPanel from "./ActionPanel";
 import AiMovePanel from "../../components/ai/AiMovePanel";
 import BattlespaceCanvas from "./BattlespaceCanvas";
 import DomainStressChart from "./DomainStressChart";
+import CouplingGraph from "./CouplingGraph";
 import AfterActionReport, { DomainDelta, computeDomainDeltas } from "./AfterActionReport";
 import ScenarioBriefing from "./ScenarioBriefing";
 import Dialog from "../common/Dialog";
@@ -106,6 +107,7 @@ export default function SimulationDashboard({
   const [aarData, setAarData] = useState<AarData | null>(null);
   const [advanceErrorMessage, setAdvanceErrorMessage] = useState<string | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [showCouplingGraph, setShowCouplingGraph] = useState(false);
   const prevWorldStateRef = useRef<WorldState | null>(null);
   const isMountedRef = useRef(true);
   const [activeMobileTab, setActiveMobileTab] =
@@ -132,6 +134,20 @@ export default function SimulationDashboard({
       setActiveMobileTab("overview");
     }
   }, [isMobile]);
+
+  // Extract active coupling pairs from current turn events
+  const activeCouplings = useMemo(() => {
+    return events
+      .filter((e) => e.type === "coupling_effect" && e.turn === currentTurn)
+      .map((e) => {
+        const match = e.description.match(/from\s+(\w+)\s+to\s+(\w+)/i)
+          ?? e.description.match(/(\w+)\s+(?:stress\s+)?spill(?:ed)?\s+(?:over\s+)?to\s+(\w+)/i);
+        if (match) return { source: match[1], target: match[2] };
+        if (e.domain) return { source: "unknown", target: e.domain };
+        return null;
+      })
+      .filter((c): c is { source: string; target: string } => c !== null);
+  }, [events, currentTurn]);
 
   function handleAdvanceTurn() {
     prevWorldStateRef.current = worldState;
@@ -195,8 +211,12 @@ export default function SimulationDashboard({
         e.preventDefault();
         setShowShortcuts(true);
       }
+      if (!isFormElement && e.key === "c" && !e.ctrlKey && !e.metaKey) {
+        setShowCouplingGraph((v) => !v);
+      }
       if (e.key === "Escape") {
         setShowShortcuts(false);
+        setShowCouplingGraph(false);
       }
     };
 
@@ -302,7 +322,7 @@ export default function SimulationDashboard({
                     side={side}
                   />
                 )}
-                <EventFeed events={events} />
+                <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
                 {aiMoves.length > 0 && <AiMovePanel latestMove={aiMoves[0]} />}
               </>
             )}
@@ -354,7 +374,16 @@ export default function SimulationDashboard({
               previousWorldState={previousWorldState}
             />
             <DomainStressChart stressHistory={stressHistory} />
-            <EventFeed events={events} />
+            <div style={{ textAlign: "center", margin: "0.3rem 0" }}>
+              <button
+                className="btn btn--sm btn--ghost"
+                onClick={() => setShowCouplingGraph(true)}
+                title="View domain coupling map (C)"
+              >
+                🔗 View Couplings
+              </button>
+            </div>
+            <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
           </div>
 
           <div className="sim-layout__right">
@@ -389,6 +418,25 @@ export default function SimulationDashboard({
       )}
 
       <Dialog
+        open={showCouplingGraph}
+        onClose={() => setShowCouplingGraph(false)}
+        title="Domain Coupling Map"
+        actions={
+          <button className="btn btn--primary btn--sm" onClick={() => setShowCouplingGraph(false)}>
+            Close
+          </button>
+        }
+      >
+        {worldState?.coupling_matrix && (
+          <CouplingGraph
+            couplingMatrix={worldState.coupling_matrix}
+            layers={worldState.layers}
+            activeCouplings={activeCouplings}
+          />
+        )}
+      </Dialog>
+
+      <Dialog
         open={showShortcuts}
         onClose={() => setShowShortcuts(false)}
         title="Keyboard Shortcuts"
@@ -421,6 +469,14 @@ export default function SimulationDashboard({
           <li className="shortcut-list__item">
             <span>Navigate tutorial steps</span>
             <span className="shortcut-key">↑ ↓</span>
+          </li>
+          <li className="shortcut-list__item">
+            <span>Toggle coupling graph</span>
+            <span className="shortcut-key">C</span>
+          </li>
+          <li className="shortcut-list__item">
+            <span>Expand/collapse all action cards</span>
+            <span className="shortcut-key">E</span>
           </li>
         </ul>
       </Dialog>
