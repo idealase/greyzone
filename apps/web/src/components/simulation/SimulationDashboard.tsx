@@ -10,6 +10,7 @@ import TurnControls from "./TurnControls";
 import DomainPanel from "./DomainPanel";
 import EventFeed from "./EventFeed";
 import MetricsOverview from "./MetricsOverview";
+import ObjectivesPanel from "./ObjectivesPanel";
 import AiMovePanel from "../../components/ai/AiMovePanel";
 import ActionModal from "./ActionModal";
 import DomainActionBar from "./DomainActionBar";
@@ -25,8 +26,10 @@ interface AarData {
   completedTurn: number;
   currentPhase: Phase;
   orderParameter: number;
+  previousOrderParameter?: number;
   domainDeltas: DomainDelta[];
   phaseChanged: boolean;
+  aiActionCount: number;
 }
 
 type MobileTab = "overview" | "actions" | "domains";
@@ -180,8 +183,10 @@ export default function SimulationDashboard({
           completedTurn: result.turn,
           currentPhase: result.phase,
           orderParameter: result.order_parameter,
+          previousOrderParameter: previousOrderParameter ?? undefined,
           domainDeltas: deltas,
           phaseChanged: result.phase_changed,
+          aiActionCount: result.ai_actions?.length ?? 0,
         });
         setShowAAR(true);
       },
@@ -270,7 +275,6 @@ export default function SimulationDashboard({
                 scenarioId={run.scenario_id}
                 scenarioName={run.scenario_name ?? run.name}
                 side={side}
-                currentTurn={currentTurn}
               />
             )}
           </div>
@@ -315,6 +319,12 @@ export default function SimulationDashboard({
           <div className="sim-mobile-panel">
             {activeMobileTab === "overview" && (
               <>
+                <ObjectivesPanel
+                  side={side}
+                  orderParameter={orderParameter}
+                  currentTurn={currentTurn}
+                  currentPhase={currentPhase}
+                />
                 <MetricsOverview
                   orderParameter={orderParameter}
                   phase={currentPhase}
@@ -378,8 +388,14 @@ export default function SimulationDashboard({
             )}
           </div>
 
-          {/* RIGHT: Metrics, Chart, Events */}
+          {/* RIGHT: Objectives, Metrics, Chart, Events */}
           <div className="sim-panel--info">
+            <ObjectivesPanel
+              side={side}
+              orderParameter={orderParameter}
+              currentTurn={currentTurn}
+              currentPhase={currentPhase}
+            />
             <MetricsOverview
               orderParameter={orderParameter}
               phase={currentPhase}
@@ -436,8 +452,10 @@ export default function SimulationDashboard({
           completedTurn={aarData.completedTurn}
           currentPhase={aarData.currentPhase}
           orderParameter={aarData.orderParameter}
+          previousOrderParameter={aarData.previousOrderParameter}
           domainDeltas={aarData.domainDeltas}
           phaseChanged={aarData.phaseChanged}
+          aiActionCount={aarData.aiActionCount}
           onDismiss={() => setShowAAR(false)}
         />
       )}

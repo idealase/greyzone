@@ -24,8 +24,10 @@ interface AfterActionReportProps {
   completedTurn: number;
   currentPhase: Phase;
   orderParameter: number;
+  previousOrderParameter?: number;
   domainDeltas: DomainDelta[];
   phaseChanged: boolean;
+  aiActionCount?: number;
   onDismiss: () => void;
 }
 
@@ -59,8 +61,10 @@ export default function AfterActionReport({
   completedTurn,
   currentPhase,
   orderParameter,
+  previousOrderParameter,
   domainDeltas,
   phaseChanged,
+  aiActionCount,
   onDismiss,
 }: AfterActionReportProps) {
   const locale = useScenarioLocale();
@@ -86,6 +90,10 @@ export default function AfterActionReport({
     threshold !== undefined &&
     nextPhase !== null &&
     orderParameter >= threshold - 0.05;
+  const psiDelta =
+    previousOrderParameter !== undefined
+      ? orderParameter - previousOrderParameter
+      : null;
   const docsBase = "https://github.com/idealase/greyzone/blob/main/docs";
 
   return (
@@ -120,6 +128,33 @@ export default function AfterActionReport({
           <DomainDeltaGrid deltas={domainDeltas} locale={locale} />
         </div>
 
+        {/* Turn summary: Ψ delta + AI actions */}
+        {(psiDelta !== null || (aiActionCount !== undefined && aiActionCount > 0)) && (
+          <div className="aar-section">
+            <div className="aar-section__label">Turn Summary</div>
+            <div className="aar-turn-summary">
+              {psiDelta !== null && (
+                <div
+                  className="aar-psi-delta"
+                  style={{
+                    color: psiDelta > 0 ? "#ff6b6b" : psiDelta < 0 ? "#69db7c" : "var(--text-secondary)",
+                    fontWeight: 700,
+                    fontSize: "1.05rem",
+                  }}
+                >
+                  Δ Ψ: {psiDelta >= 0 ? "+" : ""}
+                  {psiDelta.toFixed(3)}
+                </div>
+              )}
+              {aiActionCount !== undefined && aiActionCount > 0 && (
+                <div className="aar-ai-actions" style={{ color: "var(--text-secondary)" }}>
+                  🤖 AI opponent executed {aiActionCount} action{aiActionCount !== 1 ? "s" : ""} this turn
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Banners section (only if there's something to show) */}
         {(phaseChanged || showEscalationWarning) && (
           <div className="aar-section">
@@ -151,7 +186,7 @@ export default function AfterActionReport({
         {/* Footer */}
         <div className="aar-footer">
           <button className="btn btn--primary" onClick={onDismiss}>
-            Continue to Turn {completedTurn + 1} →
+            Got it →
           </button>
         </div>
       </div>

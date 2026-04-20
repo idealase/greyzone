@@ -64,6 +64,7 @@ export async function quickStart(params: {
   user_id: string;
   name?: string;
   seed?: number;
+  player_side?: "blue" | "red";
 }): Promise<RunRead> {
   const response = await apiClient.post('/runs/quick-start', params);
   return response.data;

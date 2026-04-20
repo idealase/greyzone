@@ -86,9 +86,47 @@ impl CouplingMatrix {
     /// For each pair (i, j) with coupling c_ij:
     ///   if stress_i > 0.3: stress_j += c_ij * (stress_i - 0.3) * 0.05
     pub fn propagate_stress(&self, layers: &mut HashMap<DomainLayer, LayerState>) {
-        // Collect stress deltas first to avoid borrow issues
-        let mut deltas: HashMap<DomainLayer, f64> = HashMap::new();
+        let deltas = self.compute_stress_deltas(layers);
 
+        // Apply aggregate deltas
+        for (domain, delta) in deltas {
+            if let Some(layer) = layers.get_mut(&domain) {
+                layer.stress = (layer.stress + delta).clamp(0.0, 1.0);
+            }
+        }
+    }
+
+    /// Compute per-(source, target) stress deltas without applying them.
+    /// Returns a vec of (source, target, coupling_weight, delta) for each
+    /// propagation that would occur given the current layer stresses.
+    pub fn compute_propagation_effects(
+        &self,
+        layers: &HashMap<DomainLayer, LayerState>,
+    ) -> Vec<(DomainLayer, DomainLayer, f64, f64)> {
+        let mut effects = Vec::new();
+        let domains = DomainLayer::ALL;
+        for &source in &domains {
+            let source_stress = layers.get(&source).map(|l| l.stress).unwrap_or(0.0);
+            if source_stress > 0.3 {
+                for &target in &domains {
+                    if source == target {
+                        continue;
+                    }
+                    let coupling = self.get(&source, &target);
+                    let delta = coupling * (source_stress - 0.3) * 0.05;
+                    effects.push((source, target, coupling, delta));
+                }
+            }
+        }
+        effects
+    }
+
+    /// Compute aggregate stress deltas per target domain (used internally by propagate_stress).
+    fn compute_stress_deltas(
+        &self,
+        layers: &HashMap<DomainLayer, LayerState>,
+    ) -> HashMap<DomainLayer, f64> {
+        let mut deltas: HashMap<DomainLayer, f64> = HashMap::new();
         let domains = DomainLayer::ALL;
         for &source in &domains {
             let source_stress = layers.get(&source).map(|l| l.stress).unwrap_or(0.0);
@@ -103,13 +141,26 @@ impl CouplingMatrix {
                 }
             }
         }
+        deltas
+    }
 
-        // Apply deltas
-        for (domain, delta) in deltas {
-            if let Some(layer) = layers.get_mut(&domain) {
-                layer.stress = (layer.stress + delta).clamp(0.0, 1.0);
+    /// Convert the coupling matrix to a nested map of domain name → domain name → weight.
+    /// This is the format expected by the frontend CouplingGraph component.
+    pub fn to_nested_map(&self) -> HashMap<String, HashMap<String, f64>> {
+        let mut result: HashMap<String, HashMap<String, f64>> = HashMap::new();
+        for &source in &DomainLayer::ALL {
+            let source_name = source.to_string();
+            let mut row: HashMap<String, f64> = HashMap::new();
+            for &target in &DomainLayer::ALL {
+                if source == target {
+                    continue;
+                }
+                let weight = self.get(&source, &target);
+                row.insert(target.to_string(), weight);
             }
+            result.insert(source_name, row);
         }
+        result
     }
 }
 

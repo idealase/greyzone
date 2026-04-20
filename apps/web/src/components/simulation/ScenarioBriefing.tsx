@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getScenario } from "../../api/scenarios";
 import { ActorConfig, deriveActorConfigs } from "../../types/scenario";
@@ -8,7 +8,6 @@ interface ScenarioBriefingProps {
   scenarioId: string;
   scenarioName: string;
   side: "blue" | "red";
-  currentTurn: number;
 }
 
 function getSideLabel(side: "blue" | "red"): string {
@@ -52,9 +51,9 @@ export default function ScenarioBriefing({
   scenarioId,
   scenarioName,
   side,
-  currentTurn,
 }: ScenarioBriefingProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const hasAutoShown = useRef(false);
 
   const { data: scenario } = useQuery({
     queryKey: ["scenario", scenarioId],
@@ -63,12 +62,13 @@ export default function ScenarioBriefing({
     staleTime: Infinity,
   });
 
-  // Auto-open on turn 1
+  // Auto-open once when scenario data first loads
   useEffect(() => {
-    if (currentTurn <= 1 && scenario) {
+    if (!hasAutoShown.current && scenario) {
+      hasAutoShown.current = true;
       setIsOpen(true);
     }
-  }, [currentTurn, scenario]);
+  }, [scenario]);
 
   const actors = useMemo(
     () => (scenario?.config ? deriveActorConfigs(scenario.config) : []),

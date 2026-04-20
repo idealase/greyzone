@@ -84,7 +84,6 @@ describe("ScenarioBriefing", () => {
     scenarioId: "scenario-1",
     scenarioName: "Baltic Flashpoint",
     side: "blue" as const,
-    currentTurn: 1,
   };
 
   beforeEach(() => {
@@ -98,9 +97,9 @@ describe("ScenarioBriefing", () => {
     expect(screen.getByText(/Briefing/)).toBeInTheDocument();
   });
 
-  it("auto-opens dialog on turn 1 when scenario loads", async () => {
+  it("auto-opens dialog when scenario loads", async () => {
     mockGetScenario.mockResolvedValue(makeScenario());
-    render(<ScenarioBriefing {...defaultProps} currentTurn={1} />, { wrapper });
+    render(<ScenarioBriefing {...defaultProps} />, { wrapper });
     await waitFor(() => {
       expect(screen.getByRole("dialog")).toBeInTheDocument();
     });

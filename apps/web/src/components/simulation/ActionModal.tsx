@@ -30,6 +30,14 @@ export default function ActionModal({
     (a.available_layers ?? []).includes(domain)
   );
 
+  // Deduplicate by action_type — keep first actor for each type
+  const deduped = filtered.reduce<typeof filtered>((acc, action) => {
+    if (!acc.some(a => a.action_type === action.action_type)) {
+      acc.push(action);
+    }
+    return acc;
+  }, []);
+
   const color = DOMAIN_COLORS[domain];
   const label = DOMAIN_LABELS[domain];
 
@@ -50,7 +58,7 @@ export default function ActionModal({
           style={{ backgroundColor: color }}
         />
         <span style={{ fontWeight: 700, fontSize: "1.05rem" }}>{label} Actions</span>
-        {filtered.length > 0 && (
+        {deduped.length > 0 && (
           <button
             className="btn btn--xs btn--ghost"
             onClick={() => setExpandAll((v) => !v)}
@@ -61,17 +69,17 @@ export default function ActionModal({
         )}
       </div>
 
-      {filtered.length === 0 ? (
+      {deduped.length === 0 ? (
         <div className="action-modal__empty">
           No actions available targeting {label} this turn.
         </div>
       ) : (
         <>
           <p className="action-modal__count">
-            {filtered.length} action{filtered.length !== 1 ? "s" : ""} available
+            {deduped.length} action{deduped.length !== 1 ? "s" : ""} available
           </p>
           <div className="action-modal__list">
-            {filtered.map((action, idx) => (
+            {deduped.map((action, idx) => (
               <ActionCard
                 key={`${action.action_type}-${action.actor_id ?? ""}-${idx}`}
                 action={action}

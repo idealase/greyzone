@@ -27,7 +27,7 @@ test.describe("Visual Audit", () => {
     await page.waitForTimeout(1000);
     const scenarioSelect = page.locator("#scenario");
     await scenarioSelect.selectOption({ index: 1 });
-    await page.getByRole("button", { name: "Quick Start vs AI" }).click();
+    await page.getByRole("button", { name: /quick start/i }).click();
     await page.waitForURL(/\/runs\/[^/]+$/, { timeout: 30000 });
     // Wait for the simulation to fully load (domain action bar is a good signal)
     await page.waitForSelector(".domain-action-bar, .battlespace-canvas", { timeout: 20000 }).catch(() => {});
