@@ -1,5 +1,6 @@
+import { useState, useMemo } from "react";
 import { TurnEvent } from "../../types/run";
-import { DomainLayer, DOMAIN_LABELS } from "../../types/domain";
+import { DomainLayer, DOMAIN_LABELS, ALL_DOMAINS } from "../../types/domain";
 import { EVENT_TYPE_DESCRIPTIONS } from "../../data/glossary";
 import InfoTooltip from "../common/InfoTooltip";
 
@@ -7,6 +8,13 @@ interface EventFeedProps {
   events: TurnEvent[];
   couplingMatrix?: Record<string, Record<string, number>>;
 }
+
+const EVENT_TYPES: TurnEvent["type"][] = [
+  "action", "stochastic", "phase_transition", "coupling_effect",
+  "ai_action", "narrative", "intel", "threat",
+];
+
+type TurnRange = "current" | "last3" | "all";
 
 function getEventClass(type: TurnEvent["type"]): string {
   switch (type) {
@@ -64,8 +72,6 @@ function parseCouplingInfo(
   domain: DomainLayer | null,
   couplingMatrix?: Record<string, Record<string, number>>
 ): { source: string; target: string; weight: string } | null {
-  // Try to extract source→target from description patterns like:
-  // "Coupling effect from Cyber to Energy" or "Cyber stress spilled over to Energy"
   const fromTo = description.match(/from\s+(\w+)\s+to\s+(\w+)/i)
     ?? description.match(/(\w+)\s+(?:stress\s+)?spill(?:ed)?\s+(?:over\s+)?to\s+(\w+)/i)
     ?? description.match(/(\w+)\s*→\s*(\w+)/);
@@ -77,7 +83,6 @@ function parseCouplingInfo(
     return { source, target, weight: w != null ? w.toFixed(2) : "?" };
   }
 
-  // Fallback: if domain is set, use it as target
   if (domain) {
     const target = getDomainLabel(domain) ?? domain;
     return { source: "?", target, weight: "?" };
@@ -85,25 +90,168 @@ function parseCouplingInfo(
   return null;
 }
 
+function extractEventDetail(event: TurnEvent): Record<string, string> | null {
+  const details: Record<string, string> = {};
+  const desc = event.description;
+
+  if (event.type === "action" || event.type === "ai_action") {
+    if (event.actor) details["Actor"] = event.actor;
+    if (event.domain) details["Domain"] = getDomainLabel(event.domain) ?? event.domain;
+    const intMatch = desc.match(/intensity\s*[=:]\s*([\d.]+)/i);
+    if (intMatch) details["Intensity"] = intMatch[1];
+    const costMatch = desc.match(/(\d+)\s*RP/i);
+    if (costMatch) details["Cost"] = `${costMatch[1]} RP`;
+  } else if (event.type === "phase_transition") {
+    const phaseMatch = desc.match(/(\w[\w\s]+?)\s*(?:→|->|to)\s*(\w[\w\s]+)/i);
+    if (phaseMatch) {
+      details["From"] = phaseMatch[1].trim();
+      details["To"] = phaseMatch[2].trim();
+    }
+    const psiMatch = desc.match(/[Ψψ]\s*[=:]\s*([\d.]+)/);
+    if (psiMatch) details["Ψ Value"] = psiMatch[1];
+  } else if (event.type === "coupling_effect") {
+    if (event.domain) details["Target Domain"] = getDomainLabel(event.domain) ?? event.domain;
+    const deltaMatch = desc.match(/([+-]?[\d.]+)%?\s*stress/i);
+    if (deltaMatch) details["Stress Delta"] = deltaMatch[1];
+  } else if (event.type === "stochastic") {
+    details["Full Report"] = desc;
+  }
+
+  if (event.turn != null) details["Turn"] = String(event.turn);
+  return Object.keys(details).length > 0 ? details : null;
+}
+
 export default function EventFeed({ events, couplingMatrix }: EventFeedProps) {
+  const [activeTypes, setActiveTypes] = useState<Set<TurnEvent["type"]>>(new Set());
+  const [activeDomain, setActiveDomain] = useState<DomainLayer | "">("");
+  const [searchText, setSearchText] = useState("");
+  const [turnRange, setTurnRange] = useState<TurnRange>("all");
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  const maxTurn = useMemo(() => Math.max(0, ...events.map((e) => e.turn)), [events]);
+
+  const filteredEvents = useMemo(() => {
+    return events.filter((event) => {
+      if (activeTypes.size > 0 && !activeTypes.has(event.type)) return false;
+      if (activeDomain && event.domain !== activeDomain) return false;
+      if (searchText) {
+        const q = searchText.toLowerCase();
+        if (!event.description.toLowerCase().includes(q)) return false;
+      }
+      if (turnRange === "current" && event.turn !== maxTurn) return false;
+      if (turnRange === "last3" && event.turn < maxTurn - 2) return false;
+      return true;
+    });
+  }, [events, activeTypes, activeDomain, searchText, turnRange, maxTurn]);
+
+  const hasFilters = activeTypes.size > 0 || activeDomain !== "" || searchText !== "" || turnRange !== "all";
+
+  const toggleType = (t: TurnEvent["type"]) => {
+    setActiveTypes((prev) => {
+      const next = new Set(prev);
+      if (next.has(t)) next.delete(t);
+      else next.add(t);
+      return next;
+    });
+  };
+
+  const clearFilters = () => {
+    setActiveTypes(new Set());
+    setActiveDomain("");
+    setSearchText("");
+    setTurnRange("all");
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
   return (
     <div className="card">
-      <div className="card__title">Event Feed</div>
-      <div className="event-feed mt-1">
-        {events.length === 0 ? (
-          <div
-            className="card__body text-center"
-            style={{ padding: "1.5rem 0" }}
+      <div className="card__title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>Event Feed</span>
+        {hasFilters && (
+          <span className="ef-filter-count">
+            {filteredEvents.length} of {events.length}
+          </span>
+        )}
+      </div>
+
+      {/* Filter bar */}
+      <div className="ef-filters">
+        <input
+          type="text"
+          className="ef-filters__search"
+          placeholder="Search events…"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+        />
+
+        <div className="ef-filters__types">
+          {EVENT_TYPES.map((t) => {
+            const badge = getTypeBadge(t);
+            return (
+              <button
+                key={t}
+                className={`ef-type-pill ${activeTypes.has(t) ? "ef-type-pill--active" : ""}`}
+                onClick={() => toggleType(t)}
+                title={EVENT_TYPE_DESCRIPTIONS[t] ?? t}
+              >
+                {badge.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="ef-filters__row">
+          <select
+            className="ef-filters__domain-select"
+            value={activeDomain}
+            onChange={(e) => setActiveDomain(e.target.value as DomainLayer | "")}
           >
-            No events yet.
+            <option value="">All domains</option>
+            {ALL_DOMAINS.map((d) => (
+              <option key={d} value={d}>{DOMAIN_LABELS[d]}</option>
+            ))}
+          </select>
+
+          <select
+            className="ef-filters__turn-select"
+            value={turnRange}
+            onChange={(e) => setTurnRange(e.target.value as TurnRange)}
+          >
+            <option value="all">All turns</option>
+            <option value="current">Current turn</option>
+            <option value="last3">Last 3 turns</option>
+          </select>
+
+          {hasFilters && (
+            <button className="btn btn--sm btn--ghost" onClick={clearFilters}>
+              ✕ Clear
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Event list */}
+      <div className="event-feed mt-1">
+        {filteredEvents.length === 0 ? (
+          <div className="card__body text-center" style={{ padding: "1.5rem 0" }}>
+            {events.length === 0 ? "No events yet." : "No events match filters."}
           </div>
         ) : (
-          events.map((event, idx) => {
+          filteredEvents.map((event, idx) => {
             const badge = getTypeBadge(event.type);
             const domainLabel = getDomainLabel(event.domain);
             const isNew = idx < 3;
+            const isExpanded = expandedIds.has(event.id);
+            const detail = isExpanded ? extractEventDetail(event) : null;
 
-            // Coupling callout
             const couplingInfo = event.type === "coupling_effect"
               ? parseCouplingInfo(event.description, event.domain, couplingMatrix)
               : null;
@@ -111,33 +259,52 @@ export default function EventFeed({ events, couplingMatrix }: EventFeedProps) {
             return (
               <div
                 key={event.id}
-                className={`event-item ${getEventClass(event.type)}${isNew ? " event-item--new" : ""}${event.type === "action" && event.description.startsWith("Executed") ? " event-item--user-action" : ""}`}
+                className={`event-item ${getEventClass(event.type)}${isNew ? " event-item--new" : ""}${event.type === "action" && event.description.startsWith("Executed") ? " event-item--user-action" : ""}${isExpanded ? " event-item--expanded" : ""}`}
+                onClick={() => toggleExpand(event.id)}
+                style={{ cursor: "pointer" }}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleExpand(event.id); } }}
               >
-                <span className="event-item__turn">T{event.turn}</span>
-                <span className={`event-item__type-badge ${badge.className}`}>
-                  {badge.label}
-                  {EVENT_TYPE_DESCRIPTIONS[event.type] && (
-                    <InfoTooltip
-                      label={`${badge.label} event type`}
-                      content={EVENT_TYPE_DESCRIPTIONS[event.type]}
-                    />
-                  )}
-                </span>
-                {domainLabel && event.type !== "coupling_effect" && (
-                  <span className="event-item__domain">{domainLabel}</span>
-                )}
-                {couplingInfo ? (
-                  <span className="event-item__text">
-                    <span className="coupling-callout">
-                      <span className="coupling-callout__source">{couplingInfo.source}</span>
-                      <span className="coupling-callout__arrow"> → </span>
-                      <span className="coupling-callout__target">{couplingInfo.target}</span>
-                      <span className="coupling-callout__weight">(w: {couplingInfo.weight})</span>
-                    </span>
-                    {" "}{event.description}
+                <div className="event-item__row">
+                  <span className="event-item__turn">T{event.turn}</span>
+                  <span className={`event-item__type-badge ${badge.className}`}>
+                    {badge.label}
+                    {EVENT_TYPE_DESCRIPTIONS[event.type] && (
+                      <InfoTooltip
+                        label={`${badge.label} event type`}
+                        content={EVENT_TYPE_DESCRIPTIONS[event.type]}
+                      />
+                    )}
                   </span>
-                ) : (
-                  <span className="event-item__text">{event.description}</span>
+                  {domainLabel && event.type !== "coupling_effect" && (
+                    <span className="event-item__domain">{domainLabel}</span>
+                  )}
+                  {couplingInfo ? (
+                    <span className="event-item__text">
+                      <span className="coupling-callout">
+                        <span className="coupling-callout__source">{couplingInfo.source}</span>
+                        <span className="coupling-callout__arrow"> → </span>
+                        <span className="coupling-callout__target">{couplingInfo.target}</span>
+                        <span className="coupling-callout__weight">(w: {couplingInfo.weight})</span>
+                      </span>
+                      {" "}{event.description}
+                    </span>
+                  ) : (
+                    <span className="event-item__text">{event.description}</span>
+                  )}
+                  <span className="event-item__chevron">{isExpanded ? "▾" : "▸"}</span>
+                </div>
+
+                {isExpanded && detail && (
+                  <div className="event-item__detail" onClick={(e) => e.stopPropagation()}>
+                    {Object.entries(detail).map(([key, value]) => (
+                      <div key={key} className="event-item__detail-row">
+                        <span className="event-item__detail-key">{key}</span>
+                        <span className="event-item__detail-value">{value}</span>
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             );
