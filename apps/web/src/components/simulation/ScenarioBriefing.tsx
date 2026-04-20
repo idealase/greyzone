@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getScenario } from "../../api/scenarios";
-import { ActorConfig } from "../../types/scenario";
+import { ActorConfig, deriveActorConfigs } from "../../types/scenario";
 import Dialog from "../common/Dialog";
 
 interface ScenarioBriefingProps {
@@ -70,9 +70,17 @@ export default function ScenarioBriefing({
     }
   }, [currentTurn, scenario]);
 
-  const myActors = scenario?.actors.filter((a) => a.side === side) ?? [];
-  const opponentActors = scenario?.actors.filter((a) => a.side === (side === "blue" ? "red" : "blue")) ?? [];
-  const neutralActors = scenario?.actors.filter((a) => a.side === "neutral") ?? [];
+  const actors = useMemo(
+    () => (scenario?.config ? deriveActorConfigs(scenario.config) : []),
+    [scenario],
+  );
+  const myActors = actors.filter((a) => a.side === side);
+  const opponentActors = actors.filter((a) => a.side === (side === "blue" ? "red" : "blue"));
+  const neutralActors = actors.filter((a) => a.side === "neutral");
+
+  const myRole = scenario?.config?.roles.find(
+    (r) => r.id === (side === "blue" ? "blue_commander" : "red_commander"),
+  );
 
   return (
     <>
@@ -107,6 +115,11 @@ export default function ScenarioBriefing({
                 <h4 className="briefing-section__title">
                   Your Assignment — {getSideLabel(side)}
                 </h4>
+                {myRole && (
+                  <p className="briefing-section__body">
+                    <strong>{myRole.name}:</strong> {myRole.description}
+                  </p>
+                )}
                 {myActors.length > 0 ? (
                   <div className="briefing-actors">
                     {myActors.map((actor) => (
@@ -138,12 +151,6 @@ export default function ScenarioBriefing({
                     ))}
                   </div>
                 </section>
-              )}
-
-              {scenario.author && (
-                <p className="briefing-meta">
-                  Scenario by {scenario.author}
-                </p>
               )}
             </>
           ) : (

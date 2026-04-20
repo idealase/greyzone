@@ -2,7 +2,6 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import ScenarioBriefing from "./ScenarioBriefing";
 import { ScenarioRead } from "../../types/scenario";
-import { DomainLayer } from "../../types/domain";
 
 vi.mock("../../api/scenarios", () => ({
   getScenario: vi.fn(),
@@ -16,30 +15,57 @@ function makeScenario(overrides: Partial<ScenarioRead> = {}): ScenarioRead {
     id: "scenario-1",
     name: "Baltic Flashpoint",
     description: "A crisis erupts in the Baltic region.",
-    author: "Greyzone Team",
-    domain_config: {} as ScenarioRead["domain_config"],
-    actors: [
-      {
-        name: "NATO Alliance",
-        side: "blue",
-        description: "Western defensive alliance",
-        objectives: ["Maintain stability"],
-      },
-      {
-        name: "Eastern Bloc",
-        side: "red",
-        description: "Revisionist state coalition",
-        objectives: ["Expand influence"],
-      },
-      {
-        name: "UN Observers",
-        side: "neutral",
-        description: "Neutral monitoring body",
-        objectives: [],
-      },
-    ],
-    coupling_matrix: {},
-    initial_phase: "CompetitiveNormality",
+    config: {
+      roles: [
+        {
+          id: "blue_commander",
+          name: "Blue Commander",
+          description: "Commands NATO forces",
+          controlled_actors: ["nato_alliance"],
+        },
+        {
+          id: "red_commander",
+          name: "Red Commander",
+          description: "Commands Eastern Bloc forces",
+          controlled_actors: ["eastern_bloc"],
+        },
+        {
+          id: "observer",
+          name: "Observer",
+          description: "Read-only observer",
+          controlled_actors: [],
+        },
+      ],
+      actors: [
+        {
+          id: "nato_alliance",
+          name: "NATO Alliance",
+          kind: "State",
+          capabilities: { Kinetic: 0.8, Cyber: 0.7, Energy: 0.5 },
+          resources: 100,
+          morale: 80,
+          visibility: "Public",
+        },
+        {
+          id: "eastern_bloc",
+          name: "Eastern Bloc",
+          kind: "State",
+          capabilities: { Kinetic: 0.7, Cyber: 0.6, Energy: 0.8 },
+          resources: 90,
+          morale: 75,
+          visibility: "Public",
+        },
+        {
+          id: "un_observers",
+          name: "UN Observers",
+          kind: "Organization",
+          capabilities: { InformationCognitive: 0.5 },
+          resources: 30,
+          morale: 90,
+          visibility: "Public",
+        },
+      ],
+    },
     created_at: "2025-01-01T00:00:00Z",
     updated_at: "2025-01-01T00:00:00Z",
     ...overrides,
@@ -113,6 +139,14 @@ describe("ScenarioBriefing", () => {
     });
   });
 
+  it("shows role description for assignment", async () => {
+    mockGetScenario.mockResolvedValue(makeScenario());
+    render(<ScenarioBriefing {...defaultProps} side="blue" />, { wrapper });
+    await waitFor(() => {
+      expect(screen.getByText(/Commands NATO forces/)).toBeInTheDocument();
+    });
+  });
+
   it("shows opponent actors under Opposition Forces", async () => {
     mockGetScenario.mockResolvedValue(makeScenario());
     render(<ScenarioBriefing {...defaultProps} side="blue" />, { wrapper });
@@ -131,15 +165,6 @@ describe("ScenarioBriefing", () => {
     });
   });
 
-  it("renders actor objectives", async () => {
-    mockGetScenario.mockResolvedValue(makeScenario());
-    render(<ScenarioBriefing {...defaultProps} />, { wrapper });
-    await waitFor(() => {
-      expect(screen.getByText(/Maintain stability/)).toBeInTheDocument();
-      expect(screen.getByText(/Expand influence/)).toBeInTheDocument();
-    });
-  });
-
   it("closes dialog on Understood button click", async () => {
     mockGetScenario.mockResolvedValue(makeScenario());
     render(<ScenarioBriefing {...defaultProps} />, { wrapper });
@@ -148,13 +173,5 @@ describe("ScenarioBriefing", () => {
     });
     fireEvent.click(screen.getByText("Understood"));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-  });
-
-  it("shows author if present", async () => {
-    mockGetScenario.mockResolvedValue(makeScenario({ author: "John Doe" }));
-    render(<ScenarioBriefing {...defaultProps} />, { wrapper });
-    await waitFor(() => {
-      expect(screen.getByText(/John Doe/)).toBeInTheDocument();
-    });
   });
 });
