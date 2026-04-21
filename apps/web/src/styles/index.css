@@ -12,6 +12,18 @@
   --accent-purple: #8b5cf6;
   --border: #2e3044;
   --radius: 8px;
+
+  /* Semantic color roles */
+  --color-cta: #2563eb;           /* Primary CTA — darker blue, distinct from domain */
+  --color-cta-hover: #1d4ed8;
+  --color-danger: #ef4444;        /* Severity: critical, errors, threats */
+  --color-warning: #f59e0b;       /* Severity: caution, degraded */
+  --color-success: #22c55e;       /* Positive: stable, resolved */
+  --color-info: #38bdf8;          /* Informational: neutral highlights */
+  --color-opponent: #f97316;      /* Opponent / AI actions */
+  --color-coupling: #a78bfa;      /* Coupling / cross-domain effects */
+  --color-intel: #34d399;         /* Intel events */
+  --color-sitrep: #14b8a6;        /* Narrative / SITREP */
 }
 
 *,
@@ -342,19 +354,19 @@ input, select, textarea, button {
 }
 
 .btn--primary {
-  background: var(--accent-blue);
-  border-color: var(--accent-blue);
+  background: var(--color-cta);
+  border-color: var(--color-cta);
   color: #fff;
 }
 
 .btn--primary:hover {
-  background: #2563eb;
-  border-color: #2563eb;
+  background: var(--color-cta-hover);
+  border-color: var(--color-cta-hover);
 }
 
 .btn--danger {
-  background: var(--accent-red);
-  border-color: var(--accent-red);
+  background: var(--color-danger);
+  border-color: var(--color-danger);
   color: #fff;
 }
 
@@ -363,8 +375,8 @@ input, select, textarea, button {
 }
 
 .btn--success {
-  background: var(--accent-green);
-  border-color: var(--accent-green);
+  background: var(--color-success);
+  border-color: var(--color-success);
   color: #fff;
 }
 
@@ -818,28 +830,28 @@ input[type="range"] {
 }
 
 .badge--blue {
-  background: rgba(59, 130, 246, 0.15);
-  color: var(--accent-blue);
+  background: rgba(37, 99, 235, 0.15);
+  color: var(--color-cta);
 }
 
 .badge--red {
   background: rgba(239, 68, 68, 0.15);
-  color: var(--accent-red);
+  color: var(--color-danger);
 }
 
 .badge--green {
-  background: rgba(34, 197, 94, 0.15);
-  color: var(--accent-green);
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--color-intel);
 }
 
 .badge--yellow {
-  background: rgba(234, 179, 8, 0.15);
-  color: var(--accent-yellow);
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--color-warning);
 }
 
 .badge--purple {
-  background: rgba(139, 92, 246, 0.15);
-  color: var(--accent-purple);
+  background: rgba(167, 139, 250, 0.15);
+  color: var(--color-coupling);
 }
 
 .badge--gray {
@@ -849,12 +861,12 @@ input[type="range"] {
 
 .badge--orange {
   background: rgba(249, 115, 22, 0.15);
-  color: #f97316;
+  color: var(--color-opponent);
 }
 
 .badge--teal {
   background: rgba(20, 184, 166, 0.15);
-  color: #14b8a6;
+  color: var(--color-sitrep);
 }
 
 /* Player list */
@@ -2138,8 +2150,8 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
   font-weight: 600;
   font-family: monospace;
 }
-.effect-pill--stress-up   { background: rgba(239,68,68,0.15); color: #fca5a5; }
-.effect-pill--stress-down { background: rgba(34,197,94,0.15);  color: #86efac; }
+.effect-pill--stress-up   { background: rgba(239,68,68,0.15); color: var(--color-danger); }
+.effect-pill--stress-down { background: rgba(34,197,94,0.15);  color: var(--color-success); }
 .effect-pill--resilience-up   { background: rgba(34,197,94,0.15);  color: #86efac; }
 .effect-pill--resilience-down { background: rgba(239,68,68,0.15); color: #fca5a5; }
 .effect-pill--activity { background: rgba(59,130,246,0.15); color: #93c5fd; }
