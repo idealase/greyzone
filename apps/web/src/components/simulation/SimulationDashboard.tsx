@@ -20,6 +20,7 @@ import CouplingGraph from "./CouplingGraph";
 import AfterActionReport, { DomainDelta, computeDomainDeltas } from "./AfterActionReport";
 import ScenarioBriefing from "./ScenarioBriefing";
 import AdvisorDialog from "./AdvisorDialog";
+import TurnChangeSummary from "./TurnChangeSummary";
 import Dialog from "../common/Dialog";
 import Glossary from "../common/Glossary";
 import { AdvisorSuggestedAction } from "../../types/advisor";
@@ -290,6 +291,15 @@ export default function SimulationDashboard({
             currentTurnEvents={events}
             resources={playerResources}
           />
+          <TurnChangeSummary
+            currentTurn={currentTurn}
+            orderParameter={orderParameter}
+            previousOrderParameter={previousOrderParameter}
+            currentPhase={currentPhase}
+            worldState={worldState}
+            previousWorldState={previousWorldState}
+            events={events}
+          />
         </div>
         <div className="sim-top__secondary">
           {myRole && myRole !== "observer" && (
@@ -362,6 +372,15 @@ export default function SimulationDashboard({
           <div className="sim-mobile-panel">
             {activeMobileTab === "overview" && (
               <>
+                <TurnChangeSummary
+                  currentTurn={currentTurn}
+                  orderParameter={orderParameter}
+                  previousOrderParameter={previousOrderParameter}
+                  currentPhase={currentPhase}
+                  worldState={worldState}
+                  previousWorldState={previousWorldState}
+                  events={events}
+                />
                 <MetricsOverview
                   orderParameter={orderParameter}
                   phase={currentPhase}
