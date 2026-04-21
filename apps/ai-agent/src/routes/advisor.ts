@@ -11,6 +11,7 @@ const AdvisorRequestSchema = z.object({
   runId: z.string().uuid(),
   roleId: z.string().min(1),
   maxSuggestions: z.number().int().min(1).max(10).optional(),
+  userId: z.string().uuid().optional(),
 });
 
 router.post("/advisor", async (req: Request, res: Response) => {
@@ -22,7 +23,7 @@ router.post("/advisor", async (req: Request, res: Response) => {
     return;
   }
 
-  const { runId, roleId, maxSuggestions = 3 } = parsed.data;
+  const { runId, roleId, maxSuggestions = 3, userId = config.aiUserId } = parsed.data;
 
   try {
     const minToolBudget = 2 + maxSuggestions * 2 + 2;
@@ -32,7 +33,7 @@ router.post("/advisor", async (req: Request, res: Response) => {
     });
     const advisor = new AdvisorService(toolExecutor);
 
-    const result = await advisor.advise(runId, roleId, maxSuggestions);
+    const result = await advisor.advise(runId, roleId, userId, maxSuggestions);
     res.status(200).json(result);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

@@ -36,6 +36,7 @@ export class AdvisorService {
   async advise(
     runId: string,
     roleId: string,
+    userId: string,
     maxSuggestions = 3
   ): Promise<AdvisorResponse> {
     this.toolExecutor.reset();
@@ -43,16 +44,19 @@ export class AdvisorService {
     const brief = await this.executeTool<TurnBrief>("getTurnBrief", {
       runId,
       roleId,
+      userId,
     });
     const legalActions = await this.executeTool<LegalAction[]>("listLegalActions", {
       runId,
       roleId,
+      userId,
     });
 
     const suggestions = await this.buildSuggestions(
       runId,
       brief,
       legalActions,
+      userId,
       maxSuggestions
     );
     let stateSummary = this.buildStateSummary(brief);
@@ -80,6 +84,7 @@ export class AdvisorService {
     runId: string,
     brief: TurnBrief,
     legalActions: LegalAction[],
+    userId: string,
     maxSuggestions: number
   ): Promise<AdvisorSuggestion[]> {
     if (legalActions.length === 0) {
@@ -105,6 +110,7 @@ export class AdvisorService {
       );
       const inspection = await this.executeTool<ActionInspection>("inspectAction", {
         runId,
+        userId,
         actionType: candidate.action.actionType,
         targetDomain: candidate.action.targetDomain,
       });

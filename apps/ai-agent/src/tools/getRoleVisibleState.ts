@@ -5,14 +5,16 @@ import { mapRunStateToGameState } from "../mappers/apiResponse.js";
 
 export async function getRoleVisibleState(
   runId: string,
-  roleId: string
+  roleId: string,
+  userId?: string
 ): Promise<GameState> {
+  const effectiveUserId = userId ?? config.aiUserId;
   const response = await axios.get(
     `${config.apiBaseUrl}/runs/${runId}/state`,
     {
       params: { role_id: roleId },
       timeout: 10000,
-      headers: { "X-Service-Key": config.internalServiceKey, "X-User-Id": config.aiUserId },
+      headers: { "X-Service-Key": config.internalServiceKey, "X-User-Id": effectiveUserId },
     }
   );
 

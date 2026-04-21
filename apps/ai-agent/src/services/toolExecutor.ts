@@ -15,11 +15,23 @@ type ToolFunction = (input: Record<string, unknown>) => Promise<unknown>;
 
 const TOOL_REGISTRY: Record<string, ToolFunction> = {
   getTurnBrief: (input) =>
-    getTurnBrief(input.runId as string, input.roleId as string),
+    getTurnBrief(
+      input.runId as string,
+      input.roleId as string,
+      input.userId as string | undefined
+    ),
   getRoleVisibleState: (input) =>
-    getRoleVisibleState(input.runId as string, input.roleId as string),
+    getRoleVisibleState(
+      input.runId as string,
+      input.roleId as string,
+      input.userId as string | undefined
+    ),
   listLegalActions: (input) =>
-    listLegalActions(input.runId as string, input.roleId as string),
+    listLegalActions(
+      input.runId as string,
+      input.roleId as string,
+      input.userId as string | undefined
+    ),
   inspectAction: (input) =>
     inspectAction(
       input.runId as string,

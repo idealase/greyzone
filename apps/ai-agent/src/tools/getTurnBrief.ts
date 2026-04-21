@@ -8,15 +8,17 @@ const stateCompiler = new StateCompiler();
 
 export async function getTurnBrief(
   runId: string,
-  roleId: string
+  roleId: string,
+  userId?: string
 ): Promise<TurnBrief> {
+  const effectiveUserId = userId ?? config.aiUserId;
   const [stateResponse, actionsResponse] = await Promise.all([
     axios.get(
       `${config.apiBaseUrl}/runs/${runId}/state`,
       {
         params: { role_id: roleId },
         timeout: 10000,
-        headers: { "X-Service-Key": config.internalServiceKey, "X-User-Id": config.aiUserId },
+        headers: { "X-Service-Key": config.internalServiceKey, "X-User-Id": effectiveUserId },
       }
     ),
     axios.get(
@@ -24,7 +26,7 @@ export async function getTurnBrief(
       {
         params: { role_id: roleId },
         timeout: 10000,
-        headers: { "X-Service-Key": config.internalServiceKey, "X-User-Id": config.aiUserId },
+        headers: { "X-Service-Key": config.internalServiceKey, "X-User-Id": effectiveUserId },
       }
     ),
   ]);

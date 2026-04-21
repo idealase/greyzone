@@ -92,6 +92,7 @@ async def get_advisor(
                     "runId": str(run_id),
                     "roleId": role_id,
                     "maxSuggestions": data.max_suggestions,
+                    "userId": str(current_user.id),
                 },
             )
     except httpx.TimeoutException as exc:

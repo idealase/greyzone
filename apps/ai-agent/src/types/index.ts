@@ -90,6 +90,7 @@ export interface AdvisorRequest {
   runId: string;
   roleId: string;
   maxSuggestions?: number;
+  userId?: string;
 }
 
 export interface AdvisorSuggestedAction {

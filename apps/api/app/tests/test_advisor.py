@@ -70,7 +70,7 @@ async def _setup_running_run(client: AsyncClient) -> tuple[str, str]:
 
 @pytest.mark.asyncio
 async def test_advisor_success(client: AsyncClient, monkeypatch: pytest.MonkeyPatch):
-    run_id, _ = await _setup_running_run(client)
+    run_id, user_id = await _setup_running_run(client)
     captured: dict[str, object] = {}
 
     response = _MockResponse(
@@ -99,6 +99,7 @@ async def test_advisor_success(client: AsyncClient, monkeypatch: pytest.MonkeyPa
         "runId": run_id,
         "roleId": "blue_commander",
         "maxSuggestions": 2,
+        "userId": user_id,
     }
 
 
@@ -157,7 +158,7 @@ async def test_advisor_normalizes_camelcase_upstream_payload(
 async def test_advisor_infers_participant_role(
     client: AsyncClient, monkeypatch: pytest.MonkeyPatch
 ):
-    run_id, _ = await _setup_running_run(client)
+    run_id, user_id = await _setup_running_run(client)
     captured: dict[str, object] = {}
 
     response = _MockResponse(
@@ -184,6 +185,7 @@ async def test_advisor_infers_participant_role(
         "runId": run_id,
         "roleId": "blue_commander",
         "maxSuggestions": 3,
+        "userId": user_id,
     }
 
 
