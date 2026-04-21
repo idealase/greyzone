@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { TurnEvent } from "../../types/run";
 import { DomainLayer, DOMAIN_LABELS, ALL_DOMAINS } from "../../types/domain";
 import { EVENT_TYPE_DESCRIPTIONS } from "../../data/glossary";
@@ -7,6 +7,7 @@ import InfoTooltip from "../common/InfoTooltip";
 interface EventFeedProps {
   events: TurnEvent[];
   couplingMatrix?: Record<string, Record<string, number>>;
+  focusedDomain?: DomainLayer | null;
 }
 
 const EVENT_TYPES: TurnEvent["type"][] = [
@@ -125,10 +126,17 @@ const PINNED_TYPES: Set<TurnEvent["type"]> = new Set([
   "phase_transition", "intel", "threat",
 ]);
 
-export default function EventFeed({ events, couplingMatrix }: EventFeedProps) {
+export default function EventFeed({ events, couplingMatrix, focusedDomain }: EventFeedProps) {
   const [activeTypes, setActiveTypes] = useState<Set<TurnEvent["type"]>>(new Set());
   const [activeDomain, setActiveDomain] = useState<DomainLayer | "">("");
   const [searchText, setSearchText] = useState("");
+
+  // Sync external focus with local domain filter
+  useEffect(() => {
+    if (focusedDomain !== undefined) {
+      setActiveDomain(focusedDomain ?? "");
+    }
+  }, [focusedDomain]);
   const [turnRange, setTurnRange] = useState<TurnRange>("all");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
 

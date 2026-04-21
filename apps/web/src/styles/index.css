@@ -1172,6 +1172,16 @@ input[type="range"] {
   cursor: default;
 }
 
+.domain-action-btn--focused {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
+  background: rgba(59, 130, 246, 0.12);
+}
+
+.domain-action-btn--dimmed {
+  opacity: 0.3;
+}
+
 .domain-action-btn__dot {
   width: 9px;
   height: 9px;
@@ -3145,6 +3155,35 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 .domain-panel--expanded {
   border-color: var(--primary, #3b82f6);
   box-shadow: 0 2px 12px rgba(59, 130, 246, 0.15);
+}
+
+.domain-panel--focused {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 1px;
+}
+
+.domain-panel--dimmed {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* Domain focus badge in header */
+.domain-focus-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.7rem;
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.1);
+  border: 1px solid var(--accent-blue);
+  border-radius: 9999px;
+  padding: 0.15rem 0.5rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.domain-focus-badge:hover {
+  background: rgba(59, 130, 246, 0.2);
 }
 .domain-panel__chevron {
   font-size: 0.7rem;

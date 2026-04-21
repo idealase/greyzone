@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { useRunStore } from "../../stores/runStore";
 import { useActions } from "../../hooks/useActions";
-import { ALL_DOMAINS, DomainLayer } from "../../types/domain";
+import { ALL_DOMAINS, DomainLayer, DOMAIN_LABELS } from "../../types/domain";
 import { Role, TurnResult, WorldState } from "../../types/run";
 import { Phase } from "../../types/phase";
 import PhaseIndicator from "./PhaseIndicator";
@@ -139,6 +139,7 @@ export default function SimulationDashboard({
   const [analyticsExpanded, setAnalyticsExpanded] = useState(false);
   const [showUtilMenu, setShowUtilMenu] = useState(false);
   const [actionModalDomain, setActionModalDomain] = useState<DomainLayer | null>(null);
+  const [focusedDomain, setFocusedDomain] = useState<DomainLayer | null>(null);
   const prevWorldStateRef = useRef<WorldState | null>(null);
   const isMountedRef = useRef(true);
   const [activeMobileTab, setActiveMobileTab] =
@@ -266,6 +267,7 @@ export default function SimulationDashboard({
         setShowCouplingGraph(false);
         setShowGlossary(false);
         setActionModalDomain(null);
+        setFocusedDomain(null);
       }
     };
 
@@ -300,6 +302,16 @@ export default function SimulationDashboard({
             previousWorldState={previousWorldState}
             events={events}
           />
+          {focusedDomain && (
+            <button
+              type="button"
+              className="domain-focus-badge"
+              onClick={() => setFocusedDomain(null)}
+              title="Clear domain focus (Esc)"
+            >
+              🔍 {DOMAIN_LABELS[focusedDomain]} <span aria-hidden>✕</span>
+            </button>
+          )}
         </div>
         <div className="sim-top__secondary">
           {myRole && myRole !== "observer" && (
@@ -401,9 +413,11 @@ export default function SimulationDashboard({
                   <DomainActionBar
                     legalActions={legalActions}
                     onDomainClick={(domain) => setActionModalDomain(domain)}
+                    focusedDomain={focusedDomain}
+                    onFocusDomain={setFocusedDomain}
                   />
                 )}
-                <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
+                <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} focusedDomain={focusedDomain} />
                 {aiMoves.length > 0 && <AiMovePanel moves={aiMoves} />}
               </>
             )}
@@ -417,8 +431,11 @@ export default function SimulationDashboard({
                     layerState={worldState?.layers[domain] ?? null}
                     previousLayerState={previousWorldState?.layers[domain] ?? null}
                     isMostChanged={domain === mostChangedDomain}
+                    isFocused={focusedDomain === domain}
+                    isDimmed={focusedDomain != null && focusedDomain !== domain}
                     couplingMatrix={worldState?.coupling_matrix}
                     recentEvents={events}
+                    onFocusDomain={setFocusedDomain}
                   />
                 ))}
               </div>
@@ -434,6 +451,7 @@ export default function SimulationDashboard({
                 worldState={worldState}
                 previousWorldState={prevWorldStateRef.current}
                 onDomainClick={myRole !== "observer" ? (domain) => setActionModalDomain(domain) : undefined}
+                focusedDomain={focusedDomain}
               />
             </div>
             {myRole !== "observer" && (
@@ -442,6 +460,8 @@ export default function SimulationDashboard({
                 <DomainActionBar
                   legalActions={legalActions}
                   onDomainClick={(domain) => setActionModalDomain(domain)}
+                  focusedDomain={focusedDomain}
+                  onFocusDomain={setFocusedDomain}
                 />
               </div>
             )}
@@ -472,7 +492,7 @@ export default function SimulationDashboard({
             )}
             <div className="info-section">
               <h3 className="info-section__heading">Events</h3>
-              <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
+              <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} focusedDomain={focusedDomain} />
             </div>
             <div className="info-section">
               <button
