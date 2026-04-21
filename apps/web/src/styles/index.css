@@ -1199,6 +1199,29 @@ input[type="range"] {
   color: var(--text-secondary);
 }
 
+/* Preflight summary */
+.turn-preflight {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+}
+
+.turn-preflight__empty {
+  color: var(--warning, #f59e0b);
+  font-style: italic;
+}
+
+.turn-preflight__summary {
+  color: var(--text-secondary);
+}
+
+.turn-preflight__domains {
+  color: var(--text-muted);
+}
+
+.turn-preflight__cost {
+  color: var(--accent-blue);
+}
+
 .advisor-dialog__actions {
   display: flex;
   gap: 0.5rem;

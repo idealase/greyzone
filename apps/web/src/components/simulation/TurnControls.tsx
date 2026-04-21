@@ -100,17 +100,45 @@ export default function TurnControls({
     }
   }, [showDialog]);
 
+  // Compute affected domains
+  const affectedDomains = new Set<string>();
+  let totalCost = 0;
+  for (const evt of submittedActions) {
+    if (evt.domain) affectedDomains.add(DOMAIN_LABELS[evt.domain as DomainLayer] ?? evt.domain);
+    const costMatch = evt.description.match(/(\d+)\s*RP/i);
+    if (costMatch) totalCost += parseInt(costMatch[1], 10);
+  }
+
   return (
     <div className="turn-controls">
       <span className="turn-controls__counter">Turn {turn}</span>
       {!isObserver && (
-        <button
-          className="btn btn--primary"
-          onClick={handleEndTurnClick}
-          disabled={isAdvancing}
-        >
-          {isAdvancing ? "Advancing..." : "End Turn"}
-        </button>
+        <>
+          <div className="turn-preflight">
+            {submittedActions.length === 0 ? (
+              <span className="turn-preflight__empty">No actions queued</span>
+            ) : (
+              <span className="turn-preflight__summary">
+                {submittedActions.length} action{submittedActions.length !== 1 ? "s" : ""}
+                {affectedDomains.size > 0 && (
+                  <span className="turn-preflight__domains">
+                    {" · "}{[...affectedDomains].join(", ")}
+                  </span>
+                )}
+                {totalCost > 0 && (
+                  <span className="turn-preflight__cost"> · {totalCost} RP</span>
+                )}
+              </span>
+            )}
+          </div>
+          <button
+            className="btn btn--primary"
+            onClick={handleEndTurnClick}
+            disabled={isAdvancing}
+          >
+            {isAdvancing ? "Advancing..." : "End Turn"}
+          </button>
+        </>
       )}
 
       <Dialog
