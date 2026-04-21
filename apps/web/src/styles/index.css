@@ -4307,3 +4307,119 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 }
 
 /* ===== END SIMULATION SPEC PAGE ===== */
+
+/* ===== TOUCH-TARGET SIZING (tablet / mobile) ===== */
+@media (max-width: 1024px) {
+  /* Base buttons: 44px minimum touch target */
+  .btn {
+    min-height: 44px;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.9rem;
+  }
+
+  .btn--sm {
+    min-height: 36px;
+    padding: 0.4rem 0.75rem;
+    font-size: 0.82rem;
+  }
+
+  /* Domain action bar: larger touch targets */
+  .domain-action-bar {
+    gap: 0.6rem;
+    padding: 0.75rem;
+  }
+
+  .domain-action-btn {
+    min-height: 44px;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    gap: 0.5rem;
+  }
+
+  /* Mobile tabs: comfortably tappable */
+  .sim-mobile-tab {
+    min-height: 44px;
+    padding: 0.65rem 0.85rem;
+    font-size: 0.85rem;
+  }
+
+  /* Event feed filter pills */
+  .ef-type-pill {
+    min-height: 32px;
+    padding: 0.35rem 0.6rem;
+    font-size: 0.7rem;
+  }
+
+  /* Event feed selects and search */
+  .ef-filters__search {
+    min-height: 36px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  .ef-filters__domain-select,
+  .ef-filters__turn-select {
+    min-height: 36px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.8rem;
+  }
+
+  /* Chart legend items: larger tappable area */
+  .chart-legend__item {
+    min-height: 32px;
+    padding: 0.3rem 0.5rem;
+    font-size: 0.7rem;
+  }
+
+  /* Domain panels: more tap-friendly expand area */
+  .domain-panel {
+    padding: 0.7rem;
+  }
+
+  /* Utility menu items */
+  .sim-util-menu__item {
+    min-height: 44px;
+    padding: 0.6rem 0.85rem;
+  }
+
+  /* Info section toggle */
+  .info-section__heading--toggle {
+    min-height: 40px;
+    padding: 0.5rem 0;
+  }
+
+  /* Event items: more vertical space for touch */
+  .event-item {
+    padding: 0.6rem 0.75rem;
+    gap: 0.5rem;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Further increases on phone-sized screens */
+  .btn {
+    min-height: 48px;
+    padding: 0.7rem 1.2rem;
+  }
+
+  .domain-action-btn {
+    min-height: 48px;
+    padding: 0.7rem 1.1rem;
+  }
+
+  .sim-mobile-tab {
+    min-height: 48px;
+    padding: 0.75rem 1rem;
+  }
+
+  .ef-type-pill {
+    min-height: 36px;
+    padding: 0.4rem 0.65rem;
+  }
+
+  .ef-filters__search,
+  .ef-filters__domain-select,
+  .ef-filters__turn-select {
+    min-height: 40px;
+  }
+}
