@@ -4308,6 +4308,19 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
 
 /* ===== END SIMULATION SPEC PAGE ===== */
 
+/* ===== DISPLAY MODE TOGGLE ===== */
+.sim-display-toggle {
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+.sim-display-toggle:hover {
+  opacity: 1;
+}
+/* ===== END DISPLAY MODE TOGGLE ===== */
+
 /* ===== TOUCH-TARGET SIZING (tablet / mobile) ===== */
 @media (max-width: 1024px) {
   /* Base buttons: 44px minimum touch target */

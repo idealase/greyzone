@@ -13,6 +13,7 @@ interface MetricsOverviewProps {
   side?: "blue" | "red";
   previousOrderParameter?: number;
   previousWorldState?: WorldState | null;
+  compact?: boolean;
 }
 
 function findPlayerResources(
@@ -56,6 +57,7 @@ export default function MetricsOverview({
   side,
   previousOrderParameter,
   previousWorldState,
+  compact,
 }: MetricsOverviewProps) {
   let dominantDomain: DomainLayer | null = null;
   let maxStress = 0;
@@ -157,7 +159,8 @@ export default function MetricsOverview({
           </div>
         )}
       </div>
-      {/* Secondary: supporting telemetry */}
+      {/* Secondary: supporting telemetry (hidden in compact mode) */}
+      {!compact && (
       <div className="metrics-grid metrics-grid--secondary">
         <div className="metric-card metric-card--secondary">
           <div className="metric-card__label">Turn</div>
@@ -187,6 +190,7 @@ export default function MetricsOverview({
           </div>
         </div>
       </div>
+      )}
     </div>
   );
 }

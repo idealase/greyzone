@@ -36,6 +36,26 @@ interface AarData {
 }
 
 type MobileTab = "overview" | "actions" | "domains";
+type DisplayMode = "compact" | "analyst";
+
+const DISPLAY_MODE_KEY = "greyzone:displayMode";
+
+function useDisplayMode(): [DisplayMode, (mode: DisplayMode) => void] {
+  const [mode, setModeState] = useState<DisplayMode>(() => {
+    try {
+      const stored = localStorage.getItem(DISPLAY_MODE_KEY);
+      if (stored === "compact" || stored === "analyst") return stored;
+    } catch { /* ignore */ }
+    return "compact";
+  });
+
+  const setMode = (next: DisplayMode) => {
+    setModeState(next);
+    try { localStorage.setItem(DISPLAY_MODE_KEY, next); } catch { /* ignore */ }
+  };
+
+  return [mode, setMode];
+}
 
 function useMediaQuery(query: string) {
   const [matches, setMatches] = useState(() =>
@@ -137,6 +157,7 @@ export default function SimulationDashboard({
   const [showCouplingGraph, setShowCouplingGraph] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(false);
+  const [displayMode, setDisplayMode] = useDisplayMode();
   const [showUtilMenu, setShowUtilMenu] = useState(false);
   const [actionModalDomain, setActionModalDomain] = useState<DomainLayer | null>(null);
   const [focusedDomain, setFocusedDomain] = useState<DomainLayer | null>(null);
@@ -314,6 +335,14 @@ export default function SimulationDashboard({
           )}
         </div>
         <div className="sim-top__secondary">
+          <button
+            type="button"
+            className="btn btn--sm btn--ghost sim-display-toggle"
+            onClick={() => setDisplayMode(displayMode === "compact" ? "analyst" : "compact")}
+            title={displayMode === "compact" ? "Switch to analyst mode" : "Switch to compact mode"}
+          >
+            {displayMode === "compact" ? "▦ Analyst" : "▤ Compact"}
+          </button>
           {myRole && myRole !== "observer" && (
             <AdvisorDialog
               runId={runId}
@@ -402,8 +431,11 @@ export default function SimulationDashboard({
                   side={side}
                   previousOrderParameter={previousOrderParameter}
                   previousWorldState={previousWorldState}
+                  compact={displayMode === "compact"}
                 />
-                <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
+                {displayMode === "analyst" && (
+                  <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
+                )}
               </>
             )}
 
@@ -482,6 +514,7 @@ export default function SimulationDashboard({
                 side={side}
                 previousOrderParameter={previousOrderParameter}
                 previousWorldState={previousWorldState}
+                compact={displayMode === "compact"}
               />
             </div>
             {aiMoves.length > 0 && (
@@ -492,8 +525,9 @@ export default function SimulationDashboard({
             )}
             <div className="info-section">
               <h3 className="info-section__heading">Events</h3>
-              <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} focusedDomain={focusedDomain} />
+              <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} focusedDomain={focusedDomain} compact={displayMode === "compact"} />
             </div>
+            {displayMode === "analyst" && (
             <div className="info-section">
               <button
                 type="button"
@@ -526,6 +560,7 @@ export default function SimulationDashboard({
                 </>
               )}
             </div>
+            )}
             </div>
           </div>
         </div>
