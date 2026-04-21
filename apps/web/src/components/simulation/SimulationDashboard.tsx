@@ -136,6 +136,7 @@ export default function SimulationDashboard({
   const [showCouplingGraph, setShowCouplingGraph] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
   const [analyticsExpanded, setAnalyticsExpanded] = useState(false);
+  const [showUtilMenu, setShowUtilMenu] = useState(false);
   const [actionModalDomain, setActionModalDomain] = useState<DomainLayer | null>(null);
   const prevWorldStateRef = useRef<WorldState | null>(null);
   const isMountedRef = useRef(true);
@@ -274,42 +275,13 @@ export default function SimulationDashboard({
   return (
     <div className={layoutClasses}>
       <div className="sim-layout__top">
-        <div className="sim-top__left">
+        <div className="sim-top__primary">
           <PhaseIndicator
             phase={currentPhase}
             orderParameter={orderParameter}
             phaseHistory={phaseTransitions}
             side={myRole !== "observer" ? side : undefined}
           />
-          <div className="sim-top__links">
-            <Link to="/tutorial">↩ Return to tutorial</Link>
-            <Link to="/help">Help & docs</Link>
-            <button
-              className="btn btn--sm"
-              type="button"
-              onClick={() => setShowShortcuts(true)}
-              aria-keyshortcuts="?"
-            >
-              ? Shortcuts
-            </button>
-            {run?.scenario_id && (
-              <ScenarioBriefing
-                scenarioId={run.scenario_id}
-                scenarioName={run.scenario_name ?? run.name}
-                side={side}
-              />
-            )}
-          </div>
-        </div>
-        <div className="sim-top__right">
-          {myRole && myRole !== "observer" && (
-            <AdvisorDialog
-              runId={runId}
-              roleId={myRole}
-              canApply
-              onApplySuggestion={handleApplyAdvisorSuggestion}
-            />
-          )}
           <TurnControls
             turn={currentTurn}
             isAdvancing={isAdvancing || isAdvancingTurn}
@@ -318,6 +290,47 @@ export default function SimulationDashboard({
             currentTurnEvents={events}
             resources={playerResources}
           />
+        </div>
+        <div className="sim-top__secondary">
+          {myRole && myRole !== "observer" && (
+            <AdvisorDialog
+              runId={runId}
+              roleId={myRole}
+              canApply
+              onApplySuggestion={handleApplyAdvisorSuggestion}
+            />
+          )}
+          <div className="sim-util-menu">
+            <button
+              type="button"
+              className="btn btn--sm btn--ghost sim-util-menu__trigger"
+              onClick={() => setShowUtilMenu((v) => !v)}
+              aria-expanded={showUtilMenu}
+              aria-label="Utilities menu"
+            >
+              ⋯
+            </button>
+            {showUtilMenu && (
+              <div className="sim-util-menu__dropdown" onClick={() => setShowUtilMenu(false)}>
+                <Link to="/tutorial" className="sim-util-menu__item">↩ Tutorial</Link>
+                <Link to="/help" className="sim-util-menu__item">Help &amp; docs</Link>
+                <button
+                  className="sim-util-menu__item"
+                  type="button"
+                  onClick={() => setShowShortcuts(true)}
+                >
+                  ? Shortcuts
+                </button>
+                {run?.scenario_id && (
+                  <ScenarioBriefing
+                    scenarioId={run.scenario_id}
+                    scenarioName={run.scenario_name ?? run.name}
+                    side={side}
+                  />
+                )}
+              </div>
+            )}
+          </div>
         </div>
         {advanceErrorMessage && (
           <div className="error-container">
