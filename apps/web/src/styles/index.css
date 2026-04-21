@@ -1838,6 +1838,11 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
   animation: slideIn 0.35s ease-out;
 }
 
+.event-item--pinned {
+  border-left: 2px solid var(--accent-blue);
+  background: color-mix(in srgb, var(--bg-secondary) 90%, var(--accent-blue));
+}
+
 @keyframes slideIn {
   from {
     opacity: 0;
