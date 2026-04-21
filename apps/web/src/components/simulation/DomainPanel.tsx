@@ -107,10 +107,10 @@ export default function DomainPanel({
     .slice(0, 3);
 
   const stressColor =
-    stressLevel === "critical" ? "#ef4444"
-    : stressLevel === "high" ? "#f97316"
-    : stressLevel === "medium" ? "#eab308"
-    : "#22c55e";
+    stressLevel === "critical" ? "var(--color-danger)"
+    : stressLevel === "high" ? "var(--color-opponent)"
+    : stressLevel === "medium" ? "var(--color-warning)"
+    : "var(--color-success)";
 
   const panelClass = [
     "domain-panel",
@@ -237,7 +237,7 @@ export default function DomainPanel({
             </div>
             <div className="dp-detail-metric">
               <div className="dp-detail-metric__bar">
-                <div className="dp-detail-metric__fill" style={{ width: `${friction * 100}%`, background: "#f59e0b" }} />
+                <div className="dp-detail-metric__fill" style={{ width: `${friction * 100}%`, background: "var(--color-warning)" }} />
               </div>
               <span className="dp-detail-metric__value">{formatPercent(friction)}</span>
             </div>

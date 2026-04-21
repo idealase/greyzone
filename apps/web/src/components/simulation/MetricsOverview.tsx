@@ -144,7 +144,7 @@ export default function MetricsOverview({
                 content={
                   <div>
                     <div>Resource points (RP) are spent when executing actions. Each action has a cost.</div>
-                    <div style={{ marginTop: "0.3rem", fontWeight: 600, color: "#22c55e" }}>♻️ Regeneration: +2 RP per turn</div>
+                    <div style={{ marginTop: "0.3rem", fontWeight: 600, color: "var(--color-success)" }}>♻️ Regeneration: +2 RP per turn</div>
                     <div style={{ marginTop: "0.2rem" }}>Running out of RP limits your available actions. Plan resource expenditure carefully.</div>
                   </div>
                 }
