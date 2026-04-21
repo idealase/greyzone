@@ -33,14 +33,35 @@ export default function DomainStressChart({
   psiHistory,
 }: DomainStressChartProps) {
   const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+  const [focusDomain, setFocusDomain] = useState<DomainLayer | null>(null);
 
   const toggleSeries = (key: string) => {
+    if (focusDomain) return; // toggles disabled in focus mode
     setHiddenSeries((prev) => {
       const next = new Set(prev);
       if (next.has(key)) next.delete(key);
       else next.add(key);
       return next;
     });
+  };
+
+  const handleFocus = (domain: DomainLayer) => {
+    if (focusDomain === domain) {
+      setFocusDomain(null);
+      setHiddenSeries(new Set());
+    } else {
+      setFocusDomain(domain);
+    }
+  };
+
+  const clearFocus = () => {
+    setFocusDomain(null);
+    setHiddenSeries(new Set());
+  };
+
+  const isDomainVisible = (domain: DomainLayer) => {
+    if (focusDomain) return domain === focusDomain;
+    return !hiddenSeries.has(domain);
   };
 
   if (stressHistory.length === 0) {
@@ -70,7 +91,18 @@ export default function DomainStressChart({
 
   return (
     <div className="card">
-      <div className="card__title">Domain Stress &amp; Ψ Over Time</div>
+      <div className="card__title" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <span>
+          {focusDomain
+            ? `${DOMAIN_LABELS[focusDomain]} Stress & Ψ`
+            : "Domain Stress & Ψ Over Time"}
+        </span>
+        {focusDomain && (
+          <button type="button" className="btn btn--sm btn--ghost" onClick={clearFocus}>
+            Show All
+          </button>
+        )}
+      </div>
       <div style={{ width: "100%", height: 220 }}>
         <ResponsiveContainer>
           <LineChart
@@ -126,10 +158,10 @@ export default function DomainStressChart({
                 type="monotone"
                 dataKey={domain}
                 stroke={DOMAIN_COLORS[domain]}
-                strokeWidth={1.5}
-                dot={false}
+                strokeWidth={focusDomain === domain ? 2.5 : 1.5}
+                dot={focusDomain === domain ? { r: 2 } : false}
                 name={domain}
-                hide={hiddenSeries.has(domain)}
+                hide={!isDomainVisible(domain)}
               />
             ))}
             {/* Ψ line */}
@@ -142,7 +174,7 @@ export default function DomainStressChart({
               dot={{ r: 3, fill: "#a855f7" }}
               name="psi"
               connectNulls
-              hide={hiddenSeries.has("psi")}
+              hide={!focusDomain && hiddenSeries.has("psi")}
             />
           </LineChart>
         </ResponsiveContainer>
@@ -152,8 +184,10 @@ export default function DomainStressChart({
           <button
             key={domain}
             type="button"
-            className={`chart-legend__item${hiddenSeries.has(domain) ? " chart-legend__item--hidden" : ""}`}
+            className={`chart-legend__item${!isDomainVisible(domain) ? " chart-legend__item--hidden" : ""}${focusDomain === domain ? " chart-legend__item--focused" : ""}`}
             onClick={() => toggleSeries(domain)}
+            onDoubleClick={() => handleFocus(domain)}
+            title="Click to toggle, double-click to focus"
           >
             <span
               className="chart-legend__swatch"
