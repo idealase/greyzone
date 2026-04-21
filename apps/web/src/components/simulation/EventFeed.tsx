@@ -121,6 +121,10 @@ function extractEventDetail(event: TurnEvent): Record<string, string> | null {
   return Object.keys(details).length > 0 ? details : null;
 }
 
+const PINNED_TYPES: Set<TurnEvent["type"]> = new Set([
+  "phase_transition", "intel", "threat",
+]);
+
 export default function EventFeed({ events, couplingMatrix }: EventFeedProps) {
   const [activeTypes, setActiveTypes] = useState<Set<TurnEvent["type"]>>(new Set());
   const [activeDomain, setActiveDomain] = useState<DomainLayer | "">("");
@@ -131,7 +135,7 @@ export default function EventFeed({ events, couplingMatrix }: EventFeedProps) {
   const maxTurn = useMemo(() => Math.max(0, ...events.map((e) => e.turn)), [events]);
 
   const filteredEvents = useMemo(() => {
-    return events.filter((event) => {
+    const filtered = events.filter((event) => {
       if (activeTypes.size > 0 && !activeTypes.has(event.type)) return false;
       if (activeDomain && event.domain !== activeDomain) return false;
       if (searchText) {
@@ -142,6 +146,10 @@ export default function EventFeed({ events, couplingMatrix }: EventFeedProps) {
       if (turnRange === "last3" && event.turn < maxTurn - 2) return false;
       return true;
     });
+
+    const pinned = filtered.filter((e) => PINNED_TYPES.has(e.type));
+    const rest = filtered.filter((e) => !PINNED_TYPES.has(e.type));
+    return [...pinned, ...rest];
   }, [events, activeTypes, activeDomain, searchText, turnRange, maxTurn]);
 
   const hasFilters = activeTypes.size > 0 || activeDomain !== "" || searchText !== "" || turnRange !== "all";
@@ -249,6 +257,7 @@ export default function EventFeed({ events, couplingMatrix }: EventFeedProps) {
             const badge = getTypeBadge(event.type);
             const domainLabel = getDomainLabel(event.domain);
             const isNew = idx < 3;
+            const isPinned = PINNED_TYPES.has(event.type);
             const isExpanded = expandedIds.has(event.id);
             const detail = isExpanded ? extractEventDetail(event) : null;
 
@@ -259,7 +268,7 @@ export default function EventFeed({ events, couplingMatrix }: EventFeedProps) {
             return (
               <div
                 key={event.id}
-                className={`event-item ${getEventClass(event.type)}${isNew ? " event-item--new" : ""}${event.type === "action" && event.description.startsWith("Executed") ? " event-item--user-action" : ""}${isExpanded ? " event-item--expanded" : ""}`}
+                className={`event-item ${getEventClass(event.type)}${isNew ? " event-item--new" : ""}${isPinned ? " event-item--pinned" : ""}${event.type === "action" && event.description.startsWith("Executed") ? " event-item--user-action" : ""}${isExpanded ? " event-item--expanded" : ""}`}
                 onClick={() => toggleExpand(event.id)}
                 style={{ cursor: "pointer" }}
                 role="button"
