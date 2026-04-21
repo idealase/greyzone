@@ -433,6 +433,10 @@ export default function SimulationDashboard({
               </div>
             )}
             <div className="info-section">
+              <h3 className="info-section__heading">Events</h3>
+              <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
+            </div>
+            <div className="info-section">
               <h3 className="info-section__heading">Analytics</h3>
               <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
               <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexShrink: 0 }}>
@@ -451,10 +455,6 @@ export default function SimulationDashboard({
                   📖 Glossary
                 </button>
               </div>
-            </div>
-            <div className="info-section">
-              <h3 className="info-section__heading">Events</h3>
-              <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
             </div>
           </div>
         </div>
