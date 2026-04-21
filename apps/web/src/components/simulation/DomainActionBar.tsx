@@ -16,11 +16,15 @@ const DOMAIN_SHORT: Record<DomainLayer, string> = {
 interface DomainActionBarProps {
   legalActions: LegalAction[];
   onDomainClick: (domain: DomainLayer) => void;
+  focusedDomain?: DomainLayer | null;
+  onFocusDomain?: (domain: DomainLayer | null) => void;
 }
 
 export default function DomainActionBar({
   legalActions,
   onDomainClick,
+  focusedDomain,
+  onFocusDomain,
 }: DomainActionBarProps) {
   return (
     <div className="domain-action-bar" role="toolbar" aria-label="Domain actions">
@@ -34,8 +38,12 @@ export default function DomainActionBar({
         return (
           <button
             key={domain}
-            className={`domain-action-btn${isEmpty ? " domain-action-btn--empty" : ""}`}
+            className={`domain-action-btn${isEmpty ? " domain-action-btn--empty" : ""}${focusedDomain === domain ? " domain-action-btn--focused" : ""}${focusedDomain && focusedDomain !== domain ? " domain-action-btn--dimmed" : ""}`}
             onClick={() => !isEmpty && onDomainClick(domain)}
+            onDoubleClick={(e) => {
+              e.preventDefault();
+              onFocusDomain?.(focusedDomain === domain ? null : domain);
+            }}
             title={`${DOMAIN_LABELS[domain]}${count > 0 ? ` — ${count} actions` : " — no actions"}`}
             aria-disabled={isEmpty}
           >

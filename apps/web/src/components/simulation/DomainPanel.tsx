@@ -30,8 +30,11 @@ interface DomainPanelProps {
   layerState: LayerState | null;
   previousLayerState?: LayerState | null;
   isMostChanged?: boolean;
+  isFocused?: boolean;
+  isDimmed?: boolean;
   couplingMatrix?: Record<string, Record<string, number>>;
   recentEvents?: TurnEvent[];
+  onFocusDomain?: (domain: DomainLayer | null) => void;
 }
 
 function getStressLevel(stress: number): string {
@@ -74,8 +77,11 @@ export default function DomainPanel({
   layerState,
   previousLayerState,
   isMostChanged = false,
+  isFocused = false,
+  isDimmed = false,
   couplingMatrix,
   recentEvents,
+  onFocusDomain,
 }: DomainPanelProps) {
   const [expanded, setExpanded] = useState(false);
   const label = DOMAIN_LABELS[domain];
@@ -112,12 +118,19 @@ export default function DomainPanel({
     isCritical ? "domain-panel--critical" : "",
     expanded ? "domain-panel--expanded" : "",
     !expanded ? "domain-panel--compact" : "",
+    isFocused ? "domain-panel--focused" : "",
+    isDimmed ? "domain-panel--dimmed" : "",
   ].filter(Boolean).join(" ");
 
   return (
     <div
       className={panelClass}
       onClick={() => setExpanded((v) => !v)}
+      onDoubleClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onFocusDomain?.(isFocused ? null : domain);
+      }}
       role="button"
       tabIndex={0}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setExpanded((v) => !v); } }}

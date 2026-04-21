@@ -12,6 +12,7 @@ interface BattlespaceCanvasProps {
   worldState: WorldState | null;
   previousWorldState: WorldState | null;
   onDomainClick?: (domain: DomainLayer) => void;
+  focusedDomain?: DomainLayer | null;
 }
 
 /** Simple seeded PRNG for stable particle positions. */
@@ -72,6 +73,7 @@ export default function BattlespaceCanvas({
   worldState,
   previousWorldState,
   onDomainClick,
+  focusedDomain,
 }: BattlespaceCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -235,11 +237,18 @@ export default function BattlespaceCanvas({
 
       const [dr, dg, db] = hexToRgb(DOMAIN_COLORS[domain]);
       const isHovered = hoveredDomain === domain;
+      const isDimmed = focusedDomain != null && focusedDomain !== domain;
 
       // Zone fill: domain color with minimum visibility + stress-driven intensity
       const fillAlpha = 0.12 + layer.stress * 0.75;
       ctx.fillStyle = `rgba(${dr},${dg},${db},${fillAlpha})`;
       ctx.fillRect(zx, zy, zw, zh);
+
+      // Dim non-focused domains
+      if (isDimmed) {
+        ctx.fillStyle = "rgba(0,0,0,0.55)";
+        ctx.fillRect(zx, zy, zw, zh);
+      }
 
       // Inner glow — brighter bar at bottom proportional to stress
       if (layer.stress > 0.01) {
@@ -401,7 +410,7 @@ export default function BattlespaceCanvas({
         }
       }
     }
-  }, [worldState, previousWorldState, containerWidth, containerHeight, hoveredDomain]);
+  }, [worldState, previousWorldState, containerWidth, containerHeight, hoveredDomain, focusedDomain]);
 
   const fmtPct = (v: number) => `${(v * 100).toFixed(0)}%`;
   const layer = tooltip && worldState ? worldState.layers[tooltip.domain] : null;
