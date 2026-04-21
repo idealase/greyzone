@@ -166,21 +166,53 @@ impl CouplingMatrix {
 
 /// Create the default coupling matrix as specified.
 pub fn default_coupling_matrix() -> CouplingMatrix {
-    let mut m = CouplingMatrix::new(0.2);
+    // Default for uncoupled pairs — intentionally low so explicit links stand out
+    let mut m = CouplingMatrix::new(0.1);
 
     use DomainLayer::*;
-    m.set(Kinetic, MaritimeLogistics, 0.7);
-    m.set(Kinetic, Energy, 0.5);
-    m.set(Kinetic, Cyber, 0.4);
-    m.set(Energy, GeoeconomicIndustrial, 0.8);
-    m.set(Energy, DomesticPoliticalFiscal, 0.6);
-    m.set(Cyber, SpacePnt, 0.7);
-    m.set(Cyber, InformationCognitive, 0.6);
-    m.set(InformationCognitive, DomesticPoliticalFiscal, 0.8);
-    m.set(MaritimeLogistics, Energy, 0.6);
-    m.set(MaritimeLogistics, GeoeconomicIndustrial, 0.5);
-    m.set(SpacePnt, Kinetic, 0.5);
-    m.set(GeoeconomicIndustrial, DomesticPoliticalFiscal, 0.7);
+
+    // ── Kinetic links ──────────────────────────────────────────────────────
+    m.set(Kinetic, MaritimeLogistics, 0.75); // conflict disrupts shipping
+    m.set(Kinetic, Energy, 0.55);            // operations damage infrastructure
+    m.set(Kinetic, Cyber, 0.45);             // military ops drive cyber tempo
+    m.set(Kinetic, InformationCognitive, 0.60); // casualties shape narrative
+    m.set(Kinetic, GeoeconomicIndustrial, 0.40); // war disrupts supply chains
+    m.set(Kinetic, DomesticPoliticalFiscal, 0.55); // military spend drains fiscal
+
+    // ── Maritime links ─────────────────────────────────────────────────────
+    m.set(MaritimeLogistics, Energy, 0.70);  // blocked SLOCs cut energy imports
+    m.set(MaritimeLogistics, GeoeconomicIndustrial, 0.55); // trade flow disruption
+    m.set(MaritimeLogistics, DomesticPoliticalFiscal, 0.40); // supply shortages anger public
+    m.set(MaritimeLogistics, SpacePnt, 0.35); // GPS/PNT critical for navigation
+
+    // ── Energy links ───────────────────────────────────────────────────────
+    m.set(Energy, GeoeconomicIndustrial, 0.85); // energy prices drive industrial output
+    m.set(Energy, DomesticPoliticalFiscal, 0.65); // price spikes hit public sentiment
+    m.set(Energy, InformationCognitive, 0.30);    // energy crisis drives information ops
+
+    // ── Cyber links ────────────────────────────────────────────────────────
+    m.set(Cyber, SpacePnt, 0.70);            // cyber attacks blind satellite ground control
+    m.set(Cyber, InformationCognitive, 0.65); // cyber ops control information flows
+    m.set(Cyber, GeoeconomicIndustrial, 0.55); // attacks on financial & industrial systems
+    m.set(Cyber, DomesticPoliticalFiscal, 0.40); // cyber erodes public trust in institutions
+    m.set(Cyber, Energy, 0.50);              // grid attacks via cyber
+
+    // ── Space/PNT links ────────────────────────────────────────────────────
+    m.set(SpacePnt, Kinetic, 0.55);          // PNT degradation cripples precision weapons
+    m.set(SpacePnt, MaritimeLogistics, 0.45); // navigation dependency
+    m.set(SpacePnt, GeoeconomicIndustrial, 0.30); // satellite-dependent finance & logistics
+
+    // ── Information/Cognitive links ────────────────────────────────────────
+    m.set(InformationCognitive, DomesticPoliticalFiscal, 0.85); // narrative shapes political will
+    m.set(InformationCognitive, GeoeconomicIndustrial, 0.40);   // narrative affects markets
+    m.set(InformationCognitive, Kinetic, 0.35);  // morale feedback into military readiness
+
+    // ── Geoeconomic links ─────────────────────────────────────────────────
+    m.set(GeoeconomicIndustrial, DomesticPoliticalFiscal, 0.80); // economic pain destabilises
+    m.set(GeoeconomicIndustrial, Kinetic, 0.30);  // industrial output caps military capacity
+
+    // ── Domestic/Fiscal links ─────────────────────────────────────────────
+    m.set(DomesticPoliticalFiscal, Kinetic, 0.45); // mobilisation gates force posture
 
     m
 }
@@ -207,13 +239,13 @@ mod tests {
     #[test]
     fn test_coupling_default_value() {
         let m = default_coupling_matrix();
-        // DomesticPolitical <-> SpacePnt is not explicitly set, should be 0.2
+        // DomesticPolitical <-> SpacePnt is not explicitly set, should be default (0.1)
         assert_eq!(
             m.get(
                 &DomainLayer::DomesticPoliticalFiscal,
                 &DomainLayer::SpacePnt
             ),
-            0.2
+            0.1
         );
     }
 
@@ -270,6 +302,6 @@ mod tests {
         let m = default_coupling_matrix();
         let json = serde_json::to_string(&m).unwrap();
         let deser: CouplingMatrix = serde_json::from_str(&json).unwrap();
-        assert_eq!(deser.get(&DomainLayer::Kinetic, &DomainLayer::Energy), 0.5);
+        assert_eq!(deser.get(&DomainLayer::Kinetic, &DomainLayer::Energy), 0.55);
     }
 }

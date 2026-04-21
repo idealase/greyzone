@@ -78,15 +78,14 @@ export default function Header() {
                 <span>FAQs and links</span>
               </NavLink>
               <div className="help-menu__separator" />
-              <a
+              <NavLink
+                to="/sim-spec"
                 className="help-menu__item"
-                href="https://github.com/idealase/greyzone/blob/main/docs/simulation-spec.md"
-                target="_blank"
-                rel="noreferrer"
+                onClick={() => setHelpOpen(false)}
               >
-                Simulation Guide
-                <span>docs/simulation-spec</span>
-              </a>
+                Simulation Spec
+                <span>in-app reference</span>
+              </NavLink>
               <a
                 className="help-menu__item"
                 href="https://github.com/idealase/greyzone/blob/main/docs/api-spec.md"

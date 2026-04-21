@@ -18,6 +18,7 @@ interface PhaseIndicatorProps {
   phase: Phase;
   orderParameter: number;
   phaseHistory?: PhaseTransition[];
+  side?: "blue" | "red";
 }
 
 // Phase Ψ range boundaries (start of each phase)
@@ -43,6 +44,7 @@ export default function PhaseIndicator({
   phase,
   orderParameter,
   phaseHistory,
+  side,
 }: PhaseIndicatorProps) {
   const color = PHASE_COLORS[phase];
   const phaseIndex = PHASE_ORDER.indexOf(phase);
@@ -148,7 +150,49 @@ export default function PhaseIndicator({
             style={{ left: `${psiPct}%` }}
             title={`Ψ = ${orderParameter.toFixed(3)}`}
           />
+          {/* Blue hold threshold — P3 boundary at Ψ 0.50 */}
+          <div
+            className="esc-timeline__threshold esc-timeline__threshold--blue"
+            style={{ left: "50%" }}
+            title="Blue hold threshold (Ψ 0.50)"
+          />
+          {/* Red escalation target — P4 boundary at Ψ 0.70 */}
+          <div
+            className="esc-timeline__threshold esc-timeline__threshold--red"
+            style={{ left: "70%" }}
+            title="Red target threshold (Ψ 0.70)"
+          />
         </div>
+
+        {/* Objective status — shown when side is known */}
+        {side && (
+          <div className="phase-indicator__objective">
+            <span className="phase-indicator__objective-goal">
+              {side === "blue"
+                ? "🔵 Hold Ψ &lt; 0.50 — keep the peace"
+                : "🔴 Drive Ψ ≥ 0.70 — escalate to war"}
+            </span>
+            <span
+              className={`phase-indicator__objective-status${
+                side === "blue"
+                  ? orderParameter >= 0.40
+                    ? " phase-indicator__objective-status--danger"
+                    : " phase-indicator__objective-status--good"
+                  : orderParameter >= 0.70
+                  ? " phase-indicator__objective-status--good"
+                  : " phase-indicator__objective-status--warn"
+              }`}
+            >
+              {side === "blue"
+                ? orderParameter >= 0.40
+                  ? "⚠ Escalation risk"
+                  : "✓ Holding"
+                : orderParameter >= 0.70
+                ? "✓ Target reached"
+                : "↑ Escalating"}
+            </span>
+          </div>
+        )}
       </div>
     </div>
   );

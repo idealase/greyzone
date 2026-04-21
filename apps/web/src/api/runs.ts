@@ -80,3 +80,7 @@ export async function advanceTurn(runId: string, signal?: AbortSignal): Promise<
 export async function abortRun(runId: string): Promise<void> {
   await apiClient.post(`/runs/${runId}/abort`);
 }
+
+export async function deleteRun(runId: string): Promise<void> {
+  await apiClient.post(`/runs/${runId}/stop`);
+}

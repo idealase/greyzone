@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { listRuns } from "../../api/runs";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { listRuns, deleteRun } from "../../api/runs";
 
 interface SidebarProps {
   collapsed: boolean;
@@ -8,10 +8,16 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const queryClient = useQueryClient();
   const { data: runs } = useQuery({
     queryKey: ["runs"],
     queryFn: listRuns,
     refetchInterval: 15_000,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteRun,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["runs"] }),
   });
 
   const activeRuns = runs?.filter(
@@ -42,35 +48,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
           <SidebarLink to="/scenarios" label="Scenarios" icon="◈" collapsed={collapsed} />
           <SidebarLink to="/runs/new" label="New Run" icon="+" collapsed={collapsed} />
           <SidebarLink to="/tutorial" label="Tutorial" icon="?" collapsed={collapsed} />
-        </ul>
-
-        <div className="sidebar-section-title">{collapsed ? "" : "Docs & Help"}</div>
-        <ul className="sidebar-nav">
-          <SidebarLink to="/help" label="Help & FAQ" icon="📖" collapsed={collapsed} />
-          <li className="sidebar-nav__item">
-            <a
-              href="https://github.com/idealase/greyzone/blob/main/docs/simulation-spec.md"
-              className="sidebar-nav__link"
-              target="_blank"
-              rel="noreferrer"
-              title={collapsed ? "Simulation Spec" : undefined}
-            >
-              <span className="sidebar-icon">📄</span>
-              {!collapsed && <span>Simulation Spec ↗</span>}
-            </a>
-          </li>
-          <li className="sidebar-nav__item">
-            <a
-              href="https://github.com/idealase/greyzone/blob/main/docs/product-spec.md"
-              className="sidebar-nav__link"
-              target="_blank"
-              rel="noreferrer"
-              title={collapsed ? "Product Spec" : undefined}
-            >
-              <span className="sidebar-icon">📋</span>
-              {!collapsed && <span>Product Spec ↗</span>}
-            </a>
-          </li>
+          <SidebarLink to="/sim-spec" label="Sim Spec" icon="📐" collapsed={collapsed} />
         </ul>
 
         {activeRuns && activeRuns.length > 0 && (
@@ -78,7 +56,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
             <div className="sidebar-section-title">{collapsed ? "" : "Active Runs"}</div>
             <ul className="sidebar-nav">
               {activeRuns.map((run) => (
-                <li key={run.id} className="sidebar-nav__item">
+                <li key={run.id} className="sidebar-nav__item" style={{ display: "flex", alignItems: "center" }}>
                   <NavLink
                     to={
                       run.status === "lobby"
@@ -88,6 +66,7 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                     className={({ isActive }) =>
                       `sidebar-nav__link${isActive ? " active" : ""}`
                     }
+                    style={{ flex: 1 }}
                     title={collapsed ? run.name : undefined}
                   >
                     <span className="sidebar-icon">▶</span>
@@ -104,6 +83,18 @@ export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
                       </>
                     )}
                   </NavLink>
+                  {!collapsed && (
+                    <button
+                      className="sidebar-delete-btn"
+                      title="Remove run"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteMutation.mutate(run.id);
+                      }}
+                    >
+                      ×
+                    </button>
+                  )}
                 </li>
               ))}
             </ul>

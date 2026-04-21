@@ -108,7 +108,7 @@ export default function RunSetupPage() {
               required
             >
               <option value="">Select a scenario...</option>
-              {scenarios?.map((s) => (
+              {scenarios?.filter(s => s.name.length >= 2).map((s) => (
                 <option key={s.id} value={s.id}>
                   {s.name}
                 </option>

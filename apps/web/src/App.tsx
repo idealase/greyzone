@@ -12,6 +12,7 @@ import { useAuthStore } from "./stores/authStore";
 import HelpPage from "./pages/HelpPage";
 
 const TutorialPage = lazy(() => import("./pages/TutorialPage"));
+const SimSpecPage = lazy(() => import("./pages/SimSpecPage"));
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((s) => s.user);
@@ -48,6 +49,14 @@ export default function App() {
           element={
             <Suspense fallback={<div style={{ padding: "2rem", color: "var(--text-muted)" }}>Loading tutorial…</div>}>
               <TutorialPage />
+            </Suspense>
+          }
+        />
+        <Route
+          path="/sim-spec"
+          element={
+            <Suspense fallback={<div style={{ padding: "2rem", color: "var(--text-muted)" }}>Loading spec…</div>}>
+              <SimSpecPage />
             </Suspense>
           }
         />

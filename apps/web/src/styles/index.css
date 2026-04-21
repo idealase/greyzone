@@ -3314,6 +3314,55 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
   z-index: 2;
   pointer-events: none;
 }
+.esc-timeline__threshold {
+  position: absolute;
+  top: -4px;
+  bottom: -4px;
+  width: 2px;
+  border-radius: 1px;
+  z-index: 3;
+  pointer-events: none;
+  transform: translateX(-1px);
+}
+.esc-timeline__threshold--blue {
+  background: rgba(59, 130, 246, 0.75);
+  box-shadow: 0 0 4px rgba(59, 130, 246, 0.5);
+}
+.esc-timeline__threshold--red {
+  background: rgba(239, 68, 68, 0.75);
+  box-shadow: 0 0 4px rgba(239, 68, 68, 0.5);
+}
+
+.phase-indicator__objective {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-top: 0.4rem;
+  font-size: 0.7rem;
+}
+.phase-indicator__objective-goal {
+  color: var(--text-muted, #94a3b8);
+}
+.phase-indicator__objective-status {
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: var(--radius, 4px);
+  white-space: nowrap;
+}
+.phase-indicator__objective-status--good {
+  background: rgba(34, 197, 94, 0.12);
+  color: #22c55e;
+}
+.phase-indicator__objective-status--danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+.phase-indicator__objective-status--warn {
+  background: rgba(234, 179, 8, 0.12);
+  color: #eab308;
+}
+
 .phase-indicator__dist {
   font-size: 0.72rem;
   color: var(--text-muted, #94a3b8);
@@ -3407,3 +3456,522 @@ input[type="range"]::-moz-range-thumb { width: 16px; height: 16px; border-radius
   color: #ef4444;
   border: 1px solid rgba(239, 68, 68, 0.25);
 }
+
+/* ===== SIMULATION SPEC PAGE ===== */
+
+.sim-spec-page {
+  max-width: 1000px;
+  margin: 0 auto;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Header */
+.sim-spec-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sim-spec-header__title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+}
+
+.sim-spec-header__subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* TOC chips */
+.sim-spec-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.sim-spec-toc__chip {
+  padding: 0.3rem 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: 9999px;
+  background: var(--bg-secondary);
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sim-spec-toc__chip:hover {
+  border-color: var(--accent-blue);
+  color: var(--text-primary);
+  background: rgba(59, 130, 246, 0.07);
+}
+
+.sim-spec-toc__chip--active {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+}
+
+/* Body / sections */
+.sim-spec-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sim-spec-section {
+  padding-bottom: 2.5rem;
+  margin-bottom: 2.5rem;
+  border-bottom: 1px solid var(--border);
+  scroll-margin-top: 1rem;
+}
+
+.sim-spec-section:last-child {
+  border-bottom: none;
+}
+
+.sim-spec-section__title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 1rem;
+}
+
+.sim-spec-section__num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.15);
+  color: var(--accent-blue);
+  font-size: 0.85rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.sim-spec-prose {
+  color: var(--text-secondary);
+  line-height: 1.65;
+  margin-bottom: 1.25rem;
+  font-size: 0.9rem;
+}
+
+.sim-spec-prose code,
+.sim-spec-section p code {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0.1em 0.4em;
+  font-size: 0.82em;
+  color: var(--accent-blue);
+  font-family: 'Courier New', monospace;
+}
+
+/* Callout box */
+.sim-spec-callout {
+  background: rgba(59, 130, 246, 0.07);
+  border-left: 3px solid var(--accent-blue);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  padding: 0.75rem 1rem;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin-bottom: 1rem;
+}
+
+.sim-spec-callout code {
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  border-radius: 3px;
+  padding: 0.05em 0.35em;
+  color: var(--accent-blue);
+  font-family: 'Courier New', monospace;
+  font-size: 0.85em;
+}
+
+.sim-spec-callout--warn {
+  background: rgba(239, 68, 68, 0.07);
+  border-left-color: var(--accent-red);
+  color: #fca5a5;
+}
+
+.sim-spec-callout--warn code {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+/* Tables */
+.sim-spec-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.83rem;
+  margin-bottom: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.sim-spec-table th {
+  text-align: left;
+  padding: 0.6rem 0.875rem;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--border);
+}
+
+.sim-spec-table td {
+  padding: 0.55rem 0.875rem;
+  border-bottom: 1px solid var(--border);
+  color: var(--text-secondary);
+  vertical-align: top;
+  line-height: 1.45;
+}
+
+.sim-spec-table tr:last-child td {
+  border-bottom: none;
+}
+
+.sim-spec-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.sim-spec-table code {
+  font-family: 'Courier New', monospace;
+  font-size: 0.82em;
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.08);
+  padding: 0.05em 0.3em;
+  border-radius: 3px;
+}
+
+.sim-spec-table--compact td,
+.sim-spec-table--compact th {
+  padding: 0.4rem 0.75rem;
+}
+
+/* Layer grid */
+.sim-spec-layer-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.sim-spec-layer-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+
+.sim-spec-layer-card:hover {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+.sim-spec-layer-card__header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  width: 100%;
+  padding: 0.875rem 1rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+  transition: background 0.15s;
+}
+
+.sim-spec-layer-card__header:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.sim-spec-layer-card__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sim-spec-layer-card__code {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  min-width: 30px;
+  flex-shrink: 0;
+}
+
+.sim-spec-layer-card__name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  flex: 1;
+}
+
+.sim-spec-layer-card__chevron {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+
+.sim-spec-layer-card__tagline {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  padding: 0 1rem 0.875rem;
+  margin-top: -0.5rem;
+  line-height: 1.4;
+}
+
+.sim-spec-layer-card__body {
+  padding: 0 1rem 1rem;
+  animation: fadeIn 0.2s ease;
+  border-top: 1px solid var(--border);
+  padding-top: 0.875rem;
+}
+
+.sim-spec-layer-card__section-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.sim-spec-layer-card__dynamics {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.sim-spec-indicator {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.08);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+  border-radius: var(--radius);
+  padding: 0.5rem 0.875rem;
+}
+
+/* Coupling badges */
+.sim-spec-coupling-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  border: 1px solid;
+  border-radius: 4px;
+  padding: 2px 7px;
+  white-space: nowrap;
+}
+
+.sim-spec-coupling-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.sim-spec-formula {
+  font-family: 'Courier New', monospace;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Phase grid */
+.sim-spec-phase-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+@media (max-width: 720px) {
+  .sim-spec-phase-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .sim-spec-phase-grid { grid-template-columns: 1fr; }
+}
+
+.sim-spec-phase-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-top: 3px solid;
+  border-radius: var(--radius);
+  padding: 0.875rem;
+}
+
+.sim-spec-phase-card__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.4rem;
+}
+
+.sim-spec-phase-card__num {
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.sim-spec-phase-card__range {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  font-family: 'Courier New', monospace;
+}
+
+.sim-spec-phase-card__name {
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.sim-spec-phase-card__structural {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Tick pipeline */
+.sim-spec-pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.sim-spec-pipeline__step {
+  display: flex;
+  gap: 0.875rem;
+  align-items: stretch;
+}
+
+.sim-spec-pipeline__connector {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.sim-spec-pipeline__node {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(59, 130, 246, 0.12);
+  border: 2px solid var(--accent-blue);
+  color: var(--accent-blue);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  z-index: 1;
+}
+
+.sim-spec-pipeline__line {
+  width: 2px;
+  flex: 1;
+  background: var(--border);
+  margin: 2px 0;
+  min-height: 12px;
+}
+
+.sim-spec-pipeline__content {
+  padding: 0.3rem 0 1rem;
+}
+
+.sim-spec-pipeline__label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.2rem;
+}
+
+.sim-spec-pipeline__detail {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+/* Determinism cards */
+.sim-spec-determinism-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+@media (max-width: 720px) {
+  .sim-spec-determinism-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .sim-spec-determinism-grid { grid-template-columns: 1fr; }
+}
+
+.sim-spec-det-card {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1rem;
+  text-align: center;
+  transition: border-color 0.15s;
+}
+
+.sim-spec-det-card:hover {
+  border-color: var(--accent-blue);
+}
+
+.sim-spec-det-card__icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+  color: var(--accent-blue);
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+}
+
+.sim-spec-det-card__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+}
+
+.sim-spec-det-card__detail {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+/* ===== END SIMULATION SPEC PAGE ===== */

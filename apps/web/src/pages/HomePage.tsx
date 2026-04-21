@@ -1,14 +1,20 @@
 import { Link } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
-import { listRuns } from "../api/runs";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { listRuns, deleteRun } from "../api/runs";
 import { useAuthStore } from "../stores/authStore";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 
 export default function HomePage() {
   const user = useAuthStore((s) => s.user);
+  const queryClient = useQueryClient();
   const { data: runs, isLoading, error: runsError } = useQuery({
     queryKey: ["runs"],
     queryFn: listRuns,
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: deleteRun,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["runs"] }),
   });
 
   const activeRuns = runs?.filter(
@@ -60,19 +66,28 @@ export default function HomePage() {
             ) : activeRuns && activeRuns.length > 0 ? (
               <ul style={{ listStyle: "none", padding: 0 }}>
                 {activeRuns.slice(0, 5).map((run) => (
-                  <li key={run.id} style={{ marginBottom: "0.5rem" }}>
+                  <li key={run.id} style={{ marginBottom: "0.5rem", display: "flex", alignItems: "center", gap: "0.5rem" }}>
                     <Link
                       to={
                         run.status === "lobby"
                           ? `/runs/${run.id}/lobby`
                           : `/runs/${run.id}`
                       }
+                      style={{ flex: 1 }}
                     >
                       {run.name}{" "}
                       <span className="badge badge--blue">
                         T{run.current_turn}
                       </span>
                     </Link>
+                    <button
+                      className="btn-icon"
+                      title="Remove run"
+                      onClick={() => deleteMutation.mutate(run.id)}
+                      style={{ fontSize: "1rem", lineHeight: 1, padding: "0.1rem 0.35rem", opacity: 0.6 }}
+                    >
+                      ×
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -90,19 +105,28 @@ export default function HomePage() {
           </h2>
           <div className="grid grid--4">
             {completedRuns.slice(0, 8).map((run) => (
-              <Link
-                key={run.id}
-                to={`/runs/${run.id}/replay`}
-                style={{ textDecoration: "none" }}
-              >
-                <div className="card card--hover">
-                  <div className="card__title">{run.name}</div>
-                  <div className="card__subtitle">{run.scenario_name}</div>
-                  <div className="card__body">
-                    {run.current_turn} turns -- {run.participant_count} players
+              <div key={run.id} style={{ position: "relative" }}>
+                <Link
+                  to={`/runs/${run.id}/replay`}
+                  style={{ textDecoration: "none", display: "block" }}
+                >
+                  <div className="card card--hover">
+                    <div className="card__title">{run.name}</div>
+                    <div className="card__subtitle">{run.scenario_name}</div>
+                    <div className="card__body">
+                      {run.current_turn} turns -- {run.participant_count} players
+                    </div>
                   </div>
-                </div>
-              </Link>
+                </Link>
+                <button
+                  className="btn-icon"
+                  title="Remove run"
+                  onClick={() => deleteMutation.mutate(run.id)}
+                  style={{ position: "absolute", top: "0.5rem", right: "0.5rem", fontSize: "1rem", lineHeight: 1, padding: "0.1rem 0.35rem", opacity: 0.6 }}
+                >
+                  ×
+                </button>
+              </div>
             ))}
           </div>
         </div>

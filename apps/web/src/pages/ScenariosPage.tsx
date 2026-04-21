@@ -39,9 +39,9 @@ export default function ScenariosPage() {
         </p>
       </div>
 
-      {scenarios && scenarios.length > 0 ? (
+      {scenarios && scenarios.filter(s => s.name.length >= 2).length > 0 ? (
         <div className="grid grid--3">
-          {scenarios.map((scenario) => (
+          {scenarios.filter(s => s.name.length >= 2).map((scenario) => (
             <div key={scenario.id} className="card">
               <div className="card__title">{scenario.name}</div>
               <div className="card__subtitle">by {scenario.author}</div>

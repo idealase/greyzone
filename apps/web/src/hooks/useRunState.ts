@@ -4,6 +4,7 @@ import { getRun, getLegalActions } from "../api/runs";
 import { useRunStore } from "../stores/runStore";
 import { useAuthStore } from "../stores/authStore";
 import { DomainLayer, LayerState } from "../types/domain";
+import { Role } from "../types/run";
 
 export function useRunState(runId: string | undefined) {
   const { setRun, setLegalActions, addStressSnapshot, addPsiSnapshot, run } = useRunStore();
@@ -33,7 +34,11 @@ export function useRunState(runId: string | undefined) {
     }
   }, [runQuery.data, setRun, addStressSnapshot, addPsiSnapshot]);
 
-  const myRole = run?.participants.find((p) => p.user_id === user?.id)?.role;
+  const myParticipant = run?.participants.find((p) => p.user_id === user?.id);
+  // role_id is always present; .role may arrive as empty string — prefer role_id
+  const myRole = myParticipant
+    ? ((myParticipant.role_id || myParticipant.role) as Role)
+    : undefined;
   const side = myRole === "red_commander" ? "red" : "blue";
 
   const legalActionsQuery = useQuery({

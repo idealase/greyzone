@@ -10,7 +10,7 @@ import TurnControls from "./TurnControls";
 import DomainPanel from "./DomainPanel";
 import EventFeed from "./EventFeed";
 import MetricsOverview from "./MetricsOverview";
-import ObjectivesPanel from "./ObjectivesPanel";
+
 import AiMovePanel from "../../components/ai/AiMovePanel";
 import ActionModal from "./ActionModal";
 import DomainActionBar from "./DomainActionBar";
@@ -278,6 +278,7 @@ export default function SimulationDashboard({
             phase={currentPhase}
             orderParameter={orderParameter}
             phaseHistory={phaseTransitions}
+            side={myRole !== "observer" ? side : undefined}
           />
           <div className="sim-top__links">
             <Link to="/tutorial">↩ Return to tutorial</Link>
@@ -347,12 +348,6 @@ export default function SimulationDashboard({
           <div className="sim-mobile-panel">
             {activeMobileTab === "overview" && (
               <>
-                <ObjectivesPanel
-                  side={side}
-                  orderParameter={orderParameter}
-                  currentTurn={currentTurn}
-                  currentPhase={currentPhase}
-                />
                 <MetricsOverview
                   orderParameter={orderParameter}
                   phase={currentPhase}
@@ -416,14 +411,8 @@ export default function SimulationDashboard({
             )}
           </div>
 
-          {/* RIGHT: Objectives, Metrics, Chart, Events */}
+          {/* RIGHT: Metrics, Chart, Events */}
           <div className="sim-panel--info">
-            <ObjectivesPanel
-              side={side}
-              orderParameter={orderParameter}
-              currentTurn={currentTurn}
-              currentPhase={currentPhase}
-            />
             <MetricsOverview
               orderParameter={orderParameter}
               phase={currentPhase}

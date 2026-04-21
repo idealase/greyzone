@@ -21,6 +21,16 @@ sudo -A systemctl daemon-reload
 # 3. Start/restart services
 echo "[3/5] Starting services..."
 sudo -A systemctl enable greyzone-api greyzone-ai
+# Ensure stale manual API process cannot block systemd bind on :8010
+api_pid=$(ss -tlnp | sed -n 's/.*127\.0\.0\.1:8010.*pid=\([0-9]\+\).*/\1/p' | head -1)
+if [ -n "$api_pid" ]; then
+    service_pid=$(systemctl show -p MainPID --value greyzone-api 2>/dev/null || true)
+    if [ "$api_pid" != "$service_pid" ]; then
+        echo "  Found stale API PID on :8010 ($api_pid), terminating..."
+        kill "$api_pid"
+        sleep 1
+    fi
+fi
 sudo -A systemctl restart greyzone-api
 sudo -A systemctl restart greyzone-ai
 
