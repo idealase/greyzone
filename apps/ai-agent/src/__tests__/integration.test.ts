@@ -25,6 +25,7 @@ vi.mock("axios", () => {
 import axios from "axios";
 import healthRouter from "../routes/health.js";
 import aiTurnRouter from "../routes/aiTurn.js";
+import advisorRouter from "../routes/advisor.js";
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mockedAxios = axios as any;
@@ -150,6 +151,7 @@ describe("Integration: POST /ai/take-turn", () => {
     app.use(express.json());
     app.use("/health", healthRouter);
     app.use("/ai", aiTurnRouter);
+    app.use("/ai", advisorRouter);
 
     server = app.listen(0); // random port
     await new Promise<void>((resolve) => server.on("listening", resolve));
@@ -241,6 +243,75 @@ describe("Integration: POST /ai/take-turn", () => {
 
     expect([422, 500]).toContain(result.status);
     expect(result.body.success).toBe(false);
+    expect(result.body.error).toBeDefined();
+  });
+
+  it("POST /ai/advisor with valid body returns ranked suggestions", async () => {
+    const result = await request(server, "POST", "/ai/advisor", {
+      runId: "00000000-0000-0000-0000-000000000001",
+      roleId: "blue_commander",
+      maxSuggestions: 1,
+    });
+
+    expect(result.status).toBe(200);
+    expect(typeof result.body.stateSummary).toBe("string");
+    expect(typeof result.body.strategicOutlook).toBe("string");
+    expect(Array.isArray(result.body.suggestions)).toBe(true);
+    expect((result.body.suggestions as unknown[]).length).toBe(1);
+    const firstSuggestion = (result.body.suggestions as Record<string, unknown>[])[0];
+    expect(firstSuggestion.rank).toBe(1);
+    expect(firstSuggestion.action).toBeDefined();
+    expect(mockedAxios.post).not.toHaveBeenCalled();
+  });
+
+  it("POST /ai/advisor without runId returns 400", async () => {
+    const result = await request(server, "POST", "/ai/advisor", {
+      roleId: "blue_commander",
+    });
+
+    expect(result.status).toBe(400);
+    expect((result.body.error as string)).toContain("runId");
+  });
+
+  it("POST /ai/advisor without roleId returns 400", async () => {
+    const result = await request(server, "POST", "/ai/advisor", {
+      runId: "00000000-0000-0000-0000-000000000001",
+    });
+
+    expect(result.status).toBe(400);
+    expect((result.body.error as string)).toContain("roleId");
+  });
+
+  it("POST /ai/advisor with invalid runId returns 400", async () => {
+    const result = await request(server, "POST", "/ai/advisor", {
+      runId: "run-1",
+      roleId: "blue_commander",
+    });
+
+    expect(result.status).toBe(400);
+    expect((result.body.error as string)).toContain("runId");
+  });
+
+  it("POST /ai/advisor with invalid maxSuggestions returns 400", async () => {
+    const result = await request(server, "POST", "/ai/advisor", {
+      runId: "00000000-0000-0000-0000-000000000001",
+      roleId: "blue_commander",
+      maxSuggestions: 0,
+    });
+
+    expect(result.status).toBe(400);
+    expect((result.body.error as string)).toContain("maxSuggestions");
+  });
+
+  it("POST /ai/advisor with backend failure returns 500", async () => {
+    mockedAxios.get.mockRejectedValue(new Error("Backend unreachable"));
+
+    const result = await request(server, "POST", "/ai/advisor", {
+      runId: "00000000-0000-0000-0000-000000000001",
+      roleId: "blue_commander",
+    });
+
+    expect(result.status).toBe(500);
     expect(result.body.error).toBeDefined();
   });
 });

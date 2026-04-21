@@ -21,6 +21,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from app.routers import (
     actions_router,
+    advisor_router,
     ai_audit_router,
     auth_router,
     health_router,
@@ -169,6 +170,7 @@ app.include_router(scenarios_router, dependencies=[Depends(get_current_user)])
 app.include_router(runs_router, dependencies=[Depends(get_current_user)])
 app.include_router(runs_ws_router)
 app.include_router(actions_router, dependencies=[Depends(get_current_user)])
+app.include_router(advisor_router, dependencies=[Depends(get_current_user)])
 app.include_router(users_router, dependencies=[Depends(get_current_user)])
 app.include_router(replay_router, dependencies=[Depends(get_current_user)])
 app.include_router(ai_audit_router, dependencies=[Depends(get_current_user)])

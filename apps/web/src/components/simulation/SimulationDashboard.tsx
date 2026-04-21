@@ -19,8 +19,10 @@ import DomainStressChart from "./DomainStressChart";
 import CouplingGraph from "./CouplingGraph";
 import AfterActionReport, { DomainDelta, computeDomainDeltas } from "./AfterActionReport";
 import ScenarioBriefing from "./ScenarioBriefing";
+import AdvisorDialog from "./AdvisorDialog";
 import Dialog from "../common/Dialog";
 import Glossary from "../common/Glossary";
+import { AdvisorSuggestedAction } from "../../types/advisor";
 
 interface AarData {
   completedTurn: number;
@@ -75,7 +77,14 @@ export default function SimulationDashboard({
   const isAdvancingTurn = useRunStore((s) => s.isAdvancingTurn);
   const run = useRunStore((s) => s.run);
 
-  const { submitAction, isSubmitting, advanceTurn, isAdvancing, advanceError } =
+  const {
+    submitAction,
+    submitActionAsync,
+    isSubmitting,
+    advanceTurn,
+    isAdvancing,
+    advanceError,
+  } =
     useActions(runId);
 
   // Derive phase transitions from Ψ history
@@ -201,6 +210,17 @@ export default function SimulationDashboard({
     });
   }
 
+  async function handleApplyAdvisorSuggestion(action: AdvisorSuggestedAction) {
+    await submitActionAsync({
+      run_id: runId,
+      action_type: action.action_type,
+      target_domain: action.target_domain,
+      target_actor: action.target_actor ?? null,
+      intensity: action.intensity,
+      user_id: "",
+    });
+  }
+
   const mobileTabs: { id: MobileTab; label: string }[] = [
     { id: "overview", label: "Overview" },
     {
@@ -280,6 +300,14 @@ export default function SimulationDashboard({
           </div>
         </div>
         <div className="sim-top__right">
+          {myRole && myRole !== "observer" && (
+            <AdvisorDialog
+              runId={runId}
+              roleId={myRole}
+              canApply
+              onApplySuggestion={handleApplyAdvisorSuggestion}
+            />
+          )}
           <TurnControls
             turn={currentTurn}
             isAdvancing={isAdvancing || isAdvancingTurn}

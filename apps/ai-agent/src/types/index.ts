@@ -1,3 +1,5 @@
+import type { ActionType, Domain } from "./actions.js";
+
 export interface TurnContext {
   runId: string;
   roleId: string;
@@ -82,4 +84,37 @@ export interface GuardrailConfig {
   maxRetries: number;
   maxThinkingTime: number;
   forbiddenActions: string[];
+}
+
+export interface AdvisorRequest {
+  runId: string;
+  roleId: string;
+  maxSuggestions?: number;
+}
+
+export interface AdvisorSuggestedAction {
+  actionType: ActionType | string;
+  targetDomain: Domain | string;
+  targetActorId?: string;
+  intensity: number;
+}
+
+export interface AdvisorExpectedLocalEffects {
+  summary?: string;
+  stressDelta?: number;
+  resilienceDelta?: number;
+}
+
+export interface AdvisorSuggestion {
+  rank: number;
+  action: AdvisorSuggestedAction;
+  rationale: string;
+  confidence: number;
+  expectedLocalEffects?: AdvisorExpectedLocalEffects;
+}
+
+export interface AdvisorResponse {
+  stateSummary: string;
+  strategicOutlook: string;
+  suggestions: AdvisorSuggestion[];
 }
