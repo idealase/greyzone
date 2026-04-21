@@ -107,78 +107,84 @@ export default function MetricsOverview({
     : null;
 
   return (
-    <div className="metrics-grid">
-      <div className="metric-card">
-        <div className="metric-card__label">
-          Order Parameter
-          <InfoTooltip
-            label="What is the order parameter?"
-            content="Ψ measures how coordinated and intense the conflict system is. 0 = dispersed, 1 = fully synchronized escalation. Higher Ψ makes phase shifts more likely."
-          />
-        </div>
-        <div className="metric-card__value">
-          {formatOrderParameter(orderParameter)}
-          {psiDelta !== null && <DeltaBadge delta={psiDelta} />}
-        </div>
-      </div>
-      <div className="metric-card">
-        <div className="metric-card__label">
-          Phase
-          <InfoTooltip
-            label="What do phases mean?"
-            content="The current escalation band of the scenario. Each phase unlocks different actions and risk levels. Watch Ψ to see when you are nearing the next phase."
-          />
-        </div>
-        <div className="metric-card__value" style={{ fontSize: "0.8rem" }}>
-          {formatPhase(phase)}
-        </div>
-      </div>
-      <div className="metric-card">
-        <div className="metric-card__label">Turn</div>
-        <div className="metric-card__value">{turn}</div>
-      </div>
-      <div className="metric-card">
-        <div className="metric-card__label">Events</div>
-        <div className="metric-card__value">{eventCount}</div>
-      </div>
-      {resources !== null && (
-        <div className="metric-card">
+    <div className="metrics-overview">
+      {/* Primary: decision-driving metrics */}
+      <div className="metrics-grid metrics-grid--primary">
+        <div className="metric-card metric-card--primary">
           <div className="metric-card__label">
-            Resources
+            Order Parameter
             <InfoTooltip
-              label="What are resources?"
-              content={
-                <div>
-                  <div>Resource points (RP) are spent when executing actions. Each action has a cost.</div>
-                  <div style={{ marginTop: "0.3rem", fontWeight: 600, color: "#22c55e" }}>♻️ Regeneration: +2 RP per turn</div>
-                  <div style={{ marginTop: "0.2rem" }}>Running out of RP limits your available actions. Plan resource expenditure carefully.</div>
-                </div>
-              }
+              label="What is the order parameter?"
+              content="Ψ measures how coordinated and intense the conflict system is. 0 = dispersed, 1 = fully synchronized escalation. Higher Ψ makes phase shifts more likely."
             />
           </div>
           <div className="metric-card__value">
-            {Math.round(resources)} RP
-            {resDelta !== null && <DeltaBadge delta={resDelta} invert />}
+            {formatOrderParameter(orderParameter)}
+            {psiDelta !== null && <DeltaBadge delta={psiDelta} />}
           </div>
         </div>
-      )}
-      <div className="metric-card">
-        <div className="metric-card__label">Dominant Domain</div>
-        <div className="metric-card__value" style={{ fontSize: "0.78rem" }}>
-          {dominantDomain ? DOMAIN_LABELS[dominantDomain] : "--"}
+        <div className="metric-card metric-card--primary">
+          <div className="metric-card__label">
+            Phase
+            <InfoTooltip
+              label="What do phases mean?"
+              content="The current escalation band of the scenario. Each phase unlocks different actions and risk levels. Watch Ψ to see when you are nearing the next phase."
+            />
+          </div>
+          <div className="metric-card__value" style={{ fontSize: "0.8rem" }}>
+            {formatPhase(phase)}
+          </div>
         </div>
+        {resources !== null && (
+          <div className="metric-card metric-card--primary">
+            <div className="metric-card__label">
+              Resources
+              <InfoTooltip
+                label="What are resources?"
+                content={
+                  <div>
+                    <div>Resource points (RP) are spent when executing actions. Each action has a cost.</div>
+                    <div style={{ marginTop: "0.3rem", fontWeight: 600, color: "#22c55e" }}>♻️ Regeneration: +2 RP per turn</div>
+                    <div style={{ marginTop: "0.2rem" }}>Running out of RP limits your available actions. Plan resource expenditure carefully.</div>
+                  </div>
+                }
+              />
+            </div>
+            <div className="metric-card__value">
+              {Math.round(resources)} RP
+              {resDelta !== null && <DeltaBadge delta={resDelta} invert />}
+            </div>
+          </div>
+        )}
       </div>
-      <div className="metric-card">
-        <div className="metric-card__label">
-          Avg Resilience
-          <InfoTooltip
-            label="What is resilience?"
-            content="Average defensive posture across all domains. Higher resilience dampens stress growth and spillover. Keep it high to absorb shocks."
-          />
+      {/* Secondary: supporting telemetry */}
+      <div className="metrics-grid metrics-grid--secondary">
+        <div className="metric-card metric-card--secondary">
+          <div className="metric-card__label">Turn</div>
+          <div className="metric-card__value">{turn}</div>
         </div>
-        <div className="metric-card__value">
-          {formatPercent(avgResilience)}
-          {resilienceDelta !== null && <DeltaBadge delta={resilienceDelta} invert />}
+        <div className="metric-card metric-card--secondary">
+          <div className="metric-card__label">Events</div>
+          <div className="metric-card__value">{eventCount}</div>
+        </div>
+        <div className="metric-card metric-card--secondary">
+          <div className="metric-card__label">Dominant Domain</div>
+          <div className="metric-card__value" style={{ fontSize: "0.78rem" }}>
+            {dominantDomain ? DOMAIN_LABELS[dominantDomain] : "--"}
+          </div>
+        </div>
+        <div className="metric-card metric-card--secondary">
+          <div className="metric-card__label">
+            Avg Resilience
+            <InfoTooltip
+              label="What is resilience?"
+              content="Average defensive posture across all domains. Higher resilience dampens stress growth and spillover. Keep it high to absorb shocks."
+            />
+          </div>
+          <div className="metric-card__value">
+            {formatPercent(avgResilience)}
+            {resilienceDelta !== null && <DeltaBadge delta={resilienceDelta} invert />}
+          </div>
         </div>
       </div>
     </div>
