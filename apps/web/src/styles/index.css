@@ -924,6 +924,27 @@ input[type="range"] {
   margin: 0;
 }
 
+.info-section__heading--toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  transition: color 0.15s;
+}
+
+.info-section__heading--toggle:hover {
+  color: var(--text-secondary);
+}
+
+.info-section__chevron {
+  font-size: 0.75rem;
+  line-height: 1;
+}
+
 .sim-layout--tablet {
   grid-template-columns: 1fr;
   grid-template-rows: auto 1fr;
