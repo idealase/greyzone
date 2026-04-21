@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   LineChart,
   Line,
@@ -31,6 +32,17 @@ export default function DomainStressChart({
   stressHistory,
   psiHistory,
 }: DomainStressChartProps) {
+  const [hiddenSeries, setHiddenSeries] = useState<Set<string>>(new Set());
+
+  const toggleSeries = (key: string) => {
+    setHiddenSeries((prev) => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+
   if (stressHistory.length === 0) {
     return (
       <div className="card">
@@ -117,6 +129,7 @@ export default function DomainStressChart({
                 strokeWidth={1.5}
                 dot={false}
                 name={domain}
+                hide={hiddenSeries.has(domain)}
               />
             ))}
             {/* Ψ line */}
@@ -129,9 +142,37 @@ export default function DomainStressChart({
               dot={{ r: 3, fill: "#a855f7" }}
               name="psi"
               connectNulls
+              hide={hiddenSeries.has("psi")}
             />
           </LineChart>
         </ResponsiveContainer>
+      </div>
+      <div className="chart-legend">
+        {ALL_DOMAINS.map((domain) => (
+          <button
+            key={domain}
+            type="button"
+            className={`chart-legend__item${hiddenSeries.has(domain) ? " chart-legend__item--hidden" : ""}`}
+            onClick={() => toggleSeries(domain)}
+          >
+            <span
+              className="chart-legend__swatch"
+              style={{ background: DOMAIN_COLORS[domain] }}
+            />
+            {DOMAIN_LABELS[domain]}
+          </button>
+        ))}
+        <button
+          type="button"
+          className={`chart-legend__item${hiddenSeries.has("psi") ? " chart-legend__item--hidden" : ""}`}
+          onClick={() => toggleSeries("psi")}
+        >
+          <span
+            className="chart-legend__swatch chart-legend__swatch--dashed"
+            style={{ background: "#a855f7" }}
+          />
+          Ψ
+        </button>
       </div>
     </div>
   );

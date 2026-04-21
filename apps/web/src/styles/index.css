@@ -260,6 +260,53 @@ input, select, textarea, button {
   line-height: 1.5;
 }
 
+/* Chart legend */
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.5rem;
+  padding: 0.35rem 0.25rem 0;
+}
+
+.chart-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.65rem;
+  color: var(--text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.15rem 0.3rem;
+  border-radius: 3px;
+  transition: opacity 0.15s;
+}
+
+.chart-legend__item:hover {
+  background: var(--bg-tertiary);
+}
+
+.chart-legend__item--hidden {
+  opacity: 0.35;
+  text-decoration: line-through;
+}
+
+.chart-legend__swatch {
+  display: inline-block;
+  width: 10px;
+  height: 3px;
+  border-radius: 1px;
+  flex-shrink: 0;
+}
+
+.chart-legend__swatch--dashed {
+  background: repeating-linear-gradient(
+    90deg,
+    currentColor 0 4px,
+    transparent 4px 6px
+  ) !important;
+}
+
 /* Buttons */
 .btn {
   display: inline-flex;
