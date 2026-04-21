@@ -8,6 +8,7 @@ interface EventFeedProps {
   events: TurnEvent[];
   couplingMatrix?: Record<string, Record<string, number>>;
   focusedDomain?: DomainLayer | null;
+  compact?: boolean;
 }
 
 const EVENT_TYPES: TurnEvent["type"][] = [
@@ -126,7 +127,7 @@ const PINNED_TYPES: Set<TurnEvent["type"]> = new Set([
   "phase_transition", "intel", "threat",
 ]);
 
-export default function EventFeed({ events, couplingMatrix, focusedDomain }: EventFeedProps) {
+export default function EventFeed({ events, couplingMatrix, focusedDomain, compact }: EventFeedProps) {
   const [activeTypes, setActiveTypes] = useState<Set<TurnEvent["type"]>>(new Set());
   const [activeDomain, setActiveDomain] = useState<DomainLayer | "">("");
   const [searchText, setSearchText] = useState("");
@@ -199,6 +200,7 @@ export default function EventFeed({ events, couplingMatrix, focusedDomain }: Eve
       </div>
 
       {/* Filter bar */}
+      {!compact && (
       <div className="ef-filters">
         <input
           type="text"
@@ -253,6 +255,7 @@ export default function EventFeed({ events, couplingMatrix, focusedDomain }: Eve
           )}
         </div>
       </div>
+      )}
 
       {/* Event list */}
       <div className="event-feed mt-1">
@@ -261,7 +264,7 @@ export default function EventFeed({ events, couplingMatrix, focusedDomain }: Eve
             {events.length === 0 ? "No events yet." : "No events match filters."}
           </div>
         ) : (
-          filteredEvents.map((event, idx) => {
+          (compact ? filteredEvents.slice(0, 5) : filteredEvents).map((event, idx) => {
             const badge = getTypeBadge(event.type);
             const domainLabel = getDomainLabel(event.domain);
             const isNew = idx < 3;
