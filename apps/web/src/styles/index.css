@@ -291,6 +291,12 @@ input, select, textarea, button {
   text-decoration: line-through;
 }
 
+.chart-legend__item--focused {
+  background: var(--bg-tertiary);
+  outline: 1px solid var(--accent-blue);
+  opacity: 1;
+}
+
 .chart-legend__swatch {
   display: inline-block;
   width: 10px;
