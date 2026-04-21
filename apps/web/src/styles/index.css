@@ -990,6 +990,38 @@ input[type="range"] {
   overflow-y: auto;
 }
 
+/* Command zone */
+.sim-command-zone {
+  border-top: 2px solid var(--accent-blue);
+  padding-top: 0.5rem;
+}
+
+.sim-command-zone__heading {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent-blue);
+  margin-bottom: 0.35rem;
+}
+
+/* Monitor zone */
+.sim-monitor-zone {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.sim-monitor-zone__heading {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 0.25rem;
+}
+
 /* Info rail section grouping */
 .info-section {
   display: flex;

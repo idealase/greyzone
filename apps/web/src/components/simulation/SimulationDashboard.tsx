@@ -408,7 +408,7 @@ export default function SimulationDashboard({
         </>
       ) : (
         <div className="sim-panel-container">
-          {/* LEFT: Canvas + Domain Action Bar */}
+          {/* LEFT: Canvas + Command Zone */}
           <div className="sim-panel--canvas">
             <div className="battlespace-canvas">
               <BattlespaceCanvas
@@ -418,15 +418,20 @@ export default function SimulationDashboard({
               />
             </div>
             {myRole !== "observer" && (
-              <DomainActionBar
-                legalActions={legalActions}
-                onDomainClick={(domain) => setActionModalDomain(domain)}
-              />
+              <div className="sim-command-zone">
+                <h3 className="sim-command-zone__heading">Command</h3>
+                <DomainActionBar
+                  legalActions={legalActions}
+                  onDomainClick={(domain) => setActionModalDomain(domain)}
+                />
+              </div>
             )}
           </div>
 
-          {/* RIGHT: Metrics, Chart, Events */}
+          {/* RIGHT: Monitoring & Analytics */}
           <div className="sim-panel--info">
+            <div className="sim-monitor-zone">
+            <h3 className="sim-monitor-zone__heading">Monitoring</h3>
             <div className="info-section">
               <h3 className="info-section__heading">Status</h3>
               <MetricsOverview
@@ -481,6 +486,7 @@ export default function SimulationDashboard({
                   </div>
                 </>
               )}
+            </div>
             </div>
           </div>
         </div>
