@@ -413,35 +413,49 @@ export default function SimulationDashboard({
 
           {/* RIGHT: Metrics, Chart, Events */}
           <div className="sim-panel--info">
-            <MetricsOverview
-              orderParameter={orderParameter}
-              phase={currentPhase}
-              turn={currentTurn}
-              eventCount={events.length}
-              worldState={worldState}
-              side={side}
-              previousOrderParameter={previousOrderParameter}
-              previousWorldState={previousWorldState}
-            />
-            {aiMoves.length > 0 && <AiMovePanel moves={aiMoves} />}
-            <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
-            <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexShrink: 0 }}>
-              <button
-                className="btn btn--sm btn--ghost"
-                onClick={() => setShowCouplingGraph(true)}
-                title="View domain coupling map (C)"
-              >
-                🔗 View Couplings
-              </button>
-              <button
-                className="btn btn--sm btn--ghost"
-                onClick={() => setShowGlossary(true)}
-                title="Open game glossary (G)"
-              >
-                📖 Glossary
-              </button>
+            <div className="info-section">
+              <h3 className="info-section__heading">Status</h3>
+              <MetricsOverview
+                orderParameter={orderParameter}
+                phase={currentPhase}
+                turn={currentTurn}
+                eventCount={events.length}
+                worldState={worldState}
+                side={side}
+                previousOrderParameter={previousOrderParameter}
+                previousWorldState={previousWorldState}
+              />
             </div>
-            <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
+            {aiMoves.length > 0 && (
+              <div className="info-section">
+                <h3 className="info-section__heading">Opponent Activity</h3>
+                <AiMovePanel moves={aiMoves} />
+              </div>
+            )}
+            <div className="info-section">
+              <h3 className="info-section__heading">Analytics</h3>
+              <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
+              <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexShrink: 0 }}>
+                <button
+                  className="btn btn--sm btn--ghost"
+                  onClick={() => setShowCouplingGraph(true)}
+                  title="View domain coupling map (C)"
+                >
+                  🔗 View Couplings
+                </button>
+                <button
+                  className="btn btn--sm btn--ghost"
+                  onClick={() => setShowGlossary(true)}
+                  title="Open game glossary (G)"
+                >
+                  📖 Glossary
+                </button>
+              </div>
+            </div>
+            <div className="info-section">
+              <h3 className="info-section__heading">Events</h3>
+              <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
+            </div>
           </div>
         </div>
       )}
