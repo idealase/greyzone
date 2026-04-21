@@ -200,6 +200,7 @@ export function useActions(runId: string | undefined) {
 
   return {
     submitAction: submitActionMutation.mutate,
+    submitActionAsync: submitActionMutation.mutateAsync,
     isSubmitting: submitActionMutation.isPending,
     submitError: submitActionMutation.error,
     advanceTurn: advanceTurnMutation.mutate,

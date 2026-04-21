@@ -255,7 +255,48 @@ Response:
 }
 ```
 
-### 7.2 Health Check
+### 7.2 Advisor Endpoint
+
+**POST** `/ai/advisor`
+
+Request:
+```json
+{
+  "runId": "uuid",
+  "roleId": "red_commander" | "blue_commander",
+  "maxSuggestions": 3
+}
+```
+
+Response:
+```json
+{
+  "stateSummary": "Turn 7 in Crisis...",
+  "strategicOutlook": "Escalation risk is moderate...",
+  "suggestions": [
+    {
+      "rank": 1,
+      "action": {
+        "actionType": "cyber_defense_hardening",
+        "targetDomain": "cyber",
+        "targetActorId": "string?",
+        "intensity": 0.62
+      },
+      "rationale": "string",
+      "confidence": 0.78,
+      "expectedLocalEffects": {
+        "summary": "string",
+        "stressDelta": -0.07,
+        "resilienceDelta": 0.04
+      }
+    }
+  ]
+}
+```
+
+The advisor endpoint performs read-only analysis: it calls briefing and action-inspection tools but does not submit actions or advance turns.
+
+### 7.3 Health Check
 
 **GET** `/health`
 

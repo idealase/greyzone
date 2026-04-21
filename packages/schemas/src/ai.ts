@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { ActionType } from "./actions.js";
+import { DomainLayer } from "./domains.js";
 
 export const AiTurnRequest = z.object({
   runId: z.string().uuid(),
@@ -68,3 +70,79 @@ export const TurnBrief = z.object({
   domainSummary: z.array(DomainSummary),
 });
 export type TurnBrief = z.infer<typeof TurnBrief>;
+
+export const AdvisorRequest = z.object({
+  runId: z.string().uuid(),
+  roleId: z.string(),
+  maxSuggestions: z.number().int().min(1).max(10).default(3),
+});
+export type AdvisorRequest = z.infer<typeof AdvisorRequest>;
+
+export const AdvisorApiRequest = z.object({
+  run_id: z.string().uuid(),
+  role_id: z.string(),
+  max_suggestions: z.number().int().min(1).max(10).default(3),
+});
+export type AdvisorApiRequest = z.infer<typeof AdvisorApiRequest>;
+
+export const AdvisorSuggestedAction = z.object({
+  actionType: ActionType,
+  targetDomain: DomainLayer,
+  targetActorId: z.string().optional(),
+  intensity: z.number().min(0).max(1),
+});
+export type AdvisorSuggestedAction = z.infer<typeof AdvisorSuggestedAction>;
+
+export const AdvisorExpectedLocalEffects = z.object({
+  summary: z.string().optional(),
+  stressDelta: z.number().optional(),
+  resilienceDelta: z.number().optional(),
+});
+export type AdvisorExpectedLocalEffects = z.infer<typeof AdvisorExpectedLocalEffects>;
+
+export const AdvisorSuggestion = z.object({
+  rank: z.number().int().min(1),
+  action: AdvisorSuggestedAction,
+  rationale: z.string(),
+  confidence: z.number().min(0).max(1),
+  expectedLocalEffects: AdvisorExpectedLocalEffects.optional(),
+});
+export type AdvisorSuggestion = z.infer<typeof AdvisorSuggestion>;
+
+export const AdvisorResponse = z.object({
+  stateSummary: z.string(),
+  strategicOutlook: z.string(),
+  suggestions: z.array(AdvisorSuggestion),
+});
+export type AdvisorResponse = z.infer<typeof AdvisorResponse>;
+
+export const AdvisorApiSuggestedAction = z.object({
+  action_type: ActionType,
+  target_domain: DomainLayer,
+  target_actor: z.string().optional(),
+  intensity: z.number().min(0).max(1),
+});
+export type AdvisorApiSuggestedAction = z.infer<typeof AdvisorApiSuggestedAction>;
+
+export const AdvisorApiExpectedLocalEffects = z.object({
+  summary: z.string().optional(),
+  stress_delta: z.number().optional(),
+  resilience_delta: z.number().optional(),
+});
+export type AdvisorApiExpectedLocalEffects = z.infer<typeof AdvisorApiExpectedLocalEffects>;
+
+export const AdvisorApiSuggestion = z.object({
+  rank: z.number().int().min(1),
+  action: AdvisorApiSuggestedAction,
+  rationale: z.string(),
+  confidence: z.number().min(0).max(1),
+  expected_local_effects: AdvisorApiExpectedLocalEffects.optional(),
+});
+export type AdvisorApiSuggestion = z.infer<typeof AdvisorApiSuggestion>;
+
+export const AdvisorApiResponse = z.object({
+  state_summary: z.string(),
+  strategic_outlook: z.string(),
+  suggestions: z.array(AdvisorApiSuggestion),
+});
+export type AdvisorApiResponse = z.infer<typeof AdvisorApiResponse>;

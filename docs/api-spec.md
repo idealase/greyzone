@@ -546,6 +546,56 @@ POST /api/runs/{run_id}/terminate
 }
 ```
 
+### 5.10 Get Advisor Guidance
+
+```
+POST /api/v1/runs/{run_id}/advisor
+```
+
+Returns role-scoped advisory guidance for the current turn. Caller must be an authenticated participant in the run.
+
+**Request**:
+```json
+{
+  "run_id": "uuid (must match path parameter)",
+  "role_id": "blue_commander | red_commander (optional; defaults to participant role)",
+  "max_suggestions": 3
+}
+```
+
+**Response** `200 OK`:
+```json
+{
+  "state_summary": "Turn 4 in Crisis...priority pressure points...",
+  "strategic_outlook": "Escalation risk is moderate...",
+  "suggestions": [
+    {
+      "rank": 1,
+      "action": {
+        "action_type": "cyber_defense_hardening",
+        "target_domain": "cyber",
+        "target_actor": "actor-id-or-null",
+        "intensity": 0.62
+      },
+      "rationale": "Why this action is recommended...",
+      "confidence": 0.78,
+      "expected_local_effects": {
+        "summary": "Estimated decrease in stress...",
+        "stress_delta": -0.07,
+        "resilience_delta": 0.04
+      }
+    }
+  ]
+}
+```
+
+**Errors**:
+- `400 Bad Request` — `run_id` does not match path.
+- `403 Forbidden` — User is not a run member or role does not belong to user.
+- `503 Service Unavailable` — AI advisor service unreachable.
+- `504 Gateway Timeout` — AI advisor call timed out.
+- `502 Bad Gateway` — Upstream advisor returned non-2xx or invalid payload.
+
 ## 6. Moves
 
 ### 6.1 Submit Moves

@@ -1071,6 +1071,111 @@ input[type="range"] {
   color: var(--text-secondary);
 }
 
+.advisor-dialog__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.advisor-dialog__loading {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--text-secondary);
+  padding: 0.5rem 0;
+}
+
+.advisor-dialog__error {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: var(--radius);
+  color: #fca5a5;
+  padding: 0.75rem;
+}
+
+.advisor-dialog__content {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.advisor-dialog__section {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem;
+}
+
+.advisor-dialog__heading {
+  margin: 0 0 0.4rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.advisor-dialog__text {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+
+.advisor-dialog__suggestions {
+  margin: 0;
+  padding-left: 1rem;
+  display: grid;
+  gap: 0.6rem;
+}
+
+.advisor-dialog__suggestion {
+  display: grid;
+  gap: 0.4rem;
+  background: rgba(15, 23, 42, 0.35);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.65rem;
+}
+
+.advisor-dialog__suggestion-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.84rem;
+}
+
+.advisor-dialog__rank {
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.advisor-dialog__domain {
+  color: var(--text-secondary);
+}
+
+.advisor-dialog__confidence {
+  margin-left: auto;
+  font-size: 0.72rem;
+  color: #22c55e;
+}
+
+.advisor-dialog__meta {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.advisor-dialog__rationale {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-primary);
+  line-height: 1.45;
+}
+
+.advisor-dialog__effects {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  display: grid;
+  gap: 0.2rem;
+}
+
 /* Replay controls */
 .replay-controls {
   display: flex;

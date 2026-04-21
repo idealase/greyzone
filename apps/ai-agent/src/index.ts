@@ -3,6 +3,7 @@ import pino from "pino";
 import { config } from "./config.js";
 import healthRouter from "./routes/health.js";
 import aiTurnRouter from "./routes/aiTurn.js";
+import advisorRouter from "./routes/advisor.js";
 
 const logger = pino({ level: config.logLevel });
 
@@ -14,6 +15,7 @@ app.use(express.json());
 // Routes
 app.use("/health", healthRouter);
 app.use("/ai", aiTurnRouter);
+app.use("/ai", advisorRouter);
 
 // Error handling middleware
 app.use(

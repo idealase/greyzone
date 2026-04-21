@@ -100,6 +100,15 @@ Before advancing, a confirmation dialog shows:
 - Current phase and Ψ value
 - Confirm or cancel
 
+#### AI Advisor (commanders only)
+Blue and Red commanders can open **AI Advisor** from the dashboard toolbar to get a turn-level briefing:
+- **State Summary** — Snapshot of current pressure points
+- **Strategic Outlook** — Escalation risk and key tradeoff guidance
+- **Recommended Actions** — Ranked actions with rationale, confidence, and expected local effects
+- **Apply suggestion** — One-click action fill from a recommendation (if your role can submit actions)
+
+If the advisor call fails, the dialog shows an error and you can retry with **Refresh Guidance**.
+
 #### AI Intelligence Report
 When playing against the AI, this panel shows:
 - **Domain targeting heatmap** — Which domains the AI has been focusing on
