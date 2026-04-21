@@ -906,6 +906,24 @@ input[type="range"] {
   overflow-y: auto;
 }
 
+/* Info rail section grouping */
+.info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.info-section__heading {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border);
+  margin: 0;
+}
+
 .sim-layout--tablet {
   grid-template-columns: 1fr;
   grid-template-rows: auto 1fr;
