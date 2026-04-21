@@ -135,6 +135,7 @@ export default function SimulationDashboard({
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showCouplingGraph, setShowCouplingGraph] = useState(false);
   const [showGlossary, setShowGlossary] = useState(false);
+  const [analyticsExpanded, setAnalyticsExpanded] = useState(false);
   const [actionModalDomain, setActionModalDomain] = useState<DomainLayer | null>(null);
   const prevWorldStateRef = useRef<WorldState | null>(null);
   const isMountedRef = useRef(true);
@@ -437,24 +438,36 @@ export default function SimulationDashboard({
               <EventFeed events={events} couplingMatrix={worldState?.coupling_matrix} />
             </div>
             <div className="info-section">
-              <h3 className="info-section__heading">Analytics</h3>
-              <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
-              <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexShrink: 0 }}>
-                <button
-                  className="btn btn--sm btn--ghost"
-                  onClick={() => setShowCouplingGraph(true)}
-                  title="View domain coupling map (C)"
-                >
-                  🔗 View Couplings
-                </button>
-                <button
-                  className="btn btn--sm btn--ghost"
-                  onClick={() => setShowGlossary(true)}
-                  title="Open game glossary (G)"
-                >
-                  📖 Glossary
-                </button>
-              </div>
+              <button
+                type="button"
+                className="info-section__heading info-section__heading--toggle"
+                onClick={() => setAnalyticsExpanded((v) => !v)}
+                aria-expanded={analyticsExpanded}
+              >
+                <span>Analytics</span>
+                <span className="info-section__chevron">{analyticsExpanded ? "▾" : "▸"}</span>
+              </button>
+              {analyticsExpanded && (
+                <>
+                  <DomainStressChart stressHistory={stressHistory} psiHistory={psiHistory} />
+                  <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexShrink: 0 }}>
+                    <button
+                      className="btn btn--sm btn--ghost"
+                      onClick={() => setShowCouplingGraph(true)}
+                      title="View domain coupling map (C)"
+                    >
+                      🔗 View Couplings
+                    </button>
+                    <button
+                      className="btn btn--sm btn--ghost"
+                      onClick={() => setShowGlossary(true)}
+                      title="Open game glossary (G)"
+                    >
+                      📖 Glossary
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
